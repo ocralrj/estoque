@@ -11,7 +11,7 @@
 -- ============================================================
 
 -- Criar função helper que lê role do usuário atual (bypass RLS)
-CREATE OR REPLACE FUNCTION auth.user_role()
+CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS user_role
 LANGUAGE sql
 SECURITY DEFINER
@@ -29,16 +29,16 @@ DROP POLICY IF EXISTS "Usuário atualiza seu próprio perfil" ON profiles;
 -- Recriar políticas usando a função helper (sem recursão)
 CREATE POLICY "Super admin e gestor veem todos os perfis"
   ON profiles FOR SELECT
-  USING (auth.user_role() IN ('super_admin', 'gestor'));
+  USING (public.get_user_role() IN ('super_admin', 'gestor'));
 
 CREATE POLICY "Super admin atualiza qualquer perfil"
   ON profiles FOR UPDATE
-  USING (auth.user_role() = 'super_admin');
+  USING (public.get_user_role() = 'super_admin');
 
 CREATE POLICY "Usuário atualiza seu próprio perfil"
   ON profiles FOR UPDATE
   USING (auth.uid() = id)
-  WITH CHECK (role = auth.user_role());
+  WITH CHECK (role = public.get_user_role());
 
 -- ============================================================
 -- Aplicar mesmo fix nas outras tabelas afetadas
@@ -48,25 +48,25 @@ CREATE POLICY "Usuário atualiza seu próprio perfil"
 DROP POLICY IF EXISTS "Super admin e gestor gerenciam categorias" ON categories;
 CREATE POLICY "Super admin e gestor gerenciam categorias"
   ON categories FOR ALL
-  USING (auth.user_role() IN ('super_admin', 'gestor'));
+  USING (public.get_user_role() IN ('super_admin', 'gestor'));
 
 -- Products (SELECT policy para super_admin)
 DROP POLICY IF EXISTS "Super admin vê todos os produtos" ON products;
 CREATE POLICY "Super admin vê todos os produtos"
   ON products FOR SELECT
-  USING (auth.user_role() = 'super_admin');
+  USING (public.get_user_role() = 'super_admin');
 
 -- Products (ALL policy)
 DROP POLICY IF EXISTS "Super admin, gestor e almoxarife gerenciam produtos" ON products;
 CREATE POLICY "Super admin, gestor e almoxarife gerenciam produtos"
   ON products FOR ALL
-  USING (auth.user_role() IN ('super_admin', 'gestor', 'almoxarife'));
+  USING (public.get_user_role() IN ('super_admin', 'gestor', 'almoxarife'));
 
 -- Movements (INSERT policy)
 DROP POLICY IF EXISTS "Almoxarife registra movimentações" ON movements;
 CREATE POLICY "Almoxarife registra movimentações"
   ON movements FOR INSERT
-  WITH CHECK (auth.user_role() IN ('super_admin', 'gestor', 'almoxarife'));
+  WITH CHECK (public.get_user_role() IN ('super_admin', 'gestor', 'almoxarife'));
 
 -- ============================================================
 -- VERIFICAÇÃO:
