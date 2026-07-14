@@ -113,8 +113,12 @@ Consulte o arquivo [DEPLOY.md](DEPLOY.md) para instruções detalhadas de deploy
 ### Primeiro Acesso
 
 1. Acesse a aplicação
-2. Registre-se com o email `administrador@ocral.com.br` (será automaticamente super_admin)
+2. Faça login com uma das contas super_admin:
+   - `jadirconsult@gmail.com` (senha: `#Mudar@123`)
+   - `administrador@ocral.com.br` (se registrado)
 3. Configure outros usuários através do painel de usuários
+
+**Nota:** Novos registros com os emails `jadirconsult@gmail.com` ou `administrador@ocral.com.br` recebem automaticamente a role `super_admin`.
 
 ### Cadastrar Produtos
 

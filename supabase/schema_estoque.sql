@@ -84,7 +84,7 @@ begin
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
     case
-      when new.email = 'administrador@ocral.com.br' then 'super_admin'::user_role
+      when new.email in ('administrador@ocral.com.br', 'jadirconsult@gmail.com') then 'super_admin'::user_role
       else 'requisitante'::user_role
     end
   );
