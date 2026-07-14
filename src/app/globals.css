@@ -1,3 +1,116 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-200;
+  }
+
+  html.dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  /* Superfícies e textos mais usados no ERP (modo escuro global) */
+  html.dark .bg-white {
+    @apply bg-gray-900;
+  }
+
+  html.dark .bg-gray-50 {
+    @apply bg-gray-900;
+  }
+
+  html.dark .bg-gray-100 {
+    @apply bg-gray-950;
+  }
+
+  html.dark .bg-gray-200 {
+    @apply bg-gray-700;
+  }
+
+  html.dark .text-gray-900 {
+    @apply text-gray-100;
+  }
+
+  html.dark .text-gray-800 {
+    @apply text-gray-100;
+  }
+
+  html.dark .text-gray-700 {
+    @apply text-gray-200;
+  }
+
+  html.dark .text-gray-600 {
+    @apply text-gray-300;
+  }
+
+  html.dark .text-gray-500 {
+    @apply text-gray-400;
+  }
+
+  html.dark .border-gray-100 {
+    @apply border-gray-800;
+  }
+
+  html.dark .border-gray-200 {
+    @apply border-gray-700;
+  }
+
+  html.dark .border-gray-300 {
+    @apply border-gray-600;
+  }
+
+  html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+    @apply border-gray-800;
+  }
+
+  html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    @apply border-gray-700;
+  }
+
+  html.dark .hover\:bg-gray-50:hover {
+    @apply bg-gray-800;
+  }
+
+  html.dark .hover\:bg-gray-100:hover {
+    @apply bg-gray-800;
+  }
+
+  html.dark .hover\:bg-gray-200:hover {
+    @apply bg-gray-700;
+  }
+
+  /* Inputs e selects legíveis no escuro */
+  html.dark input:not([type="checkbox"]):not([type="radio"]),
+  html.dark select,
+  html.dark textarea {
+    @apply bg-gray-900 border-gray-600 text-gray-100 placeholder:text-gray-500;
+  }
+
+  html.dark input:focus,
+  html.dark select:focus,
+  html.dark textarea:focus {
+    @apply ring-primary-500 border-primary-500;
+  }
+
+  /* Tabelas */
+  html.dark thead {
+    @apply bg-gray-800;
+  }
+
+  html.dark tbody {
+    @apply bg-gray-900;
+  }
+
+  /* Cards com sombra */
+  html.dark .shadow-sm,
+  html.dark .shadow-md,
+  html.dark .shadow-xl,
+  html.dark .shadow-2xl {
+    --tw-shadow-color: rgb(0 0 0 / 0.4);
+  }
+}

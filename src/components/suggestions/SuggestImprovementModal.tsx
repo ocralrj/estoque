@@ -243,7 +243,7 @@ export default function SuggestImprovementModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="suggest-title"
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-gray-100">

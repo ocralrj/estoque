@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SuggestImprovementModal from "@/components/suggestions/SuggestImprovementModal";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export default function DashboardHeader() {
   const [open, setOpen] = useState(false);
@@ -9,10 +10,12 @@ export default function DashboardHeader() {
   return (
     <>
       <div className="flex items-center justify-end gap-2 mb-4">
+        <ThemeToggle compact />
+
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-medium text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-medium text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
           title="Sugerir uma melhoria"
         >
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-amber-300/80">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -41,11 +42,14 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle compact />
+      </div>
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-md p-8 border border-transparent dark:border-gray-800">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">OCRAL</h1>
-          <p className="text-gray-500 mt-1">Recuperar senha</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">OCRAL</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Recuperar senha</p>
         </div>
 
         {success ? (
