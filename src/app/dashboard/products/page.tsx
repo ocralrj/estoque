@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { Product } from "@/types/database";
 
 export default async function ProductsPage() {
   const supabase = await createClient();
@@ -20,7 +21,8 @@ export default async function ProductsPage() {
       category:categories(name)
     `)
     .eq("active", true)
-    .order("name");
+    .order("name")
+    .returns<Product[]>();
 
   const { data: categories } = await supabase
     .from("categories")
@@ -78,7 +80,7 @@ export default async function ProductsPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {products && products.length > 0 ? (
-                products.map((product: any) => (
+                products.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {product.code}

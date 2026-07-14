@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { Movement, ReportStats, ProductMovementStats, CategoryStats } from "@/types/database";
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
@@ -9,9 +10,9 @@ export default function ReportsPage() {
     start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
   });
-  const [stats, setStats] = useState<any>(null);
-  const [topProducts, setTopProducts] = useState<any[]>([]);
-  const [categoryStats, setCategoryStats] = useState<any[]>([]);
+  const [stats, setStats] = useState<ReportStats | null>(null);
+  const [topProducts, setTopProducts] = useState<ProductMovementStats[]>([]);
+  const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
 
   useEffect(() => {
     loadReports();
@@ -28,7 +29,8 @@ export default function ReportsPage() {
         product:products(name, code, category:categories(name))
       `)
       .gte("created_at", dateRange.start)
-      .lte("created_at", dateRange.end);
+      .lte("created_at", dateRange.end)
+      .returns<Movement[]>();
 
     if (!movements) {
       setLoading(false);
@@ -46,11 +48,11 @@ export default function ReportsPage() {
       volumeSaida: saidas.reduce((sum, m) => sum + m.quantity, 0),
     });
 
-    const productCounts = movements.reduce((acc: any, m: any) => {
+    const productCounts = movements.reduce<Record<string, ProductMovementStats>>((acc, m) => {
       const key = m.product_id;
       if (!acc[key]) {
         acc[key] = {
-          product: m.product,
+          product: m.product || null,
           entradas: 0,
           saidas: 0,
           totalMovements: 0,
@@ -63,12 +65,12 @@ export default function ReportsPage() {
     }, {});
 
     const sortedProducts = Object.values(productCounts)
-      .sort((a: any, b: any) => b.totalMovements - a.totalMovements)
+      .sort((a, b) => b.totalMovements - a.totalMovements)
       .slice(0, 10);
 
     setTopProducts(sortedProducts);
 
-    const categoryCounts = movements.reduce((acc: any, m: any) => {
+    const categoryCounts = movements.reduce<Record<string, CategoryStats>>((acc, m) => {
       const category = m.product?.category?.name || "Sem categoria";
       if (!acc[category]) {
         acc[category] = { name: category, count: 0 };
@@ -77,7 +79,7 @@ export default function ReportsPage() {
       return acc;
     }, {});
 
-    setCategoryStats(Object.values(categoryCounts).sort((a: any, b: any) => b.count - a.count));
+    setCategoryStats(Object.values(categoryCounts).sort((a, b) => b.count - a.count));
     setLoading(false);
   }
 
@@ -151,7 +153,7 @@ export default function ReportsPage() {
               </h2>
               {topProducts.length > 0 ? (
                 <div className="space-y-3">
-                  {topProducts.map((item: any, index: number) => (
+                  {topProducts.map((item, index) => (
                     <div key={index} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="text-sm font-medium text-gray-900">
@@ -180,7 +182,7 @@ export default function ReportsPage() {
               </h2>
               {categoryStats.length > 0 ? (
                 <div className="space-y-3">
-                  {categoryStats.map((cat: any, index: number) => (
+                  {categoryStats.map((cat, index) => (
                     <div key={index} className="flex items-center justify-between border-b pb-2">
                       <p className="text-sm font-medium text-gray-900">{cat.name}</p>
                       <p className="text-sm font-semibold text-blue-600">{cat.count} mov.</p>
