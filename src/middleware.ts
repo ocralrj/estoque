@@ -27,14 +27,19 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
-  const isPublicRoute = request.nextUrl.pathname === "/";
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/auth");
+  const isPublicRoute = pathname === "/";
+  // Recovery: usuário chega com sessão mas precisa definir nova senha
+  const isPasswordRecoveryRoute =
+    pathname.startsWith("/auth/reset-password") ||
+    pathname.startsWith("/auth/callback");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthRoute && !isPasswordRecoveryRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

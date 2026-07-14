@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("error") === "link_invalido") {
+      setError("Link de recuperação inválido ou expirado. Solicite um novo.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +41,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Certificados OCRAL</h1>
+          <h1 className="text-2xl font-bold text-gray-900">OCRAL</h1>
           <p className="text-gray-500 mt-1">Acesse sua conta</p>
         </div>
 
@@ -46,6 +53,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -54,12 +62,21 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Senha
+              </label>
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-primary-600 hover:underline font-medium"
+              >
+                Esqueci a senha
+              </Link>
+            </div>
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -90,5 +107,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <p className="text-sm text-gray-500">Carregando...</p>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

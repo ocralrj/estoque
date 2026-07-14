@@ -45,7 +45,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Certificados OCRAL</h1>
+          <h1 className="text-2xl font-bold text-gray-900">OCRAL</h1>
           <p className="text-gray-500 mt-1">Crie sua conta</p>
         </div>
 

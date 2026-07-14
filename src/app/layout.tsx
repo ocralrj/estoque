@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Estoque OCRAL",
-  description: "Sistema de controle de estoque e almoxarifado",
+  title: "OCRAL",
+  description: "Sistema ERP OCRAL — estoque, almoxarifado e gestão",
 };
 
 export default function RootLayout({
