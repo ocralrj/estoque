@@ -85,7 +85,7 @@ export default async function AlertsPage() {
 
                 <div className="ml-4">
                   <Link
-                    href={`/dashboard/movements/new?product=${product.id}`}
+                    href={`/dashboard/estoque/movimentacoes/new?product=${product.id}&type=entrada`}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
                     Registrar Entrada

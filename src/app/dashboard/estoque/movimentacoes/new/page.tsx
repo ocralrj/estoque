@@ -63,7 +63,7 @@ export default function NewMovementPage() {
       return;
     }
 
-    router.push("/dashboard/movements");
+    router.push("/dashboard/estoque/movimentacoes");
   }
 
   return (

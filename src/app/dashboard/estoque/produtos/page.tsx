@@ -37,7 +37,7 @@ export default async function ProductsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
         {canManage && (
           <Link
-            href="/dashboard/products/new"
+            href="/dashboard/estoque/produtos/new"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Novo Produto
@@ -114,7 +114,7 @@ export default async function ProductsPage() {
                     {canManage && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <Link
-                          href={`/dashboard/products/${product.id}/edit`}
+                          href={`/dashboard/estoque/produtos/${product.id}/edit`}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           Editar

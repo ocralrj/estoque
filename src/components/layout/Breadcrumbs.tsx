@@ -21,6 +21,8 @@ const moduleLabelMap: Record<string, string> = {
   admin: "Administração",
   usuarios: "Usuários",
   grupos: "Grupos",
+  sugestoes: "Sugestões",
+  auditoria: "Auditoria",
 };
 
 export default function Breadcrumbs() {

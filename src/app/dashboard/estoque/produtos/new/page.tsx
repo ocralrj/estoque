@@ -55,7 +55,7 @@ export default function NewProductPage() {
       return;
     }
 
-    router.push("/dashboard/products");
+    router.push("/dashboard/estoque/produtos");
   }
 
   return (
