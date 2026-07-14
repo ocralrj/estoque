@@ -39,33 +39,33 @@ supabase/fix_rls_redirect_loop.sql
 
 ---
 
-## Configurar IA (opcional, recomendado em produção)
+## Configurar IA (recomendado — Gemini grátis)
 
-Sem chave, o sistema usa **fallback local** (clarificação por regras).  
-Com chave, o pipeline chama um provedor OpenAI-compatible **somente no servidor**.
+Sem chave, o sistema usa **fallback local** (regras).  
+Com chave, o padrão é **Google Gemini** (AI Studio, tier gratuito).
 
-No `.env.local` (nunca `NEXT_PUBLIC_` para a chave):
+### Gemini (padrão)
+
+1. Gere a chave em: https://aistudio.google.com/apikey  
+2. No `.env.local` ou Vercel:
 
 ```env
 AI_SUGGESTIONS_ENABLED=true
+AI_PROVIDER=gemini
+GEMINI_API_KEY=AIza...
+AI_MODEL=gemini-2.0-flash
+```
+
+Guia completo: [GUIA_GEMINI_IA.md](./GUIA_GEMINI_IA.md)
+
+### OpenAI / Groq (opcional)
+
+```env
+AI_PROVIDER=openai
 AI_API_KEY=sk-...
 AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
-AI_TIMEOUT_MS=20000
-AI_MAX_RETRIES=1
-AI_TEMPERATURE=0.3
-AI_RATE_LIMIT_PER_USER_HOUR=30
 ```
-
-**Groq (exemplo):**
-
-```env
-AI_API_KEY=gsk_...
-AI_BASE_URL=https://api.groq.com/openai/v1
-AI_MODEL=llama-3.1-8b-instant
-```
-
-Modelo configurável por env — trocar provedor não exige mudar a UI.
 
 ---
 

@@ -5,6 +5,7 @@ import {
   buildUserPrompt,
 } from "./prompt-templates";
 import { chatCompletion } from "./providers/openai-compatible";
+import { geminiChatCompletion } from "./providers/gemini";
 import { checkRateLimit } from "./rate-limit";
 import { parseAiSuggestionResponse } from "./validate";
 import type {
@@ -21,6 +22,7 @@ import type { SuggestionMessage } from "@/types/modules/suggestions";
 /**
  * Pipeline: autorizar (caller) → rate limit → contexto → prompt → modelo → validar → pós-processar.
  * A IA recomenda; o usuário aceita/edita/descarta.
+ * Padrão: Google Gemini (grátis no AI Studio).
  */
 export async function runAiSuggestPipeline(
   userId: string,
@@ -70,7 +72,7 @@ export async function runAiSuggestPipeline(
       ok: false,
       code: "NOT_CONFIGURED",
       message:
-        "Sugestões por IA não estão configuradas. Defina AI_API_KEY no servidor.",
+        "Sugestões por IA não estão configuradas. Defina GEMINI_API_KEY no servidor (Google AI Studio).",
     };
   }
 
@@ -92,10 +94,14 @@ export async function runAiSuggestPipeline(
   });
 
   try {
-    const result = await chatCompletion(config, [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ]);
+    const messages = [
+      { role: "system" as const, content: system },
+      { role: "user" as const, content: user },
+    ];
+    const result =
+      config.provider === "gemini"
+        ? await geminiChatCompletion(config, messages)
+        : await chatCompletion(config, messages);
 
     const validated = parseAiSuggestionResponse(result.content, {
       maxItems: n,
