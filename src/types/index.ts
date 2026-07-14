@@ -1,4 +1,4 @@
-export type UserRole = "super_admin" | "gestor" | "uploader" | "viewer";
+export type UserRole = "super_admin" | "gestor" | "almoxarife" | "requisitante";
 
 export interface Profile {
   id: string;
@@ -10,59 +10,48 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface Group {
+export interface Category {
   id: string;
   name: string;
   description: string | null;
-  created_by: string | null;
   created_at: string;
 }
 
-export interface GroupMember {
+export interface Product {
   id: string;
-  group_id: string;
-  user_id: string;
-  added_by: string | null;
-  added_at: string;
-}
-
-export interface Certificate {
-  id: string;
-  title: string;
+  code: string;
+  name: string;
   description: string | null;
-  issuer: string;
-  issued_to: string;
-  issued_date: string;
-  expiry_date: string | null;
-  category: string | null;
-  tags: string[] | null;
-  file_path: string;
-  file_name: string;
-  file_size: number | null;
-  mime_type: string | null;
-  uploaded_by: string;
-  is_expired: boolean;
+  category_id: string | null;
+  unit: string;
+  quantity_current: number;
+  quantity_minimum: number;
+  location: string | null;
+  active: boolean;
+  is_low_stock: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Movement {
+  id: string;
+  product_id: string;
+  type: "entrada" | "saida";
+  quantity: number;
+  reason: string;
+  notes: string | null;
+  previous_quantity: number;
+  new_quantity: number;
+  created_by: string;
   created_at: string;
 }
 
-export interface CertificateAccess {
-  id: string;
-  certificate_id: string;
-  group_id: string;
-  granted_by: string;
-  granted_at: string;
+export interface ProductWithCategory extends Product {
+  category?: Category | null;
 }
 
-export interface DownloadLog {
-  id: string;
-  certificate_id: string;
-  user_id: string;
-  downloaded_at: string;
-  ip_address: string | null;
-}
-
-export interface CertificateWithAccess extends Certificate {
-  uploader?: Profile;
-  groups?: Group[];
-  download_count?: number;
+export interface MovementWithDetails extends Movement {
+  product?: Pick<Product, "name" | "code" | "unit"> | null;
+  user?: Pick<Profile, "full_name" | "email"> | null;
 }

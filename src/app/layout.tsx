@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Certificados OCRAL",
-  description: "Sistema de armazenamento e disponibilização de certificados digitais",
+  title: "Estoque OCRAL",
+  description: "Sistema de controle de estoque e almoxarifado",
 };
 
 export default function RootLayout({

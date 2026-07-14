@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,14 +19,14 @@ export default function NewProductPage() {
     location: "",
   });
 
-  useState(() => {
+  useEffect(() => {
     async function loadCategories() {
       const supabase = createClient();
       const { data } = await supabase.from("categories").select("*").order("name");
       setCategories(data || []);
     }
     loadCategories();
-  });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,10 +35,19 @@ export default function NewProductPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("products").insert({
-      ...formData,
+    const payload = {
+      code: formData.code,
+      name: formData.name,
+      description: formData.description || null,
+      category_id: formData.category_id || null,
+      unit: formData.unit,
+      quantity_current: formData.quantity_current,
+      quantity_minimum: formData.quantity_minimum,
+      location: formData.location || null,
       created_by: user?.id,
-    });
+    };
+
+    const { error } = await supabase.from("products").insert(payload);
 
     if (error) {
       alert("Erro ao criar produto: " + error.message);

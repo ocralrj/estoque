@@ -8,8 +8,8 @@ import type { Profile, UserRole } from "@/types";
 const roleLabel: Record<string, string> = {
   super_admin: "Super Admin",
   gestor: "Gestor",
-  uploader: "Uploader",
-  viewer: "Visualizador",
+  almoxarife: "Almoxarife",
+  requisitante: "Requisitante",
 };
 
 export default function UsersClient({
@@ -48,8 +48,8 @@ export default function UsersClient({
 
   const availableRoles: UserRole[] =
     currentRole === "super_admin"
-      ? ["super_admin", "gestor", "uploader", "viewer"]
-      : ["uploader", "viewer"];
+      ? ["super_admin", "gestor", "almoxarife", "requisitante"]
+      : ["almoxarife", "requisitante"];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -77,7 +77,7 @@ export default function UsersClient({
                   <p className="text-gray-400 text-xs">{u.email}</p>
                 </td>
                 <td className="px-4 py-3">
-                  {currentRole === "super_admin" || u.role === "viewer" || u.role === "uploader" ? (
+                  {currentRole === "super_admin" || u.role === "requisitante" || u.role === "almoxarife" ? (
                     <select
                       value={u.role}
                       disabled={loading === u.id}
