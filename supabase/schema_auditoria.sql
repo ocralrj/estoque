@@ -1,17 +1,18 @@
 -- ============================================================
--- SCHEMA DE AUDITORIA - ERP OCRAL
+-- SCHEMA DE AUDITORIA - ERP OCRAL (IDEMPOTENTE)
 -- Sistema transversal de auditoria para todos os módulos
+-- Execute este script completo - ele é idempotente e pode ser reaplicado
 -- ============================================================
 
 -- Criar tabela de auditoria
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  module TEXT NOT NULL, -- 'estoque', 'certificados', 'ged', 'admin'
-  action TEXT NOT NULL, -- 'create', 'update', 'delete', 'view', 'download', 'upload'
-  resource_type TEXT NOT NULL, -- 'product', 'movement', 'certificate', 'document', 'user', 'group'
-  resource_id TEXT, -- ID do recurso afetado
-  details JSONB, -- Detalhes adicionais da ação
+  module TEXT NOT NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id TEXT,
+  details JSONB,
   ip_address INET,
   user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -26,6 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DE
 
 -- RLS Policies para audit_logs
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Remover policies antigas se existirem
+DROP POLICY IF EXISTS audit_logs_super_admin_all ON audit_logs;
+DROP POLICY IF EXISTS audit_logs_gestor_read ON audit_logs;
 
 -- Super admin pode ver tudo
 CREATE POLICY audit_logs_super_admin_all ON audit_logs
