@@ -242,6 +242,9 @@ function localFallback(input: AiSuggestContext): AiSuggestionResponse {
   if (tipo === "descricao_produto") {
     return localProductDescription(input);
   }
+  if (tipo === "descricao_grupo") {
+    return localGroupDescription(input);
+  }
   if (tipo === "motivo_movimentacao") {
     return localMovementReason(input);
   }
@@ -276,6 +279,43 @@ function localFallback(input: AiSuggestContext): AiSuggestionResponse {
       },
     ],
     aviso: "Modo local — configure AI_API_KEY para sugestões por modelo.",
+  };
+}
+
+function localGroupDescription(input: AiSuggestContext): AiSuggestionResponse {
+  const ctx = input.contexto || {};
+  const nome = String(ctx.nome_grupo || ctx.nome || "").trim();
+  const rascunho = input.entrada_usuario?.trim();
+  const base = nome || "Grupo de usuários";
+
+  return {
+    sugestoes: [
+      {
+        texto: (
+          rascunho ||
+          `${base}: grupo responsável por atividades operacionais no sistema OCRAL. Define permissões e acesso conforme o perfil dos membros.`
+        ).slice(0, 300),
+        justificativa: "Descrição operacional do grupo",
+        confianca: nome ? "media" : "baixa",
+      },
+      {
+        texto: `Grupo "${base}" para organização de usuários e concessão de permissões por função. Membros herdam as permissões atribuídas ao grupo.`.slice(
+          0,
+          300
+        ),
+        justificativa: "Foco em permissões",
+        confianca: "media",
+      },
+      {
+        texto: `Responsabilidades do ${base}: executar rotinas do módulo atribuído, manter dados consistentes e seguir as políticas de acesso definidas pela administração.`.slice(
+          0,
+          300
+        ),
+        justificativa: "Foco em responsabilidades",
+        confianca: "baixa",
+      },
+    ],
+    aviso: "Modo local — configure GEMINI_API_KEY para textos mais elaborados.",
   };
 }
 

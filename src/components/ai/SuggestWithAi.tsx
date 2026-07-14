@@ -110,12 +110,12 @@ export default function SuggestWithAi({
         onClick={runSuggest}
         disabled={disabled || loading}
         className={clsx(
-          "inline-flex items-center gap-1.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 disabled:opacity-50",
+          "inline-flex items-center gap-1.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-gray-900 disabled:opacity-50",
           variant === "inline"
-            ? "text-xs text-amber-700 hover:text-amber-900"
-            : "px-2.5 py-1.5 rounded-lg text-xs bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+            ? "text-xs text-amber-700 hover:text-amber-900 dark:text-amber-300"
+            : "px-2.5 py-1.5 rounded-lg text-xs bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 dark:hover:bg-amber-900/50"
         )}
-        title="Gerar sugestão com IA (você revisa antes de usar)"
+        title="Gerar descrição com IA (você revisa antes de usar)"
       >
         <SparkIcon className={loading ? "animate-pulse" : ""} />
         {loading ? "Gerando..." : label}
