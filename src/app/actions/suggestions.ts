@@ -79,7 +79,22 @@ export async function createSuggestion(
     .select()
     .single();
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    const msg = error.message || "Erro ao salvar sugestão";
+    if (
+      /improvement_suggestions/i.test(msg) ||
+      /schema cache/i.test(msg) ||
+      error.code === "PGRST205" ||
+      error.code === "42P01"
+    ) {
+      return {
+        ok: false,
+        message:
+          "Tabela de sugestões ainda não existe no banco. No Supabase, abra SQL Editor e execute o arquivo supabase/schema_sugestoes.sql, depois tente de novo.",
+      };
+    }
+    return { ok: false, message: msg };
+  }
 
   revalidatePath("/dashboard/sugestoes");
   revalidatePath("/dashboard/admin/sugestoes");
