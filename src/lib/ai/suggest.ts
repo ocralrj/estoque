@@ -232,6 +232,17 @@ function localFallback(input: AiSuggestContext): AiSuggestionResponse {
     }
   }
 
+  // Fallbacks por tipo de campo (formulários)
+  if (tipo === "descricao_produto") {
+    return localProductDescription(input);
+  }
+  if (tipo === "motivo_movimentacao") {
+    return localMovementReason(input);
+  }
+  if (tipo === "observacao_movimentacao") {
+    return localMovementNotes(input);
+  }
+
   // Genérico
   const seed =
     input.entrada_usuario?.trim() ||
@@ -259,6 +270,161 @@ function localFallback(input: AiSuggestContext): AiSuggestionResponse {
       },
     ],
     aviso: "Modo local — configure AI_API_KEY para sugestões por modelo.",
+  };
+}
+
+function localProductDescription(input: AiSuggestContext): AiSuggestionResponse {
+  const ctx = input.contexto || {};
+  const nome = String(ctx.nome || "").trim();
+  const codigo = String(ctx.codigo || "").trim();
+  const unidade = String(ctx.unidade || "").trim();
+  const categoria = String(ctx.categoria || "").trim();
+  const localizacao = String(ctx.localizacao || "").trim();
+  const rascunho = input.entrada_usuario?.trim();
+
+  if (!nome && !rascunho) {
+    return {
+      sugestoes: [
+        {
+          texto:
+            "Informe o nome do produto para gerar uma descrição. Ex.: material de consumo do almoxarifado.",
+          justificativa: "Falta o nome do produto",
+          confianca: "baixa",
+        },
+      ],
+      aviso: "Preencha ao menos o nome do produto.",
+    };
+  }
+
+  const base = nome || rascunho || "Item";
+  const parts: string[] = [];
+  parts.push(`${base}`);
+  if (categoria) parts.push(`Categoria: ${categoria}.`);
+  if (unidade) parts.push(`Unidade de controle: ${unidade}.`);
+  if (codigo) parts.push(`Código interno: ${codigo}.`);
+  if (localizacao) parts.push(`Localização sugerida: ${localizacao}.`);
+
+  const sugestoes: AiSuggestionResponse["sugestoes"] = [
+    {
+      texto: `${base} — item de almoxarifado para controle de estoque${
+        categoria ? ` (${categoria})` : ""
+      }.${unidade ? ` Controlado em ${unidade}.` : ""}${
+        localizacao ? ` Guarde em ${localizacao}.` : ""
+      }`.slice(0, 300),
+      justificativa: "Descrição operacional com base no cadastro",
+      confianca: nome ? "media" : "baixa",
+    },
+    {
+      texto: `Material/item "${base}" destinado a uso interno. Manter saldo mínimo e registrar toda entrada/saída no sistema.${
+        codigo ? ` Ref. ${codigo}.` : ""
+      }`.slice(0, 300),
+      justificativa: "Foco em rastreabilidade",
+      confianca: "media",
+    },
+    {
+      texto: (rascunho
+        ? rascunho
+        : `${base}: consumível/equipamento de almoxarifado. Verificar quantidade mínima antes de atender requisições.`
+      ).slice(0, 300),
+      justificativa: rascunho ? "A partir do texto já digitado" : "Sugestão genérica de uso",
+      confianca: rascunho ? "media" : "baixa",
+    },
+  ];
+
+  return {
+    sugestoes,
+    aviso: "Modo local — configure AI_API_KEY para textos mais elaborados.",
+  };
+}
+
+function localMovementReason(input: AiSuggestContext): AiSuggestionResponse {
+  const ctx = input.contexto || {};
+  const tipo = String(ctx.tipo || "entrada");
+  const produto = (ctx.produto || {}) as Record<string, unknown>;
+  const nome = String(produto.nome || "produto");
+  const rascunho = input.entrada_usuario?.trim();
+
+  if (tipo === "entrada") {
+    return {
+      sugestoes: [
+        {
+          texto: rascunho || `Compra / recebimento de ${nome}`,
+          justificativa: "Entrada por aquisição",
+          confianca: "media",
+        },
+        {
+          texto: `Devolução ao estoque — ${nome}`,
+          justificativa: "Entrada por devolução",
+          confianca: "media",
+        },
+        {
+          texto: `Ajuste de inventário (entrada) — ${nome}`,
+          justificativa: "Correção de saldo",
+          confianca: "baixa",
+        },
+      ],
+      aviso: "Modo local — revise o motivo antes de salvar.",
+    };
+  }
+
+  return {
+    sugestoes: [
+      {
+        texto: rascunho || `Requisição / utilização de ${nome}`,
+        justificativa: "Saída operacional",
+        confianca: "media",
+      },
+      {
+        texto: `Consumo interno — ${nome}`,
+        justificativa: "Uso no dia a dia",
+        confianca: "media",
+      },
+      {
+        texto: `Ajuste de inventário (saída) — ${nome}`,
+        justificativa: "Correção de saldo",
+        confianca: "baixa",
+      },
+    ],
+    aviso: "Modo local — revise o motivo antes de salvar.",
+  };
+}
+
+function localMovementNotes(input: AiSuggestContext): AiSuggestionResponse {
+  const ctx = input.contexto || {};
+  const tipo = String(ctx.tipo || "");
+  const motivo = String(ctx.motivo || "").trim();
+  const produto = (ctx.produto || {}) as Record<string, unknown>;
+  const nome = String(produto.nome || "item");
+  const qty = ctx.quantidade;
+
+  const base = [
+    motivo ? `Motivo: ${motivo}.` : null,
+    qty ? `Quantidade: ${qty}.` : null,
+    `Produto: ${nome}.`,
+    tipo === "saida"
+      ? "Registrar responsável e destino, se aplicável."
+      : "Conferir nota fiscal / documento de origem, se houver.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    sugestoes: [
+      {
+        texto: (input.entrada_usuario?.trim() || base).slice(0, 300),
+        justificativa: "Observação objetiva da movimentação",
+        confianca: "media",
+      },
+      {
+        texto: `Sem divergências aparentes. Movimentação de ${tipo || "estoque"} registrada para ${nome}.`.slice(
+          0,
+          300
+        ),
+        justificativa: "Nota curta padrão",
+        confianca: "baixa",
+      },
+    ],
+    aviso: "Modo local — edite se precisar de detalhes específicos.",
   };
 }
 

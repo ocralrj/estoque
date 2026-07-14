@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import SuggestWithAi from "@/components/ai/SuggestWithAi";
 
 export default function NewMovementPage() {
   const router = useRouter();
@@ -134,9 +135,35 @@ export default function NewMovementPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Motivo *
-            </label>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Motivo *
+              </label>
+              <SuggestWithAi
+                fieldType="motivo_movimentacao"
+                whatToSuggest={
+                  formData.type === "entrada"
+                    ? "motivos curtos de entrada de estoque (compra, devolução, ajuste)"
+                    : "motivos curtos de saída de estoque (requisição, uso, perda)"
+                }
+                currentValue={formData.reason}
+                context={{
+                  tipo: formData.type,
+                  produto: selectedProduct
+                    ? {
+                        codigo: selectedProduct.code,
+                        nome: selectedProduct.name,
+                        estoque: selectedProduct.quantity_current,
+                        unidade: selectedProduct.unit,
+                      }
+                    : null,
+                  quantidade: formData.quantity,
+                }}
+                onAccept={(texto) =>
+                  setFormData((prev) => ({ ...prev, reason: texto }))
+                }
+              />
+            </div>
             <input
               type="text"
               required
@@ -148,9 +175,30 @@ export default function NewMovementPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Observações
-            </label>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Observações
+              </label>
+              <SuggestWithAi
+                fieldType="observacao_movimentacao"
+                whatToSuggest="observações complementares objetivas para a movimentação de estoque"
+                currentValue={formData.notes}
+                context={{
+                  tipo: formData.type,
+                  motivo: formData.reason,
+                  produto: selectedProduct
+                    ? {
+                        codigo: selectedProduct.code,
+                        nome: selectedProduct.name,
+                      }
+                    : null,
+                  quantidade: formData.quantity,
+                }}
+                onAccept={(texto) =>
+                  setFormData((prev) => ({ ...prev, notes: texto }))
+                }
+              />
+            </div>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

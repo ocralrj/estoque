@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import SuggestWithAi from "@/components/ai/SuggestWithAi";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -91,9 +92,28 @@ export default function NewProductPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Descrição
-            </label>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Descrição
+              </label>
+              <SuggestWithAi
+                fieldType="descricao_produto"
+                whatToSuggest="descrições claras e úteis para o cadastro do produto no almoxarifado"
+                currentValue={formData.description}
+                context={{
+                  codigo: formData.code,
+                  nome: formData.name,
+                  unidade: formData.unit,
+                  categoria:
+                    categories.find((c) => c.id === formData.category_id)?.name ||
+                    null,
+                  localizacao: formData.location,
+                }}
+                onAccept={(texto) =>
+                  setFormData((prev) => ({ ...prev, description: texto }))
+                }
+              />
+            </div>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}

@@ -110,7 +110,32 @@ Modelo configurável por env — trocar provedor não exige mudar a UI.
 | `src/app/dashboard/sugestoes/page.tsx` | Meus pedidos |
 | `src/app/dashboard/admin/sugestoes/*` | Gestão |
 
-### Reutilizar em outros campos
+### Botão reutilizável "Sugira com IA"
+
+Componente de UI para qualquer campo de formulário:
+
+```tsx
+import SuggestWithAi from "@/components/ai/SuggestWithAi";
+
+<div className="flex items-center justify-between mb-1">
+  <label>Descrição</label>
+  <SuggestWithAi
+    fieldType="descricao_produto"
+    whatToSuggest="descrições claras do produto"
+    context={{ nome: form.name, codigo: form.code }}
+    currentValue={form.description}
+    onAccept={(texto) => setForm({ ...form, description: texto })}
+  />
+</div>
+```
+
+Já integrado em:
+- Novo produto → **Descrição**
+- Nova movimentação → **Motivo** e **Observações**
+
+Fluxo do botão: clicar → pipeline no servidor → preview (aceitar / regenerar / descartar) → preenche o campo (usuário ainda salva o form).
+
+### Reutilizar via Server Action
 
 ```typescript
 import { suggestWithAi } from "@/app/actions/ai-suggest";
