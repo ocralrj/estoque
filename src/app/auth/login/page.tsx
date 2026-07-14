@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 function LoginForm() {
   const router = useRouter();
@@ -73,13 +74,11 @@ function LoginForm() {
                 Esqueci a senha
               </Link>
             </div>
-            <input
-              type="password"
+            <PasswordInput
               required
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="••••••••"
             />
           </div>

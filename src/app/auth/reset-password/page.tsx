@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -122,14 +123,12 @@ export default function ResetPasswordPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Nova senha
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={6}
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
@@ -138,14 +137,12 @@ export default function ResetPasswordPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Confirmar senha
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={6}
                 autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Repita a nova senha"
               />
             </div>

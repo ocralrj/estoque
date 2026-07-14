@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -82,12 +83,11 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Senha
             </label>
-            <input
-              type="password"
+            <PasswordInput
               required
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
