@@ -6,9 +6,9 @@
 
 ## Criar usuário jadirconsult@gmail.com
 
-### Opção 1: Via Dashboard do Supabase (RECOMENDADO)
+### Opção 1: Via Dashboard do Supabase (MAIS SIMPLES - RECOMENDADO)
 
-1. Acesse https://supabase.com/dashboard/project/ffsymnxutfjmvwnurfby
+1. Acesse [Dashboard do Supabase](https://supabase.com/dashboard/project/ffsymnxutfjmvwnurfby)
 2. No menu lateral, clique em **Authentication**
 3. Clique na aba **Users**
 4. Clique no botão **Add user** (ou **Invite user**)
@@ -20,65 +20,49 @@
 
 O trigger `handle_new_user()` será executado automaticamente e criará o perfil com role `super_admin`.
 
-### Opção 2: Via SQL Editor
+**IMPORTANTE**: Esta é a forma mais segura e simples. O Supabase gerencia automaticamente o hash da senha e a criação do usuário.
 
-Se preferir criar via SQL:
+### Opção 2: Via SQL Editor (AVANÇADO)
 
-```sql
--- 1. Criar o usuário na tabela auth.users
-INSERT INTO auth.users (
-  instance_id,
-  id,
-  aud,
-  role,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  is_super_admin,
-  confirmation_token
-) VALUES (
-  '00000000-0000-0000-0000-000000000000',
-  gen_random_uuid(),
-  'authenticated',
-  'authenticated',
-  'jadirconsult@gmail.com',
-  crypt('#Mudar@123', gen_salt('bf')),
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"provider":"email","providers":["email"]}',
-  '{"full_name":"Administrador OCRAL"}',
-  false,
-  ''
-);
+Se preferir criar via SQL, use o script preparado:
 
--- O trigger handle_new_user() criará automaticamente o perfil com role super_admin
-```
+1. Acesse [SQL Editor do Supabase](https://supabase.com/dashboard/project/ffsymnxutfjmvwnurfby/sql)
+2. Copie e cole o conteúdo do arquivo [criar_usuario_super_admin.sql](scripts/criar_usuario_super_admin.sql)
+3. Clique em **Run** para executar
+4. Verifique se o usuário foi criado com o script [verificar_usuario_criado.sql](scripts/verificar_usuario_criado.sql)
 
-### Opção 3: Via Página de Registro
+O trigger `handle_new_user()` será executado automaticamente e criará o perfil com role `super_admin`.
 
-1. Acesse https://ocral.vercel.app/auth/register
+### Opção 3: Via Página de Registro (ALTERNATIVA)
+
+1. Acesse [Página de Registro](https://ocral.vercel.app/auth/register)
 2. Preencha:
    - **Nome completo**: `Administrador OCRAL`
    - **Email**: `jadirconsult@gmail.com`
    - **Senha**: `#Mudar@123`
 3. Clique em **Cadastrar**
 
-O sistema criará o usuário e o trigger automático atribuirá a role `super_admin`.
+O sistema criará o usuário e o trigger automático atribuirá a role `super_admin` porque o email `jadirconsult@gmail.com` está configurado no schema.
 
 ## Verificar se funcionou
 
+### Verificação via SQL (RECOMENDADO)
+
+Execute o script [verificar_usuario_criado.sql](scripts/verificar_usuario_criado.sql) no [SQL Editor do Supabase](https://supabase.com/dashboard/project/ffsymnxutfjmvwnurfby/sql) para verificar:
+
+1. Se o usuário existe em `auth.users`
+2. Se o perfil foi criado em `profiles` com role `super_admin`
+3. Lista de todos os super admins cadastrados
+
+### Verificação via Login
+
 Após criar o usuário:
 
-1. Acesse https://ocral.vercel.app/auth/login
+1. Acesse [Página de Login](https://ocral.vercel.app/auth/login)
 2. Login:
    - **Email**: `jadirconsult@gmail.com`
    - **Senha**: `#Mudar@123`
-3. Você deve ser redirecionado para o dashboard
+3. Você deve ser redirecionado para o dashboard com permissões de super admin
 
 ## Troubleshooting
 
@@ -89,8 +73,12 @@ Após criar o usuário:
 
 ### Erro "Database error saving new user"
 - Indica que o schema não está aplicado corretamente
-- Execute o arquivo [supabase/schema_estoque.sql](../supabase/schema_estoque.sql) no SQL Editor do Supabase
+- Execute o arquivo [schema_estoque.sql](../supabase/schema_estoque.sql) no SQL Editor do Supabase
 - Certifique-se de que a tabela `profiles` existe e o trigger `on_auth_user_created` está ativo
+
+### Usuário criado mas não consegue fazer login
+- Verifique no Dashboard do Supabase se o usuário está com status "Confirmed"
+- Se necessário, confirme o email manualmente no Dashboard (Authentication > Users > selecione o usuário > Confirm email)
 
 ## Resumo da Configuração
 
