@@ -33,7 +33,7 @@ export default async function DashboardPage() {
     .select("*", { count: "exact", head: true });
 
   const { data: recentMovements } = await supabase
-    .from<MovementWithDetails>("movements")
+    .from<"movements", MovementWithDetails>("movements")
     .select(`
       *,
       product:products(name),

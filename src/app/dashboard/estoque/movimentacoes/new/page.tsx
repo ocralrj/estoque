@@ -23,7 +23,7 @@ export default function NewMovementPage() {
     async function loadProducts() {
       const supabase = createClient();
       const { data } = await supabase
-        .from<Product>("products")
+        .from<"products", Product>("products")
         .select("*")
         .eq("active", true)
         .order("name");

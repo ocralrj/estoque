@@ -15,7 +15,7 @@ export default async function ProductsPage() {
     .single();
 
   const { data: products } = await supabase
-    .from<ProductWithCategory>("products")
+    .from<"products", ProductWithCategory>("products")
     .select(`
       *,
       category:categories(name)

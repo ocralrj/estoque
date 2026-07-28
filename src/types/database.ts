@@ -35,6 +35,10 @@ export interface Product {
   category?: Category;
 }
 
+export interface ProductWithCategory extends Product {
+  category?: Category | null;
+}
+
 export type MovementType = 'entrada' | 'saida';
 
 export interface Movement {

@@ -18,7 +18,7 @@ export default async function MovementsPage() {
   if (!canManage) redirect("/dashboard");
 
   const { data: movements } = await supabase
-    .from<MovementWithDetails>("movements")
+    .from<"movements", MovementWithDetails>("movements")
     .select(`
       *,
       product:products(name, code, unit),
