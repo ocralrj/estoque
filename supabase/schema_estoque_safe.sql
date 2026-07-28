@@ -92,6 +92,22 @@ create table if not exists notifications (
 );
 
 -- ============================================================
+-- TABELA: protocolos (só cria se não existir)
+-- ============================================================
+create table if not exists protocolos (
+  id uuid primary key default uuid_generate_v4(),
+  nup text not null unique,
+  title text not null,
+  description text,
+  priority text not null check (priority in ('baixa', 'media', 'alta')),
+  status text not null check (status in ('aberto', 'em_andamento', 'concluido', 'cancelado')),
+  requester_id uuid references profiles(id) not null,
+  assigned_to uuid references profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- FUNÇÃO: criar profile automaticamente ao registrar usuário
 -- ============================================================
 create or replace function handle_new_user()
@@ -181,6 +197,7 @@ alter table profiles enable row level security;
 alter table categories enable row level security;
 alter table products enable row level security;
 alter table movements enable row level security;
+alter table protocolos enable row level security;
 
 -- ============================================================
 -- RLS POLICIES: profiles (drop antes de criar)

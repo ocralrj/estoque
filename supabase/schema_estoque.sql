@@ -87,6 +87,22 @@ create table notifications (
 );
 
 -- ============================================================
+-- TABELA: protocolos (protocolos do sistema)
+-- ============================================================
+create table protocolos (
+  id uuid primary key default uuid_generate_v4(),
+  nup text not null unique,
+  title text not null,
+  description text,
+  priority text not null check (priority in ('baixa', 'media', 'alta')),
+  status text not null check (status in ('aberto', 'em_andamento', 'concluido', 'cancelado')),
+  requester_id uuid references profiles(id) not null,
+  assigned_to uuid references profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- FUNÇÃO: criar profile automaticamente ao registrar usuário
 -- ============================================================
 create or replace function handle_new_user()
@@ -256,6 +272,55 @@ create policy "Almoxarife registra movimentações"
     exists (
       select 1 from profiles p
       where p.id = auth.uid() and p.role in ('super_admin', 'gestor', 'almoxarife')
+    )
+  );
+
+-- ============================================================
+-- RLS: protocolo
+-- ============================================================
+alter table protocolos enable row level security;
+
+create policy "Usuário vê seus próprios protocolos ou protocolos atribuídos" 
+  on protocolos for select
+  using (
+    auth.uid() = requester_id
+    or auth.uid() = assigned_to
+    or exists (
+      select 1 from profiles p
+      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
+    )
+  );
+
+create policy "Usuário cria protocolo próprio" 
+  on protocolos for insert
+  with check (
+    auth.uid() = requester_id
+  );
+
+create policy "Usuário atualiza seu próprio protocolo" 
+  on protocolos for update
+  using (
+    auth.uid() = requester_id
+    or exists (
+      select 1 from profiles p
+      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
+    )
+  )
+  with check (
+    auth.uid() = requester_id
+    or exists (
+      select 1 from profiles p
+      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
+    )
+  );
+
+create policy "Usuário exclui seu próprio protocolo" 
+  on protocolos for delete
+  using (
+    auth.uid() = requester_id
+    or exists (
+      select 1 from profiles p
+      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
     )
   );
 
