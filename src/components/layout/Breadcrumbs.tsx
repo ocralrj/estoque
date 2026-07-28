@@ -18,6 +18,7 @@ const moduleLabelMap: Record<string, string> = {
   relatorios: "Relatórios",
   certificados: "Certificados",
   ged: "GED",
+  protocolos: "Protocolos",
   admin: "Administração",
   usuarios: "Usuários",
   grupos: "Grupos",

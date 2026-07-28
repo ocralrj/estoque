@@ -55,6 +55,11 @@ const navStructure = (role: string): NavItem[] => {
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
+      href: "/dashboard/protocolos",
+      label: "Protocolos",
+      roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
+    },
+    {
       label: "Administração",
       roles: ["super_admin", "gestor"],
       children: [

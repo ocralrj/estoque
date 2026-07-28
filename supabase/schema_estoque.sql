@@ -74,6 +74,19 @@ create table movements (
 );
 
 -- ============================================================
+-- TABELA: notifications (notificações do usuário)
+-- ============================================================
+create table notifications (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  title text not null,
+  message text,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- FUNÇÃO: criar profile automaticamente ao registrar usuário
 -- ============================================================
 create or replace function handle_new_user()

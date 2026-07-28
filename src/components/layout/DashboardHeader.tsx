@@ -1,34 +1,112 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import SuggestImprovementModal from "@/components/suggestions/SuggestImprovementModal";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export default function DashboardHeader() {
   const [open, setOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadNotifications() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, title, message, is_read, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!error && data) {
+        setNotifications(data);
+        setUnreadCount(data.filter((item: any) => !item.is_read).length);
+      }
+    }
+
+    loadNotifications();
+  }, []);
+
+  function closeNotifications() {
+    setNotificationsOpen(false);
+  }
 
   return (
     <>
-      <div className="flex items-center justify-end gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => alert("Notificações serão adicionadas em breve ao projeto!")}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:focus:ring-offset-gray-900"
-          title="Notificações em breve"
-        >
-          <span className="relative inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-700">
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path d="M12 2a6 6 0 0 0-6 6v4.586l-.707.707A1 1 0 0 0 5 15h14a1 1 0 0 0 .707-1.707L18 12.586V8a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 20Z" />
-            </svg>
-            <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
-          </span>
-          <span className="hidden sm:inline">Notificações</span>
-        </button>
+      <div className="flex items-center justify-end gap-2 mb-4 relative">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen((value) => !value)}
+            className={
+              `inline-flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-900 shadow-sm transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:focus:ring-offset-gray-900` +
+              (unreadCount > 0 ? " animate-[bounce_0.7s_ease-in-out_infinite]" : "")
+            }
+            title={unreadCount > 0 ? `${unreadCount} notificações não lidas` : "Notificações"}
+          >
+            <span className="relative inline-flex h-5 w-5 items-center justify-center">
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M12 2a6 6 0 0 0-6 6v4.586l-.707.707A1 1 0 0 0 5 15h14a1 1 0 0 0 .707-1.707L18 12.586V8a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 20Z" />
+              </svg>
+              {unreadCount > 0 ? (
+                <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+              ) : null}
+            </span>
+          </button>
+
+          {notificationsOpen && (
+            <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-xl ring-1 ring-slate-900/5 dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notificações</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {unreadCount > 0 ? `${unreadCount} não lida(s)` : "Nenhuma nova notificação"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeNotifications}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Fechar notificações"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="max-h-72 space-y-2 overflow-y-auto p-3">
+                {notifications.length > 0 ? (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={
+                        `rounded-2xl border px-4 py-3 text-sm transition-colors ` +
+                        (notification.is_read
+                          ? "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          : "border-primary-200 bg-primary-50 text-slate-900 dark:border-primary-700 dark:bg-slate-950 dark:text-white")
+                      }
+                    >
+                      <p className="font-semibold">{notification.title}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {notification.message}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                    Ainda não há notificações.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <ThemeToggle compact />
 

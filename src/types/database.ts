@@ -51,6 +51,34 @@ export interface Movement {
   product?: Product;
 }
 
+export type ProtocolStatus = "aberto" | "em_andamento" | "concluido" | "cancelado";
+export type ProtocolPriority = "baixa" | "media" | "alta";
+
+export interface Protocol {
+  id: string;
+  nup: string;
+  title: string;
+  description: string | null;
+  priority: ProtocolPriority;
+  status: ProtocolStatus;
+  requester_id: string;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  requester?: Pick<Profile, "id" | "full_name" | "email"> | null;
+  assigned_to?: Pick<Profile, "id" | "full_name" | "email"> | null;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReportStats {
   totalMovements: number;
   totalEntradas: number;
