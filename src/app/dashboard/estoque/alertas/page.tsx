@@ -19,12 +19,12 @@ export default async function AlertsPage() {
 
   const { data: lowStockProducts } = await supabase
     .from<"products", ProductWithCategory>("products")
-    .eq("is_low_stock", true)
-    .eq("active", true)
     .select(`
       *,
       category:categories(name)
     `)
+    .eq("is_low_stock", true)
+    .eq("active", true)
     .order("quantity_current");
 
   return (
