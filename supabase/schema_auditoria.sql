@@ -102,7 +102,7 @@ BEGIN
       'create',
       'product',
       NEW.id::TEXT,
-      jsonb_build_object('name', NEW.name, 'sku', NEW.sku)
+      jsonb_build_object('name', NEW.name, 'code', NEW.code)
     );
   ELSIF TG_OP = 'UPDATE' THEN
     PERFORM log_audit(
@@ -123,7 +123,7 @@ BEGIN
       'delete',
       'product',
       OLD.id::TEXT,
-      jsonb_build_object('name', OLD.name, 'sku', OLD.sku)
+      jsonb_build_object('name', OLD.name, 'code', OLD.code)
     );
   END IF;
 
