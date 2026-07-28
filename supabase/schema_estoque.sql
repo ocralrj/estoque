@@ -18,6 +18,7 @@ create table profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   email text not null unique,
   full_name text,
+  avatar_url text,
   role user_role not null default 'requisitante',
   active boolean not null default true,
   created_at timestamptz not null default now(),
