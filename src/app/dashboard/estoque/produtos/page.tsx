@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import type { Product } from "@/types/database";
+import type { ProductWithCategory } from "@/types/database";
 
 export default async function ProductsPage() {
   const supabase = await createClient();
@@ -15,14 +15,13 @@ export default async function ProductsPage() {
     .single();
 
   const { data: products } = await supabase
-    .from("products")
+    .from<ProductWithCategory>("products")
     .select(`
       *,
       category:categories(name)
     `)
     .eq("active", true)
-    .order("name")
-    .returns<Product[]>();
+    .order("name");
 
   const { data: categories } = await supabase
     .from("categories")

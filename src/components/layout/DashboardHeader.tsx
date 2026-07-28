@@ -4,30 +4,51 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SuggestImprovementModal from "@/components/suggestions/SuggestImprovementModal";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import type { Notification } from "@/types/database";
 
 export default function DashboardHeader() {
   const [open, setOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     async function loadNotifications() {
       const supabase = createClient();
       const { data, error } = await supabase
-        .from("notifications")
+        .from<Notification>("notifications")
         .select("id, title, message, is_read, created_at")
         .order("created_at", { ascending: false })
         .limit(5);
 
       if (!error && data) {
         setNotifications(data);
-        setUnreadCount(data.filter((item: any) => !item.is_read).length);
+        setUnreadCount(data.filter((item) => !item.is_read).length);
       }
     }
 
     loadNotifications();
   }, []);
+
+  useEffect(() => {
+    async function markAllAsRead() {
+      if (!notificationsOpen || unreadCount === 0) return;
+
+      const response = await fetch("/api/notifications/mark-read", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        setNotifications((current) => current.map((notification) => ({
+          ...notification,
+          is_read: true,
+        })));
+        setUnreadCount(0);
+      }
+    }
+
+    markAllAsRead();
+  }, [notificationsOpen, unreadCount]);
 
   function closeNotifications() {
     setNotificationsOpen(false);
@@ -96,6 +117,13 @@ export default function DashboardHeader() {
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {notification.message}
                       </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                    {new Date(notification.created_at).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                    })}
+                  </p>
                     </div>
                   ))
                 ) : (

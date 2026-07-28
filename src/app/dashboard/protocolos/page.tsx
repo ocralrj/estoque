@@ -109,7 +109,7 @@ export default async function ProtocolosPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {protocols && protocols.length > 0 ? (
-                protocols.map((protocol: any) => (
+                protocols.map((protocol) => (
                   <tr key={protocol.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {protocol.nup}

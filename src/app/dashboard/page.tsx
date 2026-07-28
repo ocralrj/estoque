@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import type { MovementWithDetails } from "@/types/database";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
     .select("*", { count: "exact", head: true });
 
   const { data: recentMovements } = await supabase
-    .from("movements")
+    .from<MovementWithDetails>("movements")
     .select(`
       *,
       product:products(name),
@@ -73,7 +74,7 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Movimentações Recentes</h2>
           {recentMovements && recentMovements.length > 0 ? (
             <div className="space-y-3">
-              {recentMovements.map((mov: any) => (
+              {recentMovements.map((mov) => (
                 <div key={mov.id} className="flex items-center justify-between border-b pb-2">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{mov.product?.name}</p>

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SuggestWithAi from "@/components/ai/SuggestWithAi";
+import type { Category } from "@/types/database";
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -23,7 +24,7 @@ export default function NewProductPage() {
   useEffect(() => {
     async function loadCategories() {
       const supabase = createClient();
-      const { data } = await supabase.from("categories").select("*").order("name");
+      const { data } = await supabase.from<Category>("categories").select("*").order("name");
       setCategories(data || []);
     }
     loadCategories();

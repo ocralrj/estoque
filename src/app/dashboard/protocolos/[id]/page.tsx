@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { deleteProtocol, updateProtocol } from "@/app/actions/protocols";
 import { Button } from "@/components/ui";
-import type { Protocol } from "@/types/database";
+import type { Profile, Protocol } from "@/types/database";
 
 const statusOptions = [
   { value: "aberto", label: "Aberto" },
@@ -49,7 +49,7 @@ export default async function ProtocolosDetalhesPage({ params }: { params: { id:
   const canEdit = canManage || protocol.requester_id === user.id;
 
   const { data: users } = await supabase
-    .from("profiles")
+    .from<Profile>("profiles")
     .select("id, email, full_name")
     .eq("active", true)
     .order("email");
@@ -183,7 +183,7 @@ export default async function ProtocolosDetalhesPage({ params }: { params: { id:
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
               >
                 <option value="">Nenhum</option>
-                {users?.map((user: any) => (
+                {users?.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.full_name || user.email}
                   </option>

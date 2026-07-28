@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SuggestWithAi from "@/components/ai/SuggestWithAi";
+import type { MovementType, Product } from "@/types/database";
 
 export default function NewMovementPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     product_id: "",
     type: "entrada" as "entrada" | "saida",
@@ -22,7 +23,7 @@ export default function NewMovementPage() {
     async function loadProducts() {
       const supabase = createClient();
       const { data } = await supabase
-        .from("products")
+        .from<Product>("products")
         .select("*")
         .eq("active", true)
         .order("name");

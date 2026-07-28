@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { MovementWithDetails } from "@/types/database";
 
 export default async function MovementsPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function MovementsPage() {
   if (!canManage) redirect("/dashboard");
 
   const { data: movements } = await supabase
-    .from("movements")
+    .from<MovementWithDetails>("movements")
     .select(`
       *,
       product:products(name, code, unit),
@@ -71,7 +72,7 @@ export default async function MovementsPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {movements && movements.length > 0 ? (
-                movements.map((mov: any) => (
+                movements.map((mov) => (
                   <tr key={mov.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(mov.created_at).toLocaleString('pt-BR')}

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { ProductWithCategory } from "@/types/database";
 
 export default async function AlertsPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AlertsPage() {
   if (!canManage) redirect("/dashboard");
 
   const { data: lowStockProducts } = await supabase
-    .from("products")
+    .from<ProductWithCategory>("products")
     .select(`
       *,
       category:categories(name)
@@ -32,7 +33,7 @@ export default async function AlertsPage() {
 
       {lowStockProducts && lowStockProducts.length > 0 ? (
         <div className="space-y-4">
-          {lowStockProducts.map((product: any) => (
+          {lowStockProducts.map((product) => (
             <div key={product.id} className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
