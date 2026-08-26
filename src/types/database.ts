@@ -24,6 +24,7 @@ export interface Product {
   name: string;
   description: string | null;
   category_id: string | null;
+  category?: Category | null;
   unit: string;
   quantity_current: number;
   quantity_minimum: number;
