@@ -7,6 +7,8 @@ import { createProtocol } from "@/app/actions/protocols";
 import { Button } from "@/components/ui";
 import type { Profile } from "@/types/database";
 
+type UserOption = Pick<Profile, "id" | "email" | "full_name">;
+
 const priorities = [
   { value: "media", label: "Média" },
   { value: "alta", label: "Alta" },
@@ -19,7 +21,7 @@ export default function NovoProtocoloPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
   const [assignedTo, setAssignedTo] = useState<string>("");
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([]);
   const [isManager, setIsManager] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

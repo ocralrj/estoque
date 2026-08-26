@@ -4,6 +4,7 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  avatar_url?: string | null;
   role: UserRole;
   active: boolean;
   created_at: string;
@@ -32,7 +33,6 @@ export interface Product {
   created_by: string;
   created_at: string;
   updated_at: string;
-  category?: Category;
 }
 
 export interface ProductWithCategory extends Product {
@@ -66,11 +66,11 @@ export interface Protocol {
   priority: ProtocolPriority;
   status: ProtocolStatus;
   requester_id: string;
-  assigned_to: string | null;
+  assigned_to_id?: string | null;
+  assigned_to?: Pick<Profile, "id" | "full_name" | "email"> | null;
   created_at: string;
   updated_at: string;
   requester?: Pick<Profile, "id" | "full_name" | "email"> | null;
-  assigned_to?: Pick<Profile, "id" | "full_name" | "email"> | null;
 }
 
 export interface Notification {
@@ -89,16 +89,6 @@ export interface ReportStats {
   totalSaidas: number;
   volumeEntrada: number;
   volumeSaida: number;
-}
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string | null;
-  is_read: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface ProductMovementStats {
