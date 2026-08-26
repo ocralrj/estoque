@@ -1,5 +1,5 @@
 const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-const allowedOrigins = ["localhost:3000"];
+const allowedOrigins = ["localhost:3000", "ocral.vercel.app"];
 
 if (appUrl) {
   try {
