@@ -92,7 +92,7 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
       <div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-gray-600 hover:text-primary-700 hover:bg-white/40 transition-all"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-[var(--muted)] hover:text-[var(--primary-strong)] hover:bg-[var(--surface-soft)] transition-all"
         >
           <span>{item.label}</span>
           <svg
@@ -105,7 +105,7 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
           </svg>
         </button>
         {isOpen && (
-          <div className="ml-4 mt-1 space-y-1 border-l-2 border-primary-200 pl-2">
+          <div className="ml-4 mt-1 space-y-1 border-l-2 border-[var(--primary-soft)] pl-2">
             {item.children?.map((child) => (
               <NavItemComponent key={child.href} item={child} pathname={pathname} />
             ))}
@@ -121,8 +121,8 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
       className={clsx(
         "block px-4 py-3 rounded-2xl text-sm font-bold transition-all",
         isActive
-          ? "neo-soft bg-[var(--neo-surface)] text-primary-700"
-          : "text-gray-600 hover:bg-white/40 hover:text-primary-700"
+          ? "neo-soft bg-[var(--surface)] text-[var(--primary-strong)]"
+          : "text-[var(--muted)] hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
       )}
     >
       {item.label}
@@ -149,11 +149,10 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   };
 
   return (
-    <aside className="hidden lg:flex w-72 shrink-0 min-h-screen bg-[var(--neo-bg)] text-gray-900 flex-col px-5 py-7 border-r border-white/45">
-      <div className="px-3 pb-7">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-primary-600 mb-5">OCRAL</p>
+    <aside className="hidden lg:flex w-72 shrink-0 min-h-screen bg-[var(--bg)] text-[var(--text)] flex-col px-5 py-7 border-r border-[var(--stroke)]">
+      <div className="neo-card px-3 py-4 mb-6">
         <a href="/dashboard/profile" className="flex items-center gap-3 no-underline">
-          <div className="neo-soft h-14 w-14 rounded-2xl overflow-hidden text-primary-700 flex items-center justify-center text-xl font-extrabold">
+          <div className="neo-soft h-14 w-14 rounded-[1.4rem] overflow-hidden text-[var(--primary-strong)] flex items-center justify-center text-xl font-extrabold">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -165,12 +164,12 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="font-extrabold text-gray-900 truncate">{profile.full_name || profile.email}</p>
-            <p className="text-xs text-gray-500 truncate">Meu perfil</p>
+            <p className="font-extrabold text-[var(--text)] truncate">{profile.full_name || profile.email}</p>
+            <p className="text-xs text-[var(--muted)] truncate">Meu perfil</p>
           </div>
         </a>
-        <p className="text-xs text-gray-500 mt-4 truncate">{profile.email}</p>
-        <span className="inline-block mt-2 text-[11px] font-bold text-primary-700 bg-primary-100 rounded-full px-3 py-1">
+        <p className="text-xs text-[var(--muted)] mt-4 truncate">{profile.email}</p>
+        <span className="inline-block mt-2 text-[11px] font-bold text-[var(--primary-strong)] bg-[var(--primary-soft)] rounded-full px-3 py-1">
           {roleLabel[profile.role] ?? profile.role}
         </span>
       </div>
@@ -181,10 +180,10 @@ export default function Sidebar({ profile }: { profile: Profile }) {
         ))}
       </nav>
 
-      <div className="pt-5 mt-4 border-t border-white/70">
+      <div className="pt-5 mt-4 border-t border-[var(--stroke)]">
         <button
           onClick={handleLogout}
-          className="w-full text-left px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:text-red-500 hover:bg-white/40 transition-all"
+          className="neo-button w-full text-left px-4 py-3 rounded-2xl text-sm font-bold text-[var(--muted)] hover:text-[var(--danger)] transition-all"
         >
           Sair
         </button>

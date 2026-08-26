@@ -62,7 +62,7 @@ export default function DashboardHeader() {
             type="button"
             onClick={() => setNotificationsOpen((value) => !value)}
             className={
-              `neo-soft inline-flex items-center justify-center h-11 w-11 rounded-2xl text-gray-700 transition-all hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2` +
+              `neo-button inline-flex items-center justify-center h-11 w-11 rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/30` +
               (unreadCount > 0 ? " animate-[bounce_0.7s_ease-in-out_infinite]" : "")
             }
             title={unreadCount > 0 ? `${unreadCount} notificações não lidas` : "Notificações"}
@@ -141,7 +141,7 @@ export default function DashboardHeader() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm shadow-[5px_5px_10px_rgba(114,98,203,0.28)] transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--primary)] hover:brightness-105 text-white font-bold text-sm shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.12)] transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-500/30"
           title="Sugerir uma melhoria"
         >
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/20">

@@ -14,13 +14,13 @@ export default function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseStyles = "rounded-xl font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 active:scale-[0.98]";
+  const baseStyles = "rounded-2xl font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/30 active:scale-[0.98] border border-white/40";
 
   const variants = {
-    primary: "bg-primary-600 text-white shadow-[5px_5px_10px_rgba(114,98,203,0.3),-3px_-3px_8px_rgba(255,255,255,0.5)] hover:bg-primary-700",
-    secondary: "neo-soft bg-gray-200 text-gray-900 hover:bg-gray-300",
-    danger: "bg-red-500 text-white shadow-[5px_5px_10px_rgba(185,70,70,0.25)] hover:bg-red-600",
-    ghost: "bg-transparent text-gray-700 hover:bg-gray-100",
+    primary: "bg-[var(--primary)] text-white border-transparent shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.15)] hover:brightness-105",
+    secondary: "neo-soft text-[var(--text)] hover:translate-y-[-1px]",
+    danger: "bg-[var(--danger)] text-[var(--text)] shadow-[8px_8px_18px_rgba(235,150,150,0.25),-8px_-8px_18px_rgba(255,255,255,0.15)] hover:brightness-105",
+    ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--surface)]",
   };
 
   const sizes = {
