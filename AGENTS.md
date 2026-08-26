@@ -44,7 +44,7 @@ npm run build        # build de produção (usar para verificar antes de push)
 npm run lint         # ESLint (config padrão do Next.js)
 ```
 
-Não há framework de testes configurado. Não existem workflows de CI (apenas um PR template em `.github/`). Não há script separado de `typecheck` — erros de TypeScript aparecem via `npm run build`.
+Não há framework de testes configurado. O workflow `.github/workflows/security.yml` executa TruffleHog e Semgrep em PRs, pushes, manualmente e semanalmente. Não há script separado de `typecheck` — erros de TypeScript aparecem via `npm run build`.
 
 ## Cuidados
 

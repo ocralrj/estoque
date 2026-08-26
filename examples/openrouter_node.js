@@ -2,7 +2,7 @@
 // Uso: defina OPENROUTER_API_KEY e opcionalmente OPENROUTER_MODEL, então rode:
 //   node examples/openrouter_node.js
 
-const MODEL = process.env.OPENROUTER_MODEL || "gpt-4o-mini";
+const MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 const URL = "https://api.openrouter.ai/v1/chat/completions";
 
 (async () => {
@@ -25,6 +25,10 @@ const URL = "https://api.openrouter.ai/v1/chat/completions";
     });
 
     const data = await res.json();
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${data.error?.message || res.statusText}`);
+    }
+
     console.log(JSON.stringify(data, null, 2));
   } catch (err) {
     console.error('Erro:', err.message || err);

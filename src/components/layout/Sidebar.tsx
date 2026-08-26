@@ -92,7 +92,7 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
       <div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-primary-100 hover:bg-primary-700 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-gray-600 hover:text-primary-700 hover:bg-white/40 transition-all"
         >
           <span>{item.label}</span>
           <svg
@@ -105,7 +105,7 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
           </svg>
         </button>
         {isOpen && (
-          <div className="ml-3 mt-1 space-y-1 border-l-2 border-primary-700 pl-2">
+          <div className="ml-4 mt-1 space-y-1 border-l-2 border-primary-200 pl-2">
             {item.children?.map((child) => (
               <NavItemComponent key={child.href} item={child} pathname={pathname} />
             ))}
@@ -119,10 +119,10 @@ function NavItemComponent({ item, pathname }: { item: NavItem; pathname: string 
     <Link
       href={item.href || "#"}
       className={clsx(
-        "block px-3 py-2 rounded-lg text-sm transition-colors",
+        "block px-4 py-3 rounded-2xl text-sm font-bold transition-all",
         isActive
-          ? "bg-primary-600 text-white font-medium"
-          : "text-primary-100 hover:bg-primary-700"
+          ? "neo-soft bg-[var(--neo-surface)] text-primary-700"
+          : "text-gray-600 hover:bg-white/40 hover:text-primary-700"
       )}
     >
       {item.label}
@@ -149,10 +149,11 @@ export default function Sidebar({ profile }: { profile: Profile }) {
   };
 
   return (
-    <aside className="w-64 bg-primary-900 text-white flex flex-col">
-      <div className="p-6 border-b border-primary-700">
+    <aside className="hidden lg:flex w-72 shrink-0 min-h-screen bg-[var(--neo-bg)] text-gray-900 flex-col px-5 py-7 border-r border-white/45">
+      <div className="px-3 pb-7">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-primary-600 mb-5">OCRAL</p>
         <a href="/dashboard/profile" className="flex items-center gap-3 no-underline">
-          <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-200 text-slate-900 flex items-center justify-center text-lg font-semibold">
+          <div className="neo-soft h-14 w-14 rounded-2xl overflow-hidden text-primary-700 flex items-center justify-center text-xl font-extrabold">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -164,26 +165,26 @@ export default function Sidebar({ profile }: { profile: Profile }) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-white truncate">{profile.full_name || profile.email}</p>
-            <p className="text-xs text-primary-100 truncate">Meu perfil</p>
+            <p className="font-extrabold text-gray-900 truncate">{profile.full_name || profile.email}</p>
+            <p className="text-xs text-gray-500 truncate">Meu perfil</p>
           </div>
         </a>
-        <p className="text-xs text-primary-100 mt-3 truncate">{profile.email}</p>
-        <span className="inline-block mt-2 text-xs bg-primary-700 rounded-full px-2 py-0.5">
+        <p className="text-xs text-gray-500 mt-4 truncate">{profile.email}</p>
+        <span className="inline-block mt-2 text-[11px] font-bold text-primary-700 bg-primary-100 rounded-full px-3 py-1">
           {roleLabel[profile.role] ?? profile.role}
         </span>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-2 space-y-1 overflow-y-auto">
         {navStructure(profile.role).map((item) => (
           <NavItemComponent key={item.href || item.label} item={item} pathname={pathname} />
         ))}
       </nav>
 
-      <div className="p-4 border-t border-primary-700">
+      <div className="pt-5 mt-4 border-t border-white/70">
         <button
           onClick={handleLogout}
-          className="w-full text-left px-3 py-2 rounded-lg text-sm text-primary-100 hover:bg-primary-700 transition-colors"
+          className="w-full text-left px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:text-red-500 hover:bg-white/40 transition-all"
         >
           Sair
         </button>

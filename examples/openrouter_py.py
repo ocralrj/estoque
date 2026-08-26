@@ -8,7 +8,7 @@ import json
 import sys
 from urllib import request, error
 
-MODEL = os.environ.get("OPENROUTER_MODEL", "gpt-4o-mini")
+MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 URL = "https://api.openrouter.ai/v1/chat/completions"
 
 def main():
