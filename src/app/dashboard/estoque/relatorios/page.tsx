@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Movement, ReportStats, ProductMovementStats, CategoryStats } from "@/types/database";
 
@@ -14,11 +14,7 @@ export default function ReportsPage() {
   const [topProducts, setTopProducts] = useState<ProductMovementStats[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
 
-  useEffect(() => {
-    loadReports();
-  }, [dateRange]);
-
-  async function loadReports() {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
 
@@ -81,7 +77,11 @@ export default function ReportsPage() {
 
     setCategoryStats(Object.values(categoryCounts).sort((a, b) => b.count - a.count));
     setLoading(false);
-  }
+  }, [dateRange.end, dateRange.start]);
+
+  useEffect(() => {
+    void loadReports();
+  }, [loadReports]);
 
   return (
     <div>

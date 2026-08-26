@@ -154,6 +154,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
         <a href="/dashboard/profile" className="flex items-center gap-3 no-underline">
           <div className="neo-soft h-14 w-14 rounded-[1.4rem] overflow-hidden text-[var(--primary-strong)] flex items-center justify-center text-xl font-extrabold">
             {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatar_url}
                 alt="Foto do usuário"

@@ -23,6 +23,7 @@ export default async function ProfilePage() {
         <div className="flex items-center gap-4 mb-6">
           <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center text-2xl text-slate-700">
             {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatar_url} alt="Avatar do usuário" className="h-full w-full object-cover" />
             ) : (
               <span>{(profile.full_name || profile.email)?.charAt(0).toUpperCase()}</span>
