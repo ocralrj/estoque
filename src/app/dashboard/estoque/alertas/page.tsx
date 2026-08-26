@@ -17,8 +17,8 @@ export default async function AlertsPage() {
   const canManage = profile?.role && ["super_admin", "gestor", "almoxarife"].includes(profile.role);
   if (!canManage) redirect("/dashboard");
 
-  const { data: lowStockProducts } = await supabase
-    .from<"products", ProductWithCategory>("products")
+  const { data: lowStockProductsData } = await supabase
+    .from("products")
     .select(`
       *,
       category:categories(name)
@@ -26,6 +26,8 @@ export default async function AlertsPage() {
     .eq("is_low_stock", true)
     .eq("active", true)
     .order("quantity_current");
+
+  const lowStockProducts = lowStockProductsData as ProductWithCategory[] | null;
 
   return (
     <div>

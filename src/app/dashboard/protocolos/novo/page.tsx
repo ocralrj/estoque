@@ -42,7 +42,7 @@ export default function NovoProtocoloPage() {
 
       if (manager) {
         const { data } = await supabase
-          .from<Profile>("profiles")
+          .from("profiles")
           .select("id, email, full_name")
           .eq("active", true)
           .order("email");

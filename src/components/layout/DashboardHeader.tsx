@@ -16,7 +16,7 @@ export default function DashboardHeader() {
     async function loadNotifications() {
       const supabase = createClient();
       const { data, error } = await supabase
-        .from<Notification>("notifications")
+        .from("notifications")
         .select("id, title, message, is_read, created_at")
         .order("created_at", { ascending: false })
         .limit(5);

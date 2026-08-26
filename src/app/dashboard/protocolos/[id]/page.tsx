@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { deleteProtocol, updateProtocol } from "@/app/actions/protocols";
 import { Button } from "@/components/ui";
 import type { Profile, Protocol } from "@/types/database";
@@ -49,7 +50,7 @@ export default async function ProtocolosDetalhesPage({ params }: { params: { id:
   const canEdit = canManage || protocol.requester_id === user.id;
 
   const { data: users } = await supabase
-    .from<Profile>("profiles")
+    .from("profiles")
     .select("id, email, full_name")
     .eq("active", true)
     .order("email");

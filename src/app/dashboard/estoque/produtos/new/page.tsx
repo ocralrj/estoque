@@ -24,7 +24,7 @@ export default function NewProductPage() {
   useEffect(() => {
     async function loadCategories() {
       const supabase = createClient();
-      const { data } = await supabase.from<Category>("categories").select("*").order("name");
+      const { data } = await supabase.from("categories").select("*").order("name");
       setCategories(data || []);
     }
     loadCategories();

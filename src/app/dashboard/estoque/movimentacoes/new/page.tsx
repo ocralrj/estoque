@@ -23,7 +23,7 @@ export default function NewMovementPage() {
     async function loadProducts() {
       const supabase = createClient();
       const { data } = await supabase
-        .from<"products", Product>("products")
+        .from("products")
         .select("*")
         .eq("active", true)
         .order("name");
@@ -35,7 +35,7 @@ export default function NewMovementPage() {
   useEffect(() => {
     if (formData.product_id) {
       const product = products.find((p) => p.id === formData.product_id);
-      setSelectedProduct(product);
+      setSelectedProduct(product ?? null);
     } else {
       setSelectedProduct(null);
     }

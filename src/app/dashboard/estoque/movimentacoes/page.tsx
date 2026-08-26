@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import type { MovementWithDetails } from "@/types/database";
+import type { MovementWithDetails } from "@/types";
 
 export default async function MovementsPage() {
   const supabase = await createClient();
@@ -18,7 +18,7 @@ export default async function MovementsPage() {
   if (!canManage) redirect("/dashboard");
 
   const { data: movements } = await supabase
-    .from<"movements", MovementWithDetails>("movements")
+    .from("movements")
     .select(`
       *,
       product:products(name, code, unit),
