@@ -83,25 +83,25 @@ export default function DashboardHeader() {
           </button>
 
           {notificationsOpen && (
-            <div className="neo-raised absolute right-0 mt-3 w-80 rounded-[1.5rem] border border-white/60 z-20">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+            <div className="neo-raised absolute right-0 mt-3 w-80 z-20 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--stroke)] bg-[var(--surface)]/80">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notificações</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-sm font-semibold text-[var(--text)]">Notificações</p>
+                  <p className="text-xs text-[var(--muted)]">
                     {unreadCount > 0 ? `${unreadCount} não lida(s)` : "Nenhuma nova notificação"}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeNotifications}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--text)] transition-colors"
                   aria-label="Fechar notificações"
                 >
                   ×
                 </button>
               </div>
 
-              <div className="max-h-72 space-y-2 overflow-y-auto p-3">
+              <div className="max-h-72 space-y-2 overflow-y-auto p-3 bg-[var(--surface-soft)]">
                 {notifications.length > 0 ? (
                   notifications.map((notification) => (
                     <div
@@ -109,25 +109,25 @@ export default function DashboardHeader() {
                       className={
                         `rounded-2xl border px-4 py-3 text-sm transition-colors ` +
                         (notification.is_read
-                          ? "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                          : "border-primary-200 bg-primary-50 text-slate-900 dark:border-primary-700 dark:bg-slate-950 dark:text-white")
+                          ? "border-[var(--stroke)] bg-[var(--surface)] text-[var(--text)]"
+                          : "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--text)]")
                       }
                     >
                       <p className="font-semibold">{notification.title}</p>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-1 text-xs text-[var(--muted)]">
                         {notification.message}
                       </p>
-                  <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-                    {new Date(notification.created_at).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "2-digit",
-                    })}
-                  </p>
+                      <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                        {new Date(notification.created_at).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                        })}
+                      </p>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                  <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--muted)]">
                     Ainda não há notificações.
                   </div>
                 )}
