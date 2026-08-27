@@ -150,7 +150,7 @@ export default function Sidebar({ profile }: { profile: Profile }) {
 
   return (
     <aside className="hidden lg:flex w-72 shrink-0 min-h-screen bg-[var(--bg)] text-[var(--text)] flex-col px-5 py-7 border-r border-[var(--stroke)]">
-      <div className="neo-card px-3 py-4 mb-6">
+      <div className="neo-panel px-3 py-4 mb-6">
         <a href="/dashboard/profile" className="flex items-center gap-3 no-underline">
           <div className="neo-soft h-14 w-14 rounded-[1.4rem] overflow-hidden text-[var(--primary-strong)] flex items-center justify-center text-xl font-extrabold">
             {profile.avatar_url ? (

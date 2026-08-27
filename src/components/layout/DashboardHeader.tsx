@@ -56,7 +56,7 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <div className="flex items-center justify-end gap-3 mb-7 relative">
+      <div className="neo-panel flex items-center justify-end gap-3 mb-7 relative px-3 py-2.5 rounded-[1.6rem]">
         <div className="relative">
           <button
             type="button"
