@@ -27,6 +27,8 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - `schema_estoque.sql` é o schema principal (products, movements, categories, profiles + triggers + RLS).
 - `schema_sugestoes.sql`, `schema_auditoria.sql`, `schema_grupos_permissoes.sql` são por feature.
 - `_manual_apply/` contém correções pontuais (índices, fixes de RLS, etc.).
+- Regra obrigatória: nunca desenvolver funcionalidade usando dados mockados. Qualquer tela, módulo ou fluxo novo deve consumir dados reais do banco e, quando necessário, a estrutura de persistência deve existir em tabela/relationship no Supabase antes do desenvolvimento.
+- Toda nova feature precisa ter sua tabela e schema no banco, com colunas, índices e políticas RLS quando aplicável. Não criar fluxo funcional somente em frontend com dados simulados.
 - A quantidade de estoque é atualizada pelo trigger DB `movement_update_quantity` no insert de `movements` — não atualizar `products.quantity_current` no código da aplicação.
 
 ## Funcionalidade de sugestões por IA (opcional)
