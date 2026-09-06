@@ -6,6 +6,7 @@ import {
   setUserActive,
   updateUserRole,
   promoverASuperAdmin,
+  convidarUsuario,
 } from "@/app/actions/users";
 import { ROLE_LABELS, roleLabel } from "@/lib/labels";
 import type { Profile, UserRole } from "@/types";
@@ -25,6 +26,8 @@ export default function UsersClient({
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [convidando, setConvidando] = useState(false);
+  const [novoEmail, setNovoEmail] = useState("");
 
   // "Super Admin" não entra no seletor: conceder o papel máximo do sistema por
   // um clique distraído num dropdown, ao lado dos demais, é fácil demais.
@@ -63,9 +66,71 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
     });
   }
 
+  function convidar() {
+    const email = novoEmail.trim();
+    if (!email) return;
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await convidarUsuario(email);
+      if (res.ok) {
+        setNovoEmail("");
+        setConvidando(false);
+        setFeedback({
+          kind: "ok",
+          text: `Convite enviado para ${email}. A pessoa recebe um link para definir a senha.`,
+        });
+        router.refresh();
+      } else {
+        setFeedback({ kind: "erro", text: res.message });
+      }
+    });
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Usuários</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-[var(--text)]">Usuários</h1>
+        <button
+          type="button"
+          onClick={() => setConvidando((c) => !c)}
+          className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)]"
+        >
+          {convidando ? "Cancelar" : "Convidar usuário"}
+        </button>
+      </div>
+
+      {convidando && (
+        <div className="mb-6 rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-4">
+          <label
+            htmlFor="convite"
+            className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]"
+          >
+            E-mail de quem vai entrar
+          </label>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <input
+              id="convite"
+              type="email"
+              value={novoEmail}
+              onChange={(e) => setNovoEmail(e.target.value)}
+              placeholder="pessoa@empresa.com.br"
+              className="flex-1 rounded-[1rem] border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
+            />
+            <button
+              type="button"
+              onClick={convidar}
+              disabled={pending || !novoEmail.trim()}
+              className="rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
+            >
+              {pending ? "Enviando…" : "Enviar convite"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            A pessoa entra como requisitante e define a própria senha pelo link. Ajuste o
+            papel depois, na lista abaixo.
+          </p>
+        </div>
+      )}
 
       {feedback && (
         <p

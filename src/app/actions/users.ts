@@ -173,3 +173,58 @@ export async function atualizarMeuNome(nome: string): Promise<ActionResult> {
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+/**
+ * Convida alguém por e-mail, em vez de deixar o cadastro aberto ao público.
+ *
+ * Usa a chave de serviço, que ignora o RLS — por isso a checagem de papel é
+ * feita ANTES, com a sessão do solicitante, e nunca com essa chave. Ela existe
+ * só no servidor e jamais é enviada ao navegador.
+ */
+export async function convidarUsuario(
+  email: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const limpo = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(limpo)) {
+    return { ok: false, message: "E-mail inválido." };
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !chave) {
+    return {
+      ok: false,
+      message:
+        "Convite indisponível: falta SUPABASE_SERVICE_ROLE_KEY nas variáveis de produção.",
+    };
+  }
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(url, chave, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const destino = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const { error } = await admin.auth.admin.inviteUserByEmail(limpo, {
+    redirectTo: destino ? `${destino}/auth/callback?next=/auth/reset-password` : undefined,
+  });
+
+  if (error) {
+    // A mensagem do provedor vem em inglês e às vezes expõe detalhe interno.
+    const msg = error.message.toLowerCase();
+    if (msg.includes("already") || msg.includes("registered")) {
+      return { ok: false, message: "Este e-mail já tem conta no sistema." };
+    }
+    if (msg.includes("rate")) {
+      return { ok: false, message: "Muitos convites seguidos. Aguarde alguns minutos." };
+    }
+    return { ok: false, message: "Não foi possível enviar o convite." };
+  }
+
+  revalidatePath("/dashboard/admin/usuarios");
+  return { ok: true };
+}

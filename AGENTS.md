@@ -78,6 +78,25 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
 - Identidade do usuário e "Sair do sistema" ficam no `UserMenu` do header, ao lado de notificações e alternador de tema — não na sidebar.
 - Toda tabela precisa de um contêiner com `overflow-x-auto`; grades de cartões partem de `grid-cols-1` e crescem em `sm:`/`xl:`.
 
+## Segurança administrativa
+
+- **`get_user_role()` devolve NULL para conta inativa.** É o que faz "Desativar"
+  valer no banco, e não só na tela: antes, `active` era checado num único ponto
+  da aplicação, e quem fosse desativado seguia com token válido para chamar a
+  API REST direto. Não reintroduza uma versão da função sem o `and active = true`.
+- **Cadastro é por convite**, não aberto. `convidarUsuario()` usa a chave de
+  serviço — a checagem de papel acontece ANTES, com a sessão de quem pede, nunca
+  com a chave. O signup público deve ficar desligado no painel do Supabase
+  (Authentication → Providers → Email); a página de registro apenas orienta.
+- **Ninguém nasce super admin.** O gatilho promovia por e-mail escrito no código
+  de um repositório público — qualquer um sabia qual conta atacar. Hoje todo
+  cadastro entra como requisitante e a promoção é ação explícita de um super
+  admin, registrada na auditoria.
+- **A auditoria é escrita só por gatilho.** `audit_logs` não tem política de
+  INSERT, UPDATE ou DELETE: nem forjar evento nem apagar o próprio rastro é
+  possível pela API. Cobre perfis (papel e status), grupos, membros, permissões,
+  departamentos, produtos e movimentações. A tela é `/dashboard/admin/auditoria`.
+
 ## GED — arquivos eletrônicos
 
 - Binários ficam no bucket privado `ged` (Supabase Storage). Não há URL fixa: o

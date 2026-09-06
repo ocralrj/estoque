@@ -34,7 +34,14 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setError(error.message);
+      // Com o cadastro público desligado no Supabase, o provedor recusa aqui.
+      // A mensagem dele vem em inglês e não explica o caminho certo.
+      const msg = error.message.toLowerCase();
+      setError(
+        msg.includes("signup") || msg.includes("disabled") || msg.includes("not allowed")
+          ? "O cadastro é feito por convite. Peça a um administrador que envie o convite para o seu e-mail."
+          : error.message
+      );
       setLoading(false);
       return;
     }
@@ -52,6 +59,10 @@ export default function RegisterPage() {
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
           <p className="text-[var(--text-muted)] mt-1">Crie sua conta</p>
+          <p className="mt-3 rounded-lg bg-[var(--info-bg)] px-3 py-2 text-xs text-[var(--info-fg)]">
+            O acesso é por convite. Se a sua empresa já o cadastrou, procure o e-mail
+            com o link para definir a senha.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
