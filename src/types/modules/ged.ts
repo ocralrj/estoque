@@ -55,6 +55,8 @@ export interface GedDocument {
   tamanho_original_bytes: number | null;
   /** Como o binário foi guardado — ver src/lib/ged/arquivos.ts */
   compressao: "nenhuma" | "imagem" | "gzip";
+  /** todos = qualquer autenticado lê; restrito = só quem consta em ged_document_access */
+  visibilidade: "todos" | "restrito";
   created_at: string;
   updated_at: string;
   responsavel?: { full_name: string | null; email: string } | null;

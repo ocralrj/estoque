@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { generateRecordCode } from "@/lib/codes";
+import { extrairDadosDoArquivo, type DadosExtraidos } from "@/lib/ai/extrair-documento";
+import { checkRateLimit } from "@/lib/ai/rate-limit";
 import type { GedSetor, GedStatus } from "@/types/modules/ged";
 
 type ActionResult<T = void> =
@@ -35,6 +37,9 @@ export interface DocumentoInput {
   tamanho_bytes?: number | null;
   tamanho_original_bytes?: number | null;
   compressao?: "nenhuma" | "imagem" | "gzip";
+  visibilidade?: "todos" | "restrito";
+  /** Concessões por usuário quando a visibilidade é restrita. */
+  acessos?: { user_id: string; nivel: "leitura" | "edicao" }[];
 }
 
 function validar(input: DocumentoInput): string | null {
@@ -65,7 +70,37 @@ function montarPayload(input: DocumentoInput) {
     resumo: input.resumo?.trim().slice(0, 2000) || null,
     tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 20),
     folder_id: input.folder_id || null,
+    visibilidade: input.visibilidade ?? "todos",
   };
+}
+
+/**
+ * Regrava as concessões do documento. Substitui o conjunto inteiro: a tela
+ * envia sempre a lista completa, então o que sumiu foi removido de propósito.
+ */
+async function sincronizarAcessos(
+  supabase: Awaited<ReturnType<typeof getSession>>["supabase"],
+  documentId: string,
+  concedidoPor: string,
+  acessos: { user_id: string; nivel: "leitura" | "edicao" }[] | undefined
+) {
+  if (!acessos) return;
+
+  await supabase.from("ged_document_access").delete().eq("document_id", documentId);
+
+  const validos = acessos
+    .filter((a) => a.user_id && (a.nivel === "leitura" || a.nivel === "edicao"))
+    .slice(0, 100)
+    .map((a) => ({
+      document_id: documentId,
+      user_id: a.user_id,
+      nivel: a.nivel,
+      granted_by: concedidoPor,
+    }));
+
+  if (validos.length > 0) {
+    await supabase.from("ged_document_access").insert(validos);
+  }
 }
 
 function revalidarGed(id?: string) {
@@ -121,8 +156,11 @@ export async function criarDocumento(
     return { ok: false, message: "Não foi possível salvar o documento." };
   }
 
+  const criado = data as { id: string; codigo: string };
+  await sincronizarAcessos(supabase, criado.id, user.id, input.acessos);
+
   revalidarGed();
-  return { ok: true, data: data as { id: string; codigo: string } };
+  return { ok: true, data: criado };
 }
 
 export async function atualizarDocumento(
@@ -152,6 +190,8 @@ export async function atualizarDocumento(
 
   if (error) return { ok: false, message: "Não foi possível atualizar o documento." };
 
+  await sincronizarAcessos(supabase, id, user.id, input.acessos);
+
   revalidarGed(id);
   return { ok: true, data: undefined };
 }
@@ -161,18 +201,21 @@ export async function excluirDocumento(id: string): Promise<ActionResult> {
   if (!user) return { ok: false, message: "Não autenticado" };
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
-  const { data: doc } = await supabase
-    .from("ged_documents")
-    .select("storage_path, status")
-    .eq("id", id)
-    .single();
-
-  if (doc?.status === "Assinado" && profile?.role !== "super_admin") {
+  // Exclusão é a única operação sem volta do módulo: leva o registro, a trilha
+  // de auditoria e o binário. Fica restrita ao super admin, e o RLS repete a
+  // regra no banco (_manual_apply/006_ged_permissoes.sql).
+  if (profile?.role !== "super_admin") {
     return {
       ok: false,
-      message: "Documento assinado só pode ser excluído por um super admin.",
+      message: "Apenas o administrador pode excluir documentos.",
     };
   }
+
+  const { data: doc } = await supabase
+    .from("ged_documents")
+    .select("storage_path")
+    .eq("id", id)
+    .single();
 
   const { error } = await supabase.from("ged_documents").delete().eq("id", id);
   if (error) return { ok: false, message: "Não foi possível excluir o documento." };
@@ -200,4 +243,83 @@ export async function urlDeDownload(
 
   if (error || !data) return { ok: false, message: "Não foi possível gerar o link." };
   return { ok: true, data: { url: data.signedUrl } };
+}
+
+/**
+ * Lê o arquivo enviado e devolve um rascunho dos campos do cadastro.
+ *
+ * O binário chega em base64 porque Server Action não recebe Blob. O limite de
+ * corpo (~4.5 MB) é o mesmo teto que a extração já aplica, então arquivo grande
+ * é recusado antes de chegar aqui.
+ *
+ * Nada é gravado: o retorno preenche o formulário e quem cadastra revisa.
+ */
+export async function lerDocumentoComIa(
+  base64: string,
+  mimeType: string,
+  tamanhoBytes: number
+): Promise<
+  | { ok: true; dados: DadosExtraidos }
+  | { ok: false; message: string }
+> {
+  const { user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const rl = checkRateLimit(`ged-extrair:${user.id}`, 30);
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      message: "Muitas leituras seguidas. Aguarde um pouco e preencha à mão por ora.",
+    };
+  }
+
+  const resultado = await extrairDadosDoArquivo(base64, mimeType, tamanhoBytes);
+  if (!resultado.ok) return { ok: false, message: resultado.message };
+  return { ok: true, dados: resultado.dados };
+}
+
+/** Usuários ativos, para escolher quem lê e quem edita o documento. */
+export async function listarUsuariosParaAcesso(): Promise<
+  ActionResult<{ id: string; nome: string; email: string }[]>
+> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("active", true)
+    .order("full_name");
+
+  if (error) return { ok: false, message: "Não foi possível carregar os usuários." };
+
+  return {
+    ok: true,
+    data: (data ?? []).map((p) => ({
+      id: p.id as string,
+      nome: (p.full_name as string) || (p.email as string),
+      email: p.email as string,
+    })),
+  };
+}
+
+/** Concessões já gravadas, para a tela de edição. */
+export async function listarAcessosDoDocumento(
+  documentId: string
+): Promise<ActionResult<{ user_id: string; nivel: "leitura" | "edicao" }[]>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const { data, error } = await supabase
+    .from("ged_document_access")
+    .select("user_id, nivel")
+    .eq("document_id", documentId);
+
+  if (error) return { ok: false, message: "Não foi possível carregar as permissões." };
+  return {
+    ok: true,
+    data: (data ?? []) as { user_id: string; nivel: "leitura" | "edicao" }[],
+  };
 }

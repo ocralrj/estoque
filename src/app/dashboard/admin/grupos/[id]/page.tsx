@@ -170,8 +170,8 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
                               disabled={profile?.role !== "super_admin"}
                               className={`px-2 py-1 text-xs rounded ${
                                 hasPermission
-                                  ? "bg-primary-100 text-primary-800"
-                                  : "bg-gray-100 text-gray-600"
+                                  ? "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
+                                  : "bg-[var(--surface-strong)] text-[var(--muted)]"
                               } ${profile?.role === "super_admin" ? "hover:opacity-75 cursor-pointer" : "cursor-default"}`}
                             >
                               {perm.action} {hasPermission && "✓"}

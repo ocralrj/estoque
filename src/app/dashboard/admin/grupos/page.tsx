@@ -24,8 +24,8 @@ export default async function GruposPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Grupos de Usuários</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[var(--text)]">Grupos de Usuários</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Gerencie grupos e suas permissões no sistema
           </p>
         </div>
@@ -48,22 +48,22 @@ export default async function GruposPage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-[var(--text)]">
                     {group.name}
                   </h3>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--primary-strong)]">
                     {group.members[0]?.count || 0} membros
                   </span>
                 </div>
 
                 {group.description && (
-                  <p className="text-sm text-gray-600 line-clamp-2">
+                  <p className="line-clamp-2 text-sm text-[var(--muted)]">
                     {group.description}
                   </p>
                 )}
 
-                <div className="pt-3 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
+                <div className="border-t border-[var(--stroke)] pt-3">
+                  <p className="text-xs text-[var(--muted)]">
                     Criado em {formatDate(group.created_at)}
                   </p>
                 </div>
@@ -76,7 +76,7 @@ export default async function GruposPage() {
       {(!groups || groups.length === 0) && (
         <Card>
           <div className="text-center py-12">
-            <p className="text-gray-500">Nenhum grupo cadastrado</p>
+            <p className="text-[var(--muted)]">Nenhum grupo cadastrado</p>
             {profile?.role === "super_admin" && (
               <Link
                 href="/dashboard/admin/grupos/novo"
