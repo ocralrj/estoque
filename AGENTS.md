@@ -54,6 +54,24 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - Identidade do usuário e "Sair do sistema" ficam no `UserMenu` do header, ao lado de notificações e alternador de tema — não na sidebar.
 - Toda tabela precisa de um contêiner com `overflow-x-auto`; grades de cartões partem de `grid-cols-1` e crescem em `sm:`/`xl:`.
 
+## GED — arquivos eletrônicos
+
+- Binários ficam no bucket privado `ged` (Supabase Storage). Não há URL fixa: o
+  download passa por `urlDeDownload()`, que assina uma URL de 120s.
+- **Documento com status `Assinado` sobe intacto.** Recomprimir mudaria os bytes
+  e o hash, invalidando a assinatura — que é justamente a prova que o documento
+  existe para guardar. Toda a lógica está em `src/lib/ged/arquivos.ts`.
+- Os demais são compactados no navegador antes do envio: imagem é reamostrada
+  para 1600px e recodificada em JPEG; os outros formatos usam `CompressionStream`
+  (gzip nativo, sem biblioteca). A coluna `compressao` registra o modo, e
+  `restaurarArquivo()` desfaz o gzip no download.
+- Só compacta se compensar: imagem que cresce ao recodificar e gzip com menos de
+  10% de ganho são descartados em favor do original.
+- O upload vai do navegador direto para o Storage, não pela Server Action —
+  Server Actions têm limite de corpo (~4.5 MB) e o bucket aceita 25 MB.
+- A câmera (`CapturaFoto.tsx`) pede a maior resolução do periférico e reduz
+  depois: mais pixels na origem deixam o texto legível após o reamostramento.
+
 ## Rotina anti-pausa do Supabase
 
 O plano gratuito pausa o projeto após ~7 dias sem atividade.

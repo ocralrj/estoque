@@ -50,6 +50,11 @@ export interface GedDocument {
   resumo: string | null;
   tags: string[];
   storage_path: string | null;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  tamanho_original_bytes: number | null;
+  /** Como o binário foi guardado — ver src/lib/ged/arquivos.ts */
+  compressao: "nenhuma" | "imagem" | "gzip";
   created_at: string;
   updated_at: string;
   responsavel?: { full_name: string | null; email: string } | null;

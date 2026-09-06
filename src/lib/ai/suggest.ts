@@ -245,6 +245,9 @@ function localFallback(input: AiSuggestContext): AiSuggestionResponse {
   if (tipo === "descricao_grupo") {
     return localGroupDescription(input);
   }
+  if (tipo === "resumo_documento") {
+    return localResumoDocumento(input);
+  }
   if (tipo === "motivo_movimentacao") {
     return localMovementReason(input);
   }
@@ -380,6 +383,69 @@ function localProductDescription(input: AiSuggestContext): AiSuggestionResponse 
   return {
     sugestoes,
     aviso: "Modo local — configure AI_API_KEY para textos mais elaborados.",
+  };
+}
+
+function localResumoDocumento(input: AiSuggestContext): AiSuggestionResponse {
+  const ctx = input.contexto || {};
+  const nome = String(ctx.nome || "").trim();
+  const tipo = String(ctx.tipo || "").trim();
+  const cliente = String(ctx.cliente || "").trim();
+  const setor = String(ctx.setor || "").trim();
+  const periodo = String(ctx.periodo || "").trim();
+  const categoria = String(ctx.categoria || "").trim();
+  const rascunho = input.entrada_usuario?.trim();
+
+  if (!nome && !tipo && !rascunho) {
+    return {
+      sugestoes: [
+        {
+          texto:
+            "Preencha ao menos o nome e o tipo do documento para gerar uma descrição útil.",
+          justificativa: "Contexto insuficiente",
+          confianca: "baixa",
+        },
+      ],
+      aviso: "Informe nome e tipo antes de pedir a sugestão.",
+    };
+  }
+
+  const base = nome || tipo || "Documento";
+  const partes = [
+    tipo ? `${tipo}` : null,
+    cliente ? `do cliente ${cliente}` : null,
+    periodo ? `referente a ${periodo}` : null,
+    setor ? `sob responsabilidade do setor ${setor}` : null,
+  ].filter(Boolean);
+
+  return {
+    sugestoes: [
+      {
+        texto: (
+          rascunho ||
+          `${base}${partes.length ? ` — ${partes.join(", ")}` : ""}. Arquivado no GED para consulta e comprovação.`
+        ).slice(0, 300),
+        justificativa: "Descrição a partir dos campos preenchidos",
+        confianca: nome && tipo ? "media" : "baixa",
+      },
+      {
+        texto: `${base}: guarde para conferência e eventual apresentação a fiscalização${categoria ? ` (${categoria})` : ""}. Localizável por cliente, tipo e período.`.slice(
+          0,
+          300
+        ),
+        justificativa: "Foco em rastreabilidade documental",
+        confianca: "media",
+      },
+      {
+        texto: `Documento ${tipo || "eletrônico"}${cliente ? ` de ${cliente}` : ""} incluído no acervo. Verifique validade e regra de temporalidade antes de descartar.`.slice(
+          0,
+          300
+        ),
+        justificativa: "Lembra a temporalidade do GED",
+        confianca: "baixa",
+      },
+    ],
+    aviso: "Modo local — revise antes de salvar.",
   };
 }
 

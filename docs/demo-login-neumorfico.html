@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login Neumórfico — demo</title>
+<style>
+:root{
+  --neo-bg:#e6eaf0;
+  --neo-light:#ffffff;
+  --neo-dark:#b4bdcb;
+  --neo-edge:#7b8493;      /* 3.13:1 vs fundo — WCAG 1.4.11 */
+  --text:#16202f;
+  --text-muted:#4a5568;
+  --primary:#1d4ed8;
+  --primary-dark:#1e3a8a;
+  --primary-soft:#2563eb;  /* branco por cima: 5.17:1 */
+  --danger:#b3261e;
+  --success:#146c43;
+  --radius-card:26px;
+  --radius-field:14px;
+  --dur:.42s;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--neo-bg);color:var(--text);
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  display:grid;place-items:center;padding:32px 16px;overflow-x:hidden;
+}
+
+/* ---------- 8. blobs de fundo ---------- */
+.neo-blobs{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.neo-blobs span{
+  position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;
+  animation:blobFloat 18s var(--ease) infinite alternate;
+}
+.neo-blobs span:nth-child(1){width:340px;height:340px;left:-90px;top:-60px;background:#ffffff}
+.neo-blobs span:nth-child(2){width:300px;height:300px;right:-80px;bottom:-40px;background:#cfd8e6;animation-delay:-6s}
+.neo-blobs span:nth-child(3){width:220px;height:220px;right:12%;top:8%;background:#dbe3ee;animation-delay:-11s}
+@keyframes blobFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(28px,-34px,0) scale(1.12)}}
+
+/* ---------- 1. cena e cartão ---------- */
+.neo-scene{position:relative;z-index:1;width:100%;max-width:400px;perspective:1600px}
+.neo-flipper{
+  position:relative;transform-style:preserve-3d;
+  transition:transform var(--dur) var(--ease), height var(--dur) var(--ease);
+}
+.neo-scene[data-face="signup"] .neo-flipper{transform:rotateY(180deg)}
+.neo-face{
+  position:absolute;inset:0 0 auto 0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--neo-bg);border-radius:var(--radius-card);padding:34px 28px 28px;
+  box-shadow:12px 12px 26px var(--neo-dark), -12px -12px 26px var(--neo-light);
+}
+.neo-face--signup{transform:rotateY(180deg)}
+
+/* ---------- selo circular ---------- */
+.neo-badge{
+  width:74px;height:74px;margin:0 auto 16px;border-radius:50%;
+  display:grid;place-items:center;font-size:30px;background:var(--neo-bg);
+  box-shadow:7px 7px 14px var(--neo-dark), -7px -7px 14px var(--neo-light);
+}
+.neo-title{margin:0;text-align:center;font-size:1.6rem;font-weight:700;letter-spacing:-.02em}
+.neo-sub{margin:6px 0 26px;text-align:center;font-size:.875rem;color:var(--text-muted)}
+
+/* ---------- 3+4. campo, label flutuante, sublinhado ---------- */
+.neo-field{margin-bottom:20px}
+.neo-control{position:relative}
+.neo-field input{
+  width:100%;height:54px;padding:20px 44px 6px 18px;
+  font-size:.95rem;font-family:inherit;color:var(--text);
+  background:var(--neo-bg);border:1px solid var(--neo-edge);border-radius:var(--radius-field);
+  box-shadow:inset 4px 4px 8px var(--neo-dark), inset -4px -4px 8px var(--neo-light);
+  outline:none;transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.neo-field input::placeholder{color:transparent}
+.neo-field label{
+  position:absolute;left:18px;top:17px;font-size:.95rem;color:var(--text-muted);
+  pointer-events:none;transform-origin:left top;
+  transition:transform .2s var(--ease), color .2s var(--ease);
+}
+.neo-field input:focus + label,
+.neo-field input:not(:placeholder-shown) + label{
+  transform:translateY(-11px) scale(.72);color:var(--primary);font-weight:600;
+}
+.neo-field input:focus{border-color:var(--primary-soft)}
+.neo-control::after{
+  content:"";position:absolute;left:16px;right:16px;bottom:5px;height:2px;
+  background:var(--primary);border-radius:2px;
+  transform:scaleX(0);transform-origin:left;transition:transform .28s var(--ease);
+}
+.neo-control:focus-within::after{transform:scaleX(1)}
+.neo-field.is-invalid .neo-control::after{background:var(--danger)}
+
+/* ---------- 7. mostrar/ocultar senha ---------- */
+.neo-eye{
+  position:absolute;right:8px;top:9px;width:36px;height:36px;border:0;border-radius:50%;
+  background:var(--neo-bg);color:var(--text-muted);cursor:pointer;display:grid;place-items:center;
+  box-shadow:3px 3px 6px var(--neo-dark), -3px -3px 6px var(--neo-light);
+}
+.neo-eye:hover{color:var(--primary)}
+.neo-eye:active{box-shadow:inset 3px 3px 6px var(--neo-dark), inset -3px -3px 6px var(--neo-light)}
+.neo-eye:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.neo-eye svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9}
+
+/* ---------- mensagem de erro (validação própria, PT-BR) ---------- */
+.neo-error{
+  display:block;min-height:0;margin:6px 0 0 4px;font-size:.78rem;font-weight:600;
+  color:var(--danger);opacity:0;transform:translateY(-4px);
+  transition:opacity .2s var(--ease), transform .2s var(--ease);
+}
+.neo-field.is-invalid input{border-color:var(--danger);box-shadow:inset 4px 4px 8px #cfa9a5, inset -4px -4px 8px var(--neo-light)}
+.neo-field.is-invalid input + label,
+.neo-field.is-invalid input:focus + label,
+.neo-field.is-invalid input:not(:placeholder-shown) + label{color:var(--danger)}
+.neo-field.is-invalid .neo-error{opacity:1;transform:translateY(0)}
+
+/* ---------- linha auxiliar ---------- */
+.neo-row{display:flex;align-items:center;justify-content:space-between;margin:-6px 0 22px;font-size:.82rem}
+.neo-check{display:flex;align-items:center;gap:8px;color:var(--text-muted);cursor:pointer}
+.neo-check input{width:17px;height:17px;accent-color:var(--primary);cursor:pointer}
+.neo-link{color:var(--primary);font-weight:600;text-decoration:none}
+.neo-link:hover{text-decoration:underline}
+.neo-link:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+
+/* ---------- 5+6. botão com gradiente, brilho e estado de sucesso ---------- */
+.neo-btn{
+  position:relative;width:100%;height:52px;border:1px solid var(--neo-edge);border-radius:var(--radius-field);
+  font:600 .95rem/1 inherit;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  color:var(--primary-dark);background:var(--neo-bg);overflow:hidden;
+  box-shadow:6px 6px 13px var(--neo-dark), -6px -6px 13px var(--neo-light);
+  transition:color .25s var(--ease), box-shadow .25s var(--ease);
+}
+.neo-btn span{position:relative;z-index:1}
+.neo-btn::before{
+  content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;
+  background:linear-gradient(135deg,var(--primary-soft),var(--primary) 55%,var(--primary-dark));
+  opacity:0;transition:opacity .25s var(--ease);
+}
+.neo-btn:hover{color:#fff;border-color:transparent;box-shadow:0 8px 22px rgba(29,78,216,.42)}
+.neo-btn:hover::before{opacity:1}
+.neo-btn:focus-visible{outline:3px solid var(--primary-dark);outline-offset:3px}
+.neo-btn:active{box-shadow:inset 5px 5px 10px var(--neo-dark), inset -5px -5px 10px rgba(255,255,255,.25)}
+.neo-btn.is-loading{pointer-events:none;color:#fff;border-color:transparent}
+.neo-btn.is-loading::before{opacity:1}
+.neo-btn.is-success{color:#fff;pointer-events:none;border-color:transparent;box-shadow:0 8px 22px rgba(20,108,67,.4)}
+.neo-btn.is-success::before{opacity:1;background:linear-gradient(135deg,#157347,#0f5f39)}
+.neo-spin{
+  display:inline-block;width:16px;height:16px;vertical-align:-3px;margin-right:8px;
+  border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- 9. troca de face + ripple ---------- */
+.neo-switch{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:24px;font-size:.85rem;color:var(--text-muted)}
+.neo-round{
+  position:relative;width:40px;height:40px;border:1px solid var(--neo-edge);border-radius:50%;cursor:pointer;overflow:hidden;
+  background:var(--neo-bg);color:var(--primary);font-size:1.15rem;font-weight:700;line-height:1;
+  box-shadow:5px 5px 10px var(--neo-dark), -5px -5px 10px var(--neo-light);
+  transition:box-shadow .2s var(--ease), transform .2s var(--ease);
+}
+.neo-round:hover{transform:translateY(-2px)}
+.neo-round:active{box-shadow:inset 4px 4px 8px var(--neo-dark), inset -4px -4px 8px var(--neo-light)}
+.neo-round:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.neo-round::after{
+  content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle,rgba(29,78,216,.45),transparent 70%);
+  transform:translate(-50%,-50%) scale(0);opacity:0;
+}
+.neo-round.is-rippling::after{animation:ripple .55s var(--ease)}
+@keyframes ripple{0%{transform:translate(-50%,-50%) scale(0);opacity:.9}100%{transform:translate(-50%,-50%) scale(10);opacity:0}}
+
+/* ---------- acessibilidade: movimento reduzido ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+
+<div class="neo-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<div class="neo-scene" id="scene" data-face="login">
+  <div class="neo-flipper" id="flipper">
+
+    <!-- ============ FACE 1: LOGIN ============ -->
+    <section class="neo-face neo-face--login" id="faceLogin">
+      <div class="neo-badge" aria-hidden="true">🔐</div>
+      <h1 class="neo-title">Bem-vindo</h1>
+      <p class="neo-sub">Entre para continuar</p>
+
+      <form id="formLogin" novalidate>
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="email" id="loginEmail" name="email" placeholder=" " autocomplete="email"
+                   required aria-describedby="errLoginEmail">
+            <label for="loginEmail">E-mail</label>
+          </div>
+          <span class="neo-error" id="errLoginEmail" role="alert"></span>
+        </div>
+
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="password" id="loginSenha" name="senha" placeholder=" " autocomplete="current-password"
+                   required minlength="8" aria-describedby="errLoginSenha">
+            <label for="loginSenha">Senha</label>
+            <button type="button" class="neo-eye" data-toggle="loginSenha" aria-label="Mostrar senha" aria-pressed="false">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="neo-error" id="errLoginSenha" role="alert"></span>
+        </div>
+
+        <div class="neo-row">
+          <label class="neo-check"><input type="checkbox" name="lembrar"> Lembrar de mim</label>
+          <a class="neo-link" href="#">Esqueceu a senha?</a>
+        </div>
+
+        <button type="submit" class="neo-btn"><span>Entrar</span></button>
+      </form>
+
+      <div class="neo-switch">
+        <span>Não tem conta?</span>
+        <button type="button" class="neo-round" data-goto="signup" aria-label="Ir para criar conta">+</button>
+      </div>
+    </section>
+
+    <!-- ============ FACE 2: CRIAR CONTA ============ -->
+    <section class="neo-face neo-face--signup" id="faceSignup">
+      <div class="neo-badge" aria-hidden="true">✨</div>
+      <h1 class="neo-title">Criar conta</h1>
+      <p class="neo-sub">Comece sua jornada conosco</p>
+
+      <form id="formSignup" novalidate>
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="text" id="regNome" name="nome" placeholder=" " autocomplete="name" required minlength="3" aria-describedby="errRegNome">
+            <label for="regNome">Nome completo</label>
+          </div>
+          <span class="neo-error" id="errRegNome" role="alert"></span>
+        </div>
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="email" id="regEmail" name="email" placeholder=" " autocomplete="email" required aria-describedby="errRegEmail">
+            <label for="regEmail">E-mail</label>
+          </div>
+          <span class="neo-error" id="errRegEmail" role="alert"></span>
+        </div>
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="password" id="regSenha" name="senha" placeholder=" " autocomplete="new-password" required minlength="8" aria-describedby="errRegSenha">
+            <label for="regSenha">Senha</label>
+            <button type="button" class="neo-eye" data-toggle="regSenha" aria-label="Mostrar senha" aria-pressed="false">
+              <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="neo-error" id="errRegSenha" role="alert"></span>
+        </div>
+        <div class="neo-field" data-field>
+          <div class="neo-control">
+            <input type="password" id="regConfirma" name="confirma" placeholder=" " autocomplete="new-password" required aria-describedby="errRegConfirma">
+            <label for="regConfirma">Confirmar senha</label>
+          </div>
+          <span class="neo-error" id="errRegConfirma" role="alert"></span>
+        </div>
+
+        <button type="submit" class="neo-btn"><span>Criar conta</span></button>
+      </form>
+
+      <div class="neo-switch">
+        <span>Já tem conta?</span>
+        <button type="button" class="neo-round" data-goto="login" aria-label="Voltar para entrar">←</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+const scene=document.getElementById('scene');
+const flipper=document.getElementById('flipper');
+const faces={login:document.getElementById('faceLogin'),signup:document.getElementById('faceSignup')};
+
+/* altura do flipper acompanha a face ativa — evita o corte clássico do flip 3D */
+function ajustaAltura(){
+  const f=faces[scene.dataset.face];
+  flipper.style.height=f.offsetHeight+'px';
+}
+window.addEventListener('resize',ajustaAltura);
+document.fonts?.ready.then(ajustaAltura);
+ajustaAltura();
+
+/* 9. troca de face + ripple */
+document.querySelectorAll('[data-goto]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    b.classList.remove('is-rippling');void b.offsetWidth;b.classList.add('is-rippling');
+    scene.dataset.face=b.dataset.goto;
+    ajustaAltura();
+    setTimeout(()=>faces[scene.dataset.face].querySelector('input')?.focus(),450);
+  });
+});
+
+/* 7. mostrar/ocultar senha */
+document.querySelectorAll('[data-toggle]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const i=document.getElementById(b.dataset.toggle);
+    const ver=i.type==='password';
+    i.type=ver?'text':'password';
+    b.setAttribute('aria-pressed',String(ver));
+    b.setAttribute('aria-label',ver?'Ocultar senha':'Mostrar senha');
+  });
+});
+
+/* validação própria em português */
+const MSG={
+  nome:v=>!v.trim()?'Informe seu nome completo.':v.trim().length<3?'O nome deve ter ao menos 3 caracteres.':'',
+  email:v=>!v.trim()?'Informe seu e-mail.':!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)?'E-mail inválido. Ex.: nome@empresa.com.br':'',
+  senha:v=>!v?'Informe sua senha.':v.length<8?'A senha deve ter ao menos 8 caracteres.':'',
+  confirma:(v,form)=>v!==form.senha.value?'As senhas não conferem.':!v?'Confirme sua senha.':''
+};
+function valida(input,form){
+  const campo=input.closest('[data-field]');
+  const alvo=document.getElementById(input.getAttribute('aria-describedby'));
+  const regra=MSG[input.name];
+  const msg=regra?regra(input.value,form):'';
+  campo.classList.toggle('is-invalid',!!msg);
+  input.setAttribute('aria-invalid',msg?'true':'false');
+  alvo.textContent=msg;
+  return !msg;
+}
+
+function ligaForm(form){
+  form.querySelectorAll('input[name]').forEach(i=>{
+    /* só valida ao sair se o usuário realmente mexeu no campo — evita erro em campo intocado */
+    i.addEventListener('blur',()=>{ if(i.value!=='' || i.dataset.tocado==='1') valida(i,form); });
+    i.addEventListener('input',()=>{ i.dataset.tocado='1'; });
+    i.addEventListener('input',()=>{ if(i.closest('[data-field]').classList.contains('is-invalid')) valida(i,form); });
+  });
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const campos=[...form.querySelectorAll('input[name]')].filter(i=>MSG[i.name]);
+    const ok=campos.map(i=>valida(i,form)).every(Boolean);
+    ajustaAltura();
+    if(!ok){campos.find(i=>i.getAttribute('aria-invalid')==='true')?.focus();return;}
+
+    /* 6. estado de carregando → sucesso */
+    const btn=form.querySelector('.neo-btn'), rotulo=btn.querySelector('span').textContent;
+    btn.classList.add('is-loading');
+    btn.querySelector('span').innerHTML='<i class="neo-spin"></i>Enviando...';
+    await new Promise(r=>setTimeout(r,1100));           // <- troque pela sua chamada de API
+    btn.classList.remove('is-loading');btn.classList.add('is-success');
+    btn.querySelector('span').textContent='✓ Sucesso';
+    setTimeout(()=>{btn.classList.remove('is-success');btn.querySelector('span').textContent=rotulo;},1900);
+  });
+}
+ligaForm(document.getElementById('formLogin'));
+ligaForm(document.getElementById('formSignup'));
+</script>
+</body>
+</html>

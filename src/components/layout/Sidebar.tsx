@@ -31,18 +31,18 @@ const navStructure = (role: string): NavItem[] => {
       ],
     },
     {
+      // Grupo com href: o rótulo navega para o painel, a seta expande.
+      href: "/dashboard/ged",
       label: "GED",
       roles: ["super_admin", "gestor", "almoxarife"],
       children: [
-        { href: "/dashboard/ged", label: "Painel", roles: ["super_admin", "gestor", "almoxarife"] },
         { href: "/dashboard/ged/documentos", label: "Documentos", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
         { href: "/dashboard/ged/pastas", label: "Pastas", roles: ["super_admin", "gestor", "almoxarife"] },
-        { href: "/dashboard/ged/busca", label: "Busca", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
       ],
     },
     {
       href: "/dashboard/sugestoes",
-      label: "Meus pedidos",
+      label: "Minhas Sugestões",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
@@ -96,12 +96,12 @@ function NavItemComponent({
 
   if (hasChildren) {
     // Recolhida, a sidebar não tem largura para submenus: mostramos só o
-    // primeiro nível, e o grupo leva ao seu item inicial.
+    // primeiro nível, e o grupo leva ao seu próprio destino (ou ao item inicial).
     if (collapsed) {
-      const first = item.children?.[0];
+      const destino = item.href || item.children?.[0]?.href;
       return (
         <Link
-          href={first?.href || "#"}
+          href={destino || "#"}
           onClick={onNavigate}
           title={item.label}
           className="flex h-11 items-center justify-center rounded-2xl text-xs font-bold text-[var(--muted)] transition-all hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
@@ -111,25 +111,60 @@ function NavItemComponent({
       );
     }
 
+    const grupoAtivo = item.href === pathname;
+
     return (
       <div>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-expanded={isOpen}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-[var(--muted)] hover:text-[var(--primary-strong)] hover:bg-[var(--surface-soft)] transition-all"
+        <div
+          className={clsx(
+            "flex items-center rounded-2xl transition-all",
+            grupoAtivo
+              ? "neo-soft bg-[var(--surface)] text-[var(--primary-strong)]"
+              : "text-[var(--muted)] hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
+          )}
         >
-          <span>{item.label}</span>
-          <svg
-            className={clsx("w-4 h-4 transition-transform", isOpen && "rotate-90")}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
+          {/* Grupo com destino próprio navega ao ser clicado; sem destino,
+              o rótulo apenas abre e fecha, como antes. */}
+          {item.href ? (
+            <Link
+              href={item.href}
+              onClick={() => {
+                setIsOpen(true);
+                onNavigate?.();
+              }}
+              className="flex-1 px-4 py-3 text-sm font-bold text-inherit"
+            >
+              {item.label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex-1 px-4 py-3 text-left text-sm font-bold text-inherit"
+            >
+              {item.label}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? `Recolher ${item.label}` : `Expandir ${item.label}`}
+            className="px-3 py-3 text-inherit"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+            <svg
+              className={clsx("w-4 h-4 transition-transform", isOpen && "rotate-90")}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
         {isOpen && (
           <div className="ml-4 mt-1 space-y-1 border-l-2 border-[var(--primary-soft)] pl-2">
             {item.children?.map((child) => (
@@ -206,7 +241,7 @@ export default function Sidebar({
         {!isCollapsed && (
           <div className="min-w-0">
             <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
-              Estoque OCRAL
+              Ocral
             </p>
             <p className="mt-1 text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
           </div>

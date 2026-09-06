@@ -8,6 +8,7 @@ import {
 } from "@/types/modules/ged";
 
 interface SearchParams {
+  q?: string;
   cliente?: string;
   setor?: string;
   tipo?: string;
@@ -34,6 +35,23 @@ export default async function GedDocumentosPage({
   if (searchParams.tipo) query = query.eq("tipo", searchParams.tipo);
   if (searchParams.periodo) query = query.eq("periodo", searchParams.periodo);
 
+  // Busca textual: combina com os filtros acima em vez de substituí-los.
+  const termo = searchParams.q?.trim();
+  if (termo) {
+    // `,` separa alternativas no or() do PostgREST — escapamos para que um
+    // termo digitado não quebre a expressão.
+    const seguro = termo.replace(/[,()]/g, " ").trim();
+    query = query.or(
+      [
+        `nome.ilike.%${seguro}%`,
+        `cliente.ilike.%${seguro}%`,
+        `resumo.ilike.%${seguro}%`,
+        `tipo.ilike.%${seguro}%`,
+        `codigo.ilike.%${seguro}%`,
+      ].join(",")
+    );
+  }
+
   const { data: documents } = await query.returns<GedDocument[]>();
 
   // Opções dos filtros a partir do próprio acervo, sem lista fixa no código.
@@ -51,19 +69,43 @@ export default async function GedDocumentosPage({
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Documentos GED</h1>
           <p className="text-sm text-[var(--muted)] mt-1">
-            Indexação, histórico, assinatura e retenção documental.
+            Busca, indexação, histórico, assinatura e retenção documental.
           </p>
         </div>
-        <Link
-          href="/dashboard/ged"
-          className="inline-flex shrink-0 items-center justify-center rounded-full border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:translate-y-[-1px]"
-        >
-          Voltar ao painel
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            href="/dashboard/ged"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:translate-y-[-1px]"
+          >
+            Voltar ao painel
+          </Link>
+          <Link
+            href="/dashboard/ged/documentos/novo"
+            className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)] hover:brightness-105"
+          >
+            Novo documento
+          </Link>
+        </div>
       </div>
 
       <section className="neo-card p-5">
         <form method="get" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="sm:col-span-2 lg:col-span-5">
+            <label
+              htmlFor="q"
+              className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]"
+            >
+              Buscar
+            </label>
+            <input
+              id="q"
+              name="q"
+              defaultValue={searchParams.q ?? ""}
+              placeholder="Nome, cliente, tipo, código ou texto da descrição"
+              className="mt-2 w-full rounded-[1rem] border border-[var(--stroke)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)]"
+            />
+          </div>
+
           <FilterSelect
             name="cliente"
             label="Cliente"
@@ -102,7 +144,7 @@ export default async function GedDocumentosPage({
               type="submit"
               className="flex-1 rounded-full bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
             >
-              Filtrar
+              Buscar
             </button>
             <Link
               href="/dashboard/ged/documentos"
@@ -137,6 +179,9 @@ export default async function GedDocumentosPage({
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em]">
                   Validade
                 </th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em]">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -168,15 +213,23 @@ export default async function GedDocumentosPage({
                     <td className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.validade ? formatDate(document.validade) : "—"}
                     </td>
+                    <td className="px-4 py-3 text-sm">
+                      <Link
+                        href={`/dashboard/ged/documentos/${document.id}`}
+                        className="font-semibold text-[var(--primary-strong)] hover:underline"
+                      >
+                        Abrir
+                      </Link>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-10 text-center text-sm text-[var(--muted)]"
                   >
-                    Nenhum documento encontrado para os filtros aplicados.
+                    Nenhum documento encontrado para a busca e os filtros aplicados.
                   </td>
                 </tr>
               )}
