@@ -9,6 +9,7 @@ import {
   type GedAuditEntry,
   type GedDocument,
   type GedFolder,
+  type GedRetentionRule,
 } from "@/types/modules/ged";
 
 export default async function DocumentoPage({ params }: { params: { id: string } }) {
@@ -22,13 +23,20 @@ export default async function DocumentoPage({ params }: { params: { id: string }
 
   if (!documento) redirect("/dashboard/ged/documentos");
 
-  const [{ data: pastas }, { data: historico }] = await Promise.all([
+  const [{ data: pastas }, { data: regras }, { data: historico }] = await Promise.all([
     supabase
       .from("ged_folders")
       .select("*")
       .eq("ativa", true)
       .order("setor")
       .returns<GedFolder[]>(),
+    supabase
+      .from("ged_retention_rules")
+      .select("*")
+      .eq("ativa", true)
+      .order("setor")
+      .order("tipo")
+      .returns<GedRetentionRule[]>(),
     supabase
       .from("ged_audit")
       .select("*, user:profiles(full_name, email)")
@@ -74,7 +82,7 @@ export default async function DocumentoPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      <FormularioDocumento documento={documento} pastas={pastas ?? []} />
+      <FormularioDocumento documento={documento} pastas={pastas ?? []} regras={regras ?? []} />
 
       <section className="neo-card p-5">
         <h2 className="mb-4 text-lg font-bold text-[var(--text)]">Histórico do documento</h2>

@@ -57,6 +57,9 @@ export interface GedDocument {
   compressao: "nenhuma" | "imagem" | "gzip";
   /** todos = qualquer autenticado lê; restrito = só quem consta em ged_document_access */
   visibilidade: "todos" | "restrito";
+  retention_rule_id: string | null;
+  /** Vencimento do prazo de guarda, calculado pelo trigger no banco. */
+  data_descarte: string | null;
   created_at: string;
   updated_at: string;
   responsavel?: { full_name: string | null; email: string } | null;
@@ -67,6 +70,8 @@ export interface GedRetentionRule {
   setor: GedSetor;
   tipo: string;
   prazo: string;
+  /** Prazo em meses. null = guarda permanente, nunca descartado. */
+  prazo_meses: number | null;
   destino: string;
   base_legal: string | null;
   ativa: boolean;

@@ -38,6 +38,8 @@ export interface DocumentoInput {
   tamanho_original_bytes?: number | null;
   compressao?: "nenhuma" | "imagem" | "gzip";
   visibilidade?: "todos" | "restrito";
+  /** Regra de temporalidade; o banco calcula data_descarte a partir dela. */
+  retention_rule_id?: string | null;
   /** Concessões por usuário quando a visibilidade é restrita. */
   acessos?: { user_id: string; nivel: "leitura" | "edicao" }[];
 }
@@ -71,6 +73,7 @@ function montarPayload(input: DocumentoInput) {
     tags: (input.tags ?? []).map((t) => t.trim()).filter(Boolean).slice(0, 20),
     folder_id: input.folder_id || null,
     visibilidade: input.visibilidade ?? "todos",
+    retention_rule_id: input.retention_rule_id || null,
   };
 }
 

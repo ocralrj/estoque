@@ -180,6 +180,9 @@ export default async function GedDocumentosPage({
                   Validade
                 </th>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em]">
+                  Descarte
+                </th>
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em]">
                   Ações
                 </th>
               </tr>
@@ -213,6 +216,11 @@ export default async function GedDocumentosPage({
                     <td className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.validade ? formatDate(document.validade) : "—"}
                     </td>
+                    <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                      {document.data_descarte
+                        ? formatDate(document.data_descarte)
+                        : "permanente"}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <Link
                         href={`/dashboard/ged/documentos/${document.id}`}
@@ -226,7 +234,7 @@ export default async function GedDocumentosPage({
               ) : (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-sm text-[var(--muted)]"
                   >
                     Nenhum documento encontrado para a busca e os filtros aplicados.

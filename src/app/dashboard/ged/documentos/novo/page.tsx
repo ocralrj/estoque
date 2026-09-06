@@ -1,18 +1,27 @@
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
 import FormularioDocumento from "@/components/ged/FormularioDocumento";
-import type { GedFolder } from "@/types/modules/ged";
+import type { GedFolder, GedRetentionRule } from "@/types/modules/ged";
 
 export default async function NovoDocumentoPage() {
   const { supabase } = await requireSession(STOCK_ROLES);
 
-  const { data: pastas } = await supabase
-    .from("ged_folders")
-    .select("*")
-    .eq("ativa", true)
-    .order("setor")
-    .order("nome")
-    .returns<GedFolder[]>();
+  const [{ data: pastas }, { data: regras }] = await Promise.all([
+    supabase
+      .from("ged_folders")
+      .select("*")
+      .eq("ativa", true)
+      .order("setor")
+      .order("nome")
+      .returns<GedFolder[]>(),
+    supabase
+      .from("ged_retention_rules")
+      .select("*")
+      .eq("ativa", true)
+      .order("setor")
+      .order("tipo")
+      .returns<GedRetentionRule[]>(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -31,7 +40,7 @@ export default async function NovoDocumentoPage() {
         </Link>
       </div>
 
-      <FormularioDocumento pastas={pastas ?? []} />
+      <FormularioDocumento pastas={pastas ?? []} regras={regras ?? []} />
     </div>
   );
 }

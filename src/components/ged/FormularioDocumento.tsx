@@ -18,6 +18,7 @@ import {
   GED_SETORES,
   type GedDocument,
   type GedFolder,
+  type GedRetentionRule,
   type GedSetor,
   type GedStatus,
 } from "@/types/modules/ged";
@@ -32,6 +33,7 @@ const TAMANHO_LEITURA_IA = 4 * 1024 * 1024;
 interface Props {
   documento?: GedDocument;
   pastas: GedFolder[];
+  regras: GedRetentionRule[];
 }
 
 /** Base64 sem o prefixo data:, que é o formato aceito pelo Gemini. */
@@ -47,7 +49,7 @@ function paraBase64(blob: Blob): Promise<string> {
   });
 }
 
-export default function FormularioDocumento({ documento, pastas }: Props) {
+export default function FormularioDocumento({ documento, pastas, regras }: Props) {
   const router = useRouter();
   const editando = Boolean(documento);
   const [pendente, iniciar] = useTransition();
@@ -67,6 +69,7 @@ export default function FormularioDocumento({ documento, pastas }: Props) {
     resumo: documento?.resumo ?? "",
     tags: (documento?.tags ?? []).join(", "),
     folder_id: documento?.folder_id ?? "",
+    retention_rule_id: documento?.retention_rule_id ?? "",
   });
 
   const [visibilidade, setVisibilidade] = useState<"todos" | "restrito">(
@@ -97,6 +100,21 @@ export default function FormularioDocumento({ documento, pastas }: Props) {
     setForm((f) => ({ ...f, [campo]: valor }));
   }
 
+  // Prévia do que o banco vai calcular — o valor gravado vem do trigger.
+  const regraEscolhida = regras.find((r) => r.id === form.retention_rule_id);
+  const textoDescarte = !regraEscolhida
+    ? "Sem regra, o documento não recebe data de descarte."
+    : regraEscolhida.prazo_meses === null
+      ? `Guarda permanente (${regraEscolhida.base_legal ?? "sem base legal registrada"}) — nunca será descartado.`
+      : (() => {
+          const base = form.data_documento ? new Date(`${form.data_documento}T00:00:00`) : new Date();
+          const d = new Date(base);
+          d.setMonth(d.getMonth() + regraEscolhida.prazo_meses);
+          return `Descarte previsto para ${d.toLocaleDateString("pt-BR")}${
+            form.data_documento ? "" : " (contado de hoje, pois falta a data do documento)"
+          }.`;
+        })();
+
   /** Preenche apenas o que está vazio — nunca sobrescreve o que já foi digitado. */
   function aplicarLeitura(dados: {
     nome: string | null;
@@ -120,7 +138,27 @@ export default function FormularioDocumento({ documento, pastas }: Props) {
       validade: f.validade || dados.validade || "",
       periodo: f.periodo || dados.periodo || "",
       setor: (dados.setor as GedSetor) || f.setor,
+      retention_rule_id: f.retention_rule_id || sugerirRegra(dados.setor, dados.tipo),
     }));
+  }
+
+  /**
+   * Casa o tipo lido com o catálogo de regras.
+   *
+   * O tipo do documento é texto livre ("NF-e") e o da regra é uma categoria
+   * ("Notas fiscais"), então igualdade não serve. Comparamos por conteúdo, em
+   * qualquer direção, e só dentro do setor. Sem correspondência clara, deixamos
+   * vazio: chutar a regra erra o prazo de guarda, o que é pior que não sugerir.
+   */
+  function sugerirRegra(setor: string | null, tipo: string | null): string {
+    if (!setor || !tipo) return "";
+    const t = tipo.toLowerCase();
+    const doSetor = regras.filter((r) => r.setor === setor);
+    const achou = doSetor.find((r) => {
+      const rt = r.tipo.toLowerCase();
+      return rt.includes(t) || t.includes(rt) || rt.split(" ")[0] === t.split(" ")[0];
+    });
+    return achou?.id ?? "";
   }
 
   async function receberArquivo(preparado: ArquivoPreparado, original: Blob, tipoOriginal: string) {
@@ -449,6 +487,24 @@ export default function FormularioDocumento({ documento, pastas }: Props) {
                     className={entrada}
                   />
                 </Campo>
+                <Campo label="Temporalidade" className="sm:col-span-2">
+                  <select
+                    value={form.retention_rule_id}
+                    onChange={(e) => set("retention_rule_id", e.target.value)}
+                    className={entrada}
+                  >
+                    <option value="">Sem regra definida</option>
+                    {regras
+                      .filter((r) => r.setor === form.setor)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.tipo} — {r.prazo}, {r.destino}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{textoDescarte}</p>
+                </Campo>
+
                 <Campo label="Etiquetas" className="sm:col-span-2 lg:col-span-4">
                   <input
                     value={form.tags}
