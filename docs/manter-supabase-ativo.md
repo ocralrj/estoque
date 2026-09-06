@@ -15,29 +15,29 @@ CRON_SECRET=um-segredo-longo-e-aleatorio
 
 ## Agendamento automático (já configurado no repositório)
 
-Duas rotinas independentes chamam o endpoint, para que a pausa não dependa de
-um único serviço:
+`.github/workflows/keep-alive.yml` chama o endpoint todos os dias às 06:30 UTC.
+Exige dois secrets no repositório
+(Settings → Secrets and variables → Actions):
 
-1. **Vercel Cron** — `vercel.json` agenda `/api/internal/keep-alive` todos os
-   dias às 06:00 UTC. A Vercel envia sozinha o cabeçalho
-   `Authorization: Bearer $CRON_SECRET` quando a variável `CRON_SECRET` existe
-   nas variáveis de ambiente do projeto. Basta definir `CRON_SECRET` no painel
-   da Vercel (Production) — nada mais é necessário.
+| Secret | Valor |
+| --- | --- |
+| `APP_URL` | URL de produção, sem barra final (ex.: `https://ocral.vercel.app`) |
+| `CRON_SECRET` | o mesmo valor definido nas variáveis de ambiente da Vercel |
 
-2. **GitHub Actions** — `.github/workflows/keep-alive.yml` repete a chamada às
-   segundas e quintas. Exige dois secrets no repositório
-   (Settings → Secrets and variables → Actions):
+O workflow também pode ser disparado manualmente em Actions → *Manter
+Supabase ativo* → *Run workflow*, útil para testar a configuração.
 
-   | Secret | Valor |
-   | --- | --- |
-   | `APP_URL` | URL de produção, sem barra final (ex.: `https://ocral.vercel.app`) |
-   | `CRON_SECRET` | o mesmo valor definido na Vercel |
+Como o Supabase pausa após cerca de sete dias de inatividade, uma chamada
+diária deixa margem larga: seriam necessárias sete falhas seguidas para o
+banco chegar a pausar.
 
-   O workflow também pode ser disparado manualmente em Actions → *Manter
-   Supabase ativo* → *Run workflow*, útil para testar a configuração.
+### Por que não usamos o Vercel Cron
 
-Como o Supabase pausa após cerca de sete dias de inatividade, qualquer uma das
-duas rotinas sozinha já mantém o banco ativo; juntas, cobrem a falha da outra.
+O `vercel.json` com bloco `crons` foi removido: agendamentos são recurso de
+plano Pro, e no plano Hobby a Vercel **recusa a configuração e falha o deploy
+imediatamente**, antes de compilar. Se o projeto migrar para o Pro, dá para
+reintroduzir o arquivo — mas o workflow acima já resolve, e sem depender do
+plano.
 
 ## Agendamento manual (alternativa)
 

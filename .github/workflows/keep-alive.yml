@@ -1,11 +1,12 @@
 name: Manter Supabase ativo
 
-# Redundância ao Vercel Cron: se o projeto na Vercel for pausado ou o cron
-# do plano falhar, esta rotina continua registrando atividade no banco.
+# Única rotina anti-pausa do projeto. O Vercel Cron foi descartado porque
+# agendamentos exigem plano Pro — no Hobby a Vercel recusa o vercel.json
+# e o deploy falha antes mesmo de compilar.
 # O projeto gratuito do Supabase é pausado após ~7 dias sem uso.
 on:
   schedule:
-    - cron: "30 6 * * 1,4"
+    - cron: "30 6 * * *"
   workflow_dispatch:
 
 jobs:

@@ -53,11 +53,15 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 
 ## Rotina anti-pausa do Supabase
 
-O plano gratuito pausa o projeto após ~7 dias sem atividade. Duas rotinas
-independentes chamam `GET /api/internal/keep-alive` (protegido por `CRON_SECRET`):
-`vercel.json` (Vercel Cron, diário) e `.github/workflows/keep-alive.yml`
-(segundas e quintas, exige os secrets `APP_URL` e `CRON_SECRET`). Detalhes em
-`docs/manter-supabase-ativo.md`.
+O plano gratuito pausa o projeto após ~7 dias sem atividade.
+`.github/workflows/keep-alive.yml` chama `GET /api/internal/keep-alive`
+(protegido por `CRON_SECRET`) todos os dias; exige os secrets `APP_URL` e
+`CRON_SECRET` no repositório.
+
+**Não adicione `vercel.json` com bloco `crons`.** Agendamento é recurso de plano
+Pro; no Hobby a Vercel recusa a configuração e o deploy falha no mesmo segundo em
+que é criado, sem chegar a compilar — foi o que derrubou o deploy de 06/09/2026.
+Detalhes em `docs/manter-supabase-ativo.md`.
 
 ## Comandos
 

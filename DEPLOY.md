@@ -82,11 +82,14 @@ Em **Settings → Environment Variables**, defina para *Production*:
 
 ### 2.5. Rotina que impede a pausa do Supabase
 
-`vercel.json` já agenda uma chamada diária a `/api/internal/keep-alive`, que
-mantém o projeto gratuito do Supabase fora da pausa por inatividade. Basta que
-`CRON_SECRET` exista nas variáveis de produção. Há uma redundância em
-`.github/workflows/keep-alive.yml` — veja
-[docs/manter-supabase-ativo.md](docs/manter-supabase-ativo.md).
+`.github/workflows/keep-alive.yml` chama `/api/internal/keep-alive` todos os
+dias, o que mantém o projeto gratuito do Supabase fora da pausa por
+inatividade. Exige os secrets `APP_URL` e `CRON_SECRET` no repositório, além de
+`CRON_SECRET` nas variáveis de produção da Vercel.
+
+Não use `vercel.json` com bloco `crons`: agendamento é recurso de plano Pro e,
+no Hobby, a Vercel recusa a configuração e falha o deploy antes de compilar.
+Detalhes em [docs/manter-supabase-ativo.md](docs/manter-supabase-ativo.md).
 
 ## 3. Primeiro Acesso
 
