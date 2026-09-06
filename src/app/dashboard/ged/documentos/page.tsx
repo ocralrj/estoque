@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/labels";
-import {
-  gedStatusClass,
-  GED_SETORES,
-  type GedDocument,
-} from "@/types/modules/ged";
+import { gedStatusClass, type GedDocument } from "@/types/modules/ged";
+import { listarDepartamentos } from "@/app/actions/departamentos";
 
 interface SearchParams {
   q?: string;
@@ -59,6 +56,9 @@ export default async function GedDocumentosPage({
     .from("ged_documents")
     .select("cliente, tipo")
     .limit(1000);
+
+  const dep = await listarDepartamentos(true);
+  const departamentos = dep.ok ? dep.data.map((d) => d.nome) : [];
 
   const clientes = Array.from(new Set((facets ?? []).map((f) => f.cliente))).sort();
   const tipos = Array.from(new Set((facets ?? []).map((f) => f.tipo))).sort();
@@ -114,9 +114,9 @@ export default async function GedDocumentosPage({
           />
           <FilterSelect
             name="setor"
-            label="Setor"
+            label="Departamento"
             value={searchParams.setor}
-            options={GED_SETORES}
+            options={departamentos}
           />
           <FilterSelect
             name="tipo"

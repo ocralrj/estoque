@@ -12,6 +12,10 @@ export type GedStatus =
   | "Arquivado"
   | "Eliminado";
 
+/**
+ * Lista original, mantida só como semente e fallback: os departamentos agora
+ * vivem na tabela `departamentos` e são editáveis em Administração.
+ */
 export const GED_SETORES: GedSetor[] = [
   "Fiscal",
   "DP",

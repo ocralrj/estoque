@@ -1,0 +1,191 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getSession, isManager } from "@/lib/auth";
+
+type ActionResult<T = void> =
+  | { ok: true; data: T }
+  | { ok: false; message: string };
+
+export interface Departamento {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  created_at: string;
+}
+
+function revalidar() {
+  revalidatePath("/dashboard/admin/departamentos");
+  revalidatePath("/dashboard/ged/documentos");
+  revalidatePath("/dashboard/ged/pastas");
+}
+
+function validarNome(nome: string): string | null {
+  const n = nome.trim();
+  if (!n) return "Informe o nome do departamento.";
+  if (n.length < 2) return "O nome deve ter ao menos 2 caracteres.";
+  if (n.length > 60) return "O nome deve ter no máximo 60 caracteres.";
+  return null;
+}
+
+export async function listarDepartamentos(
+  somenteAtivos = false
+): Promise<ActionResult<Departamento[]>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  let query = supabase.from("departamentos").select("*").order("nome");
+  if (somenteAtivos) query = query.eq("ativo", true);
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.code === "PGRST205" || error.code === "42P01") {
+      return {
+        ok: false,
+        message:
+          "A tabela de departamentos ainda não existe. Execute supabase/_manual_apply/009_departamentos.sql.",
+      };
+    }
+    return { ok: false, message: "Não foi possível carregar os departamentos." };
+  }
+  return { ok: true, data: (data ?? []) as Departamento[] };
+}
+
+export async function criarDepartamento(
+  nome: string,
+  descricao?: string
+): Promise<ActionResult<Departamento>> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const erro = validarNome(nome);
+  if (erro) return { ok: false, message: erro };
+
+  const { data, error } = await supabase
+    .from("departamentos")
+    .insert({
+      nome: nome.trim().slice(0, 60),
+      descricao: descricao?.trim().slice(0, 300) || null,
+      created_by: user.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, message: "Já existe um departamento com esse nome." };
+    }
+    if (error.code === "PGRST205" || error.code === "42P01") {
+      return {
+        ok: false,
+        message:
+          "A tabela de departamentos ainda não existe. Execute supabase/_manual_apply/009_departamentos.sql.",
+      };
+    }
+    return { ok: false, message: "Não foi possível criar o departamento." };
+  }
+
+  revalidar();
+  return { ok: true, data: data as Departamento };
+}
+
+/**
+ * Renomeia e, opcionalmente, atualiza os registros que já usam o nome antigo.
+ *
+ * O nome fica gravado como texto nos documentos: sem a cascata, o histórico
+ * continua apontando para o nome anterior. Nem sempre isso é indesejado — um
+ * departamento extinto pode ter de continuar nomeado nos documentos da época —
+ * por isso a escolha é de quem renomeia, e não automática.
+ */
+export async function atualizarDepartamento(
+  id: string,
+  nome: string,
+  descricao: string | undefined,
+  ativo: boolean,
+  propagarNome: boolean
+): Promise<ActionResult<{ registrosAtualizados: number }>> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const erro = validarNome(nome);
+  if (erro) return { ok: false, message: erro };
+
+  const { data: atual } = await supabase
+    .from("departamentos")
+    .select("nome")
+    .eq("id", id)
+    .single();
+
+  const nomeNovo = nome.trim().slice(0, 60);
+  const nomeAntigo = (atual?.nome as string) ?? "";
+
+  const { error } = await supabase
+    .from("departamentos")
+    .update({
+      nome: nomeNovo,
+      descricao: descricao?.trim().slice(0, 300) || null,
+      ativo,
+    })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, message: "Já existe um departamento com esse nome." };
+    }
+    return { ok: false, message: "Não foi possível atualizar o departamento." };
+  }
+
+  let registrosAtualizados = 0;
+  if (propagarNome && nomeAntigo && nomeAntigo !== nomeNovo) {
+    const { data: total } = await supabase.rpc("renomear_departamento", {
+      antigo: nomeAntigo,
+      novo: nomeNovo,
+    });
+    registrosAtualizados = typeof total === "number" ? total : 0;
+  }
+
+  revalidar();
+  return { ok: true, data: { registrosAtualizados } };
+}
+
+export async function excluirDepartamento(id: string): Promise<ActionResult> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  if (profile?.role !== "super_admin") {
+    return { ok: false, message: "Apenas o administrador pode excluir departamentos." };
+  }
+
+  const { data: dep } = await supabase
+    .from("departamentos")
+    .select("nome")
+    .eq("id", id)
+    .single();
+
+  // Excluir o catálogo não apaga o nome já gravado nos documentos — eles
+  // ficariam apontando para um departamento que sumiu da lista. Melhor barrar e
+  // sugerir desativar, que tira das opções sem mexer no histórico.
+  if (dep?.nome) {
+    const { count } = await supabase
+      .from("ged_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("setor", dep.nome);
+
+    if (count && count > 0) {
+      return {
+        ok: false,
+        message: `Este departamento é usado por ${count} documento(s). Desative-o em vez de excluir, para não deixar o histórico órfão.`,
+      };
+    }
+  }
+
+  const { error } = await supabase.from("departamentos").delete().eq("id", id);
+  if (error) return { ok: false, message: "Não foi possível excluir o departamento." };
+
+  revalidar();
+  return { ok: true, data: undefined };
+}

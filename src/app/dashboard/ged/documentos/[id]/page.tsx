@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
+import { listarDepartamentos } from "@/app/actions/departamentos";
 import { formatDate, formatDateTime } from "@/lib/labels";
 import FormularioDocumento from "@/components/ged/FormularioDocumento";
 import AcoesDocumento from "@/components/ged/AcoesDocumento";
@@ -46,6 +47,9 @@ export default async function DocumentoPage({ params }: { params: { id: string }
       .returns<GedAuditEntry[]>(),
   ]);
 
+  const dep = await listarDepartamentos(true);
+  const departamentos = dep.ok ? dep.data.map((d) => d.nome) : ["Fiscal"];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -82,7 +86,12 @@ export default async function DocumentoPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      <FormularioDocumento documento={documento} pastas={pastas ?? []} regras={regras ?? []} />
+      <FormularioDocumento
+        documento={documento}
+        pastas={pastas ?? []}
+        regras={regras ?? []}
+        departamentos={departamentos}
+      />
 
       <section className="neo-card p-5">
         <h2 className="mb-4 text-lg font-bold text-[var(--text)]">Histórico do documento</h2>

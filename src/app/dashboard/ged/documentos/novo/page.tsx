@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
+import { listarDepartamentos } from "@/app/actions/departamentos";
 import FormularioDocumento from "@/components/ged/FormularioDocumento";
 import type { GedFolder, GedRetentionRule } from "@/types/modules/ged";
 
@@ -23,6 +24,9 @@ export default async function NovoDocumentoPage() {
       .returns<GedRetentionRule[]>(),
   ]);
 
+  const dep = await listarDepartamentos(true);
+  const departamentos = dep.ok ? dep.data.map((d) => d.nome) : ["Fiscal"];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -40,7 +44,11 @@ export default async function NovoDocumentoPage() {
         </Link>
       </div>
 
-      <FormularioDocumento pastas={pastas ?? []} regras={regras ?? []} />
+      <FormularioDocumento
+        pastas={pastas ?? []}
+        regras={regras ?? []}
+        departamentos={departamentos}
+      />
     </div>
   );
 }

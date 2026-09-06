@@ -15,7 +15,6 @@ import {
   listarAcessosDoDocumento,
 } from "@/app/actions/ged";
 import {
-  GED_SETORES,
   type GedDocument,
   type GedFolder,
   type GedRetentionRule,
@@ -34,6 +33,8 @@ interface Props {
   documento?: GedDocument;
   pastas: GedFolder[];
   regras: GedRetentionRule[];
+  /** Departamentos ativos, vindos do catálogo gerenciável. */
+  departamentos: string[];
 }
 
 /** Base64 sem o prefixo data:, que é o formato aceito pelo Gemini. */
@@ -49,7 +50,12 @@ function paraBase64(blob: Blob): Promise<string> {
   });
 }
 
-export default function FormularioDocumento({ documento, pastas, regras }: Props) {
+export default function FormularioDocumento({
+  documento,
+  pastas,
+  regras,
+  departamentos,
+}: Props) {
   const router = useRouter();
   const editando = Boolean(documento);
   const [pendente, iniciar] = useTransition();
@@ -59,7 +65,7 @@ export default function FormularioDocumento({ documento, pastas, regras }: Props
     nome: documento?.nome ?? "",
     cliente: documento?.cliente ?? "",
     cnpj: documento?.cnpj ?? "",
-    setor: (documento?.setor ?? "Fiscal") as GedSetor,
+    setor: (documento?.setor ?? departamentos[0] ?? "Fiscal") as GedSetor,
     tipo: documento?.tipo ?? "",
     status: (documento?.status ?? "Rascunho") as GedStatus,
     periodo: documento?.periodo ?? "",
@@ -401,14 +407,14 @@ export default function FormularioDocumento({ documento, pastas, regras }: Props
                   />
                 </Campo>
 
-                <Campo label="Setor *">
+                <Campo label="Departamento de origem *">
                   <select
                     value={form.setor}
                     onChange={(e) => set("setor", e.target.value as GedSetor)}
                     className={entrada}
                   >
-                    {GED_SETORES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                    {departamentos.map((d) => (
+                      <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
                 </Campo>
