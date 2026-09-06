@@ -37,20 +37,20 @@ export default function ErrorState({
   return (
     <div
       className={`flex items-center justify-center ${
-        fullScreen ? "min-h-screen bg-gray-50" : "min-h-96"
+        fullScreen ? "min-h-screen bg-[var(--neo-flat)]" : "min-h-96"
       }`}
     >
-      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-        <h2 className="text-xl font-bold text-red-600 mb-3">{title}</h2>
-        <p className="text-gray-700 mb-3">{description}</p>
+      <div className="max-w-md w-full bg-[var(--neo-bg)] shadow-lg rounded-lg p-6">
+        <h2 className="text-xl font-bold text-[var(--erro-solid)] mb-3">{title}</h2>
+        <p className="text-[var(--text)] mb-3">{description}</p>
         {error.digest && (
-          <p className="text-xs text-gray-500 mb-3 font-mono bg-gray-100 p-2 rounded">
+          <p className="text-xs text-[var(--text-muted)] mb-3 font-mono bg-[var(--neo-flat-alt)] p-2 rounded">
             Código do erro: {error.digest}
           </p>
         )}
         <button
           onClick={reset}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="w-full px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
         >
           {action}
         </button>

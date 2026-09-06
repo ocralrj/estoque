@@ -60,27 +60,27 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
         <div>
           <Link
             href="/dashboard/admin/grupos"
-            className="text-sm text-primary-600 hover:text-primary-700 mb-2 inline-block"
+            className="text-sm text-[var(--primary)] hover:underline mb-2 inline-block"
           >
             ← Voltar para grupos
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
+          <h1 className="text-2xl font-bold text-[var(--text)]">{group.name}</h1>
           {group.description && (
-            <p className="text-sm text-gray-600 mt-1">{group.description}</p>
+            <p className="text-sm text-[var(--text-muted)] mt-1">{group.description}</p>
           )}
         </div>
         {profile?.role === "super_admin" && (
           <div className="flex gap-2">
             <Link
               href={`/dashboard/admin/grupos/${params.id}/editar`}
-              className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 bg-[var(--neo-flat-alt)] text-[var(--text)] rounded-lg hover:brightness-95 transition-colors"
             >
               Editar
             </Link>
             <form action={deleteGroup.bind(null, params.id)}>
               <ConfirmSubmitButton
                 message="Tem certeza que deseja excluir este grupo?"
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-[var(--erro-solid)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
               >
                 Excluir
               </ConfirmSubmitButton>
@@ -93,11 +93,11 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
         <Card title="Membros" subtitle={`${group.members.length} usuários neste grupo`}>
           <div className="space-y-3">
             {group.members.map((member: any) => (
-              <div key={member.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={member.user_id} className="flex items-center justify-between p-3 bg-[var(--neo-flat)] rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">{member.profile.full_name || member.profile.email}</p>
-                  <p className="text-sm text-gray-600">{member.profile.email}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="font-medium text-[var(--text)]">{member.profile.full_name || member.profile.email}</p>
+                  <p className="text-sm text-[var(--text-muted)]">{member.profile.email}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     Role: {member.profile.role}
                   </p>
                 </div>
@@ -105,7 +105,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
                   <form action={removeGroupMember.bind(null, params.id, member.user_id)}>
                     <button
                       type="submit"
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className="text-[var(--erro-solid)] hover:text-[var(--erro-fg)] text-sm"
                     >
                       Remover
                     </button>
@@ -115,8 +115,8 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
             ))}
 
             {profile?.role === "super_admin" && availableUsers.length > 0 && (
-              <div className="pt-3 border-t border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-2">Adicionar membro:</p>
+              <div className="pt-3 border-t border-[var(--neo-line)]">
+                <p className="text-sm font-medium text-[var(--text)] mb-2">Adicionar membro:</p>
                 <form action={async (formData: FormData) => {
                   "use server";
                   const userId = formData.get("userId") as string;
@@ -124,7 +124,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
                 }} className="flex gap-2">
                   <select
                     name="userId"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="flex-1 px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
                     required
                   >
                     <option value="">Selecione um usuário</option>
@@ -136,7 +136,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
                   </select>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
+                    className="px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 text-sm"
                   >
                     Adicionar
                   </button>
@@ -150,10 +150,10 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
           <div className="space-y-4">
             {Object.entries(groupedPermissions || {}).map(([module, resources]: [string, any]) => (
               <div key={module}>
-                <h4 className="font-medium text-gray-900 mb-2 capitalize">{module}</h4>
+                <h4 className="font-medium text-[var(--text)] mb-2 capitalize">{module}</h4>
                 {Object.entries(resources).map(([resource, perms]: [string, any]) => (
                   <div key={resource} className="ml-4 mb-3">
-                    <p className="text-sm font-medium text-gray-700 mb-1">{resource}</p>
+                    <p className="text-sm font-medium text-[var(--text)] mb-1">{resource}</p>
                     <div className="flex flex-wrap gap-2">
                       {perms.map((perm: any) => {
                         const hasPermission = permissionIds.has(perm.id);

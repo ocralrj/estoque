@@ -36,13 +36,13 @@ export default function NovoGrupoForm() {
     <Card title="Novo Grupo" subtitle="Criar novo grupo de usuários">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="p-3 bg-[var(--erro-bg)] border border-[var(--neo-line)] rounded-lg text-[var(--erro-fg)] text-sm">
             {error}
           </div>
         )}
 
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="name" className="block text-sm font-medium text-[var(--text)] mb-1">
             Nome do Grupo *
           </label>
           <input
@@ -52,14 +52,14 @@ export default function NovoGrupoForm() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             placeholder="Ex: Analistas Financeiros"
           />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1 gap-2">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="description" className="block text-sm font-medium text-[var(--text)]">
               Descrição
             </label>
             <SuggestWithAi
@@ -80,7 +80,7 @@ export default function NovoGrupoForm() {
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             placeholder="Descreva as responsabilidades e permissões deste grupo"
           />
         </div>

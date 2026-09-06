@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sistema de design NEO (docs/neo-sistema-de-design.md) e a ponte que traduz
+   os tokens antigos do projeto para os dele. A ponte vem depois, para
+   sobrescrever. */
+@import "./neo.css";
+@import "./neo-ponte.css";
+
 @layer base {
   :root {
     --bg: #ece9e6;

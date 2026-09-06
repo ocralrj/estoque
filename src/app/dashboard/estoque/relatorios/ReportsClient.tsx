@@ -91,31 +91,31 @@ export default function ReportsClient() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Relatórios</h1>
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Relatórios</h1>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Período</h2>
+      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6 mb-6">
+        <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Período</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-md">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Data Inicial
             </label>
             <input
               type="date"
               value={dateRange.start}
               onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Data Final
             </label>
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
           </div>
         </div>
@@ -123,38 +123,38 @@ export default function ReportsClient() {
 
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Carregando relatórios...</p>
+          <p className="text-[var(--text-muted)]">Carregando relatórios...</p>
         </div>
       ) : (
         <>
           {stats && (
             <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <p className="text-sm text-gray-500">Total de Movimentações</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{stats.totalMovements}</p>
+              <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+                <p className="text-sm text-[var(--text-muted)]">Total de Movimentações</p>
+                <p className="text-3xl font-bold text-[var(--primary)] mt-1">{stats.totalMovements}</p>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <p className="text-sm text-gray-500">Entradas</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{stats.totalEntradas}</p>
+              <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+                <p className="text-sm text-[var(--text-muted)]">Entradas</p>
+                <p className="text-3xl font-bold text-[var(--ok-solid)] mt-1">{stats.totalEntradas}</p>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <p className="text-sm text-gray-500">Saídas</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">{stats.totalSaidas}</p>
+              <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+                <p className="text-sm text-[var(--text-muted)]">Saídas</p>
+                <p className="text-3xl font-bold text-[var(--erro-solid)] mt-1">{stats.totalSaidas}</p>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <p className="text-sm text-gray-500">Volume Entrada</p>
-                <p className="text-3xl font-bold text-green-500 mt-1">{stats.volumeEntrada}</p>
+              <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+                <p className="text-sm text-[var(--text-muted)]">Volume Entrada</p>
+                <p className="text-3xl font-bold text-[var(--ok-solid)] mt-1">{stats.volumeEntrada}</p>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <p className="text-sm text-gray-500">Volume Saída</p>
-                <p className="text-3xl font-bold text-red-500 mt-1">{stats.volumeSaida}</p>
+              <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+                <p className="text-sm text-[var(--text-muted)]">Volume Saída</p>
+                <p className="text-3xl font-bold text-[var(--erro-solid)] mt-1">{stats.volumeSaida}</p>
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-[var(--text)] mb-4">
                 Top 10 Produtos Mais Movimentados
               </h2>
               {topProducts.length > 0 ? (
@@ -162,41 +162,41 @@ export default function ReportsClient() {
                   {topProducts.map((item) => (
                     <div key={item.product?.code ?? item.product?.name} className="flex items-center justify-between border-b pb-2">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-[var(--text)]">
                           {item.product?.name}
                         </p>
-                        <p className="text-xs text-gray-500">{item.product?.code}</p>
+                        <p className="text-xs text-[var(--text-muted)]">{item.product?.code}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-blue-600">
+                        <p className="text-sm font-semibold text-[var(--primary)]">
                           {item.totalMovements} mov.
                         </p>
-                        <p className="text-xs text-green-600">+{item.entradas}</p>
-                        <p className="text-xs text-red-600">-{item.saidas}</p>
+                        <p className="text-xs text-[var(--ok-solid)]">+{item.entradas}</p>
+                        <p className="text-xs text-[var(--erro-solid)]">-{item.saidas}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Nenhuma movimentação no período</p>
+                <p className="text-sm text-[var(--text-muted)]">Nenhuma movimentação no período</p>
               )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-[var(--text)] mb-4">
                 Movimentações por Categoria
               </h2>
               {categoryStats.length > 0 ? (
                 <div className="space-y-3">
                   {categoryStats.map((cat) => (
                     <div key={cat.name} className="flex items-center justify-between border-b pb-2">
-                      <p className="text-sm font-medium text-gray-900">{cat.name}</p>
-                      <p className="text-sm font-semibold text-blue-600">{cat.count} mov.</p>
+                      <p className="text-sm font-medium text-[var(--text)]">{cat.name}</p>
+                      <p className="text-sm font-semibold text-[var(--primary)]">{cat.count} mov.</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Nenhuma movimentação no período</p>
+                <p className="text-sm text-[var(--text-muted)]">Nenhuma movimentação no período</p>
               )}
             </div>
           </div>

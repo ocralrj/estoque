@@ -80,19 +80,19 @@ function NewMovementForm() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Nova Movimentação</h1>
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Nova Movimentação</h1>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 max-w-2xl">
+      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Tipo de Movimentação *
             </label>
             <select
               required
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as MovementType })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             >
               <option value="entrada">Entrada</option>
               <option value="saida">Saída</option>
@@ -100,14 +100,14 @@ function NewMovementForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Produto *
             </label>
             <select
               required
               value={formData.product_id}
               onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             >
               <option value="">Selecione um produto</option>
               {products.map((product) => (
@@ -119,12 +119,12 @@ function NewMovementForm() {
           </div>
 
           {selectedProduct && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900">
+            <div className="bg-[var(--info-bg)] border border-[var(--neo-line)] rounded-lg p-4">
+              <p className="text-sm text-[var(--info-fg)]">
                 <span className="font-medium">Estoque atual:</span> {selectedProduct.quantity_current} {selectedProduct.unit}
               </p>
               {selectedProduct.is_low_stock && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-[var(--erro-solid)] mt-1">
                   Atenção: Este produto está com estoque baixo!
                 </p>
               )}
@@ -132,7 +132,7 @@ function NewMovementForm() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text)] mb-1">
               Quantidade *
             </label>
             <input
@@ -141,13 +141,13 @@ function NewMovementForm() {
               min="1"
               value={formData.quantity || ""}
               onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1 gap-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-[var(--text)]">
                 Motivo *
               </label>
               <SuggestWithAi
@@ -181,13 +181,13 @@ function NewMovementForm() {
               placeholder={formData.type === "entrada" ? "Ex: Compra, Devolução" : "Ex: Requisição, Utilização"}
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1 gap-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-[var(--text)]">
                 Observações
               </label>
               <SuggestWithAi
@@ -214,12 +214,12 @@ function NewMovementForm() {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -228,14 +228,14 @@ function NewMovementForm() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+              className="px-6 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors disabled:opacity-60"
             >
               {loading ? "Registrando..." : "Registrar Movimentação"}
             </button>
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-6 py-2 bg-[var(--neo-flat-alt)] text-[var(--text)] rounded-lg hover:brightness-95 transition-colors"
             >
               Cancelar
             </button>
@@ -248,7 +248,7 @@ function NewMovementForm() {
 
 export default function NewMovementPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-gray-500">Carregando...</p>}>
+    <Suspense fallback={<p className="text-sm text-[var(--text-muted)]">Carregando...</p>}>
       <NewMovementForm />
     </Suspense>
   );

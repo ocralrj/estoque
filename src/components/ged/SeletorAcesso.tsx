@@ -186,7 +186,7 @@ function Opcao({
       aria-pressed={ativo}
       className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
         ativo
-          ? "bg-[var(--primary)] text-white"
+          ? "bg-[var(--primary)] text-[var(--on-accent)]"
           : "border border-[var(--stroke)] text-[var(--muted)] hover:text-[var(--text)]"
       }`}
     >

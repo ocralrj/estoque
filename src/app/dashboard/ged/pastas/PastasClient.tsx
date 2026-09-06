@@ -127,7 +127,7 @@ export default function PastasClient({
           type="button"
           onClick={salvar}
           disabled={pendente}
-          className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+          className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
         >
           {pendente ? "Salvando…" : editando ? "Salvar" : "Criar pasta"}
         </button>
@@ -172,7 +172,7 @@ export default function PastasClient({
           <button
             type="button"
             onClick={() => (criando ? setCriando(false) : abrirNova())}
-            className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
+            className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
           >
             {criando ? "Cancelar" : "Nova pasta"}
           </button>

@@ -152,7 +152,7 @@ export default function CapturaFoto({
                 type="button"
                 onClick={capturar}
                 disabled={processando}
-                className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)] disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)] disabled:opacity-60"
               >
                 {processando ? "Processando…" : "Capturar"}
               </button>

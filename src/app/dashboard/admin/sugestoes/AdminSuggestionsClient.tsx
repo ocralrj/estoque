@@ -63,11 +63,11 @@ export default function AdminSuggestionsClient({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 items-center">
-        <label className="text-sm text-gray-600">Status:</label>
+        <label className="text-sm text-[var(--text-muted)]">Status:</label>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          className="px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
         >
           <option value="todos">Todos</option>
           {STATUSES.map((s) => (
@@ -76,19 +76,19 @@ export default function AdminSuggestionsClient({
             </option>
           ))}
         </select>
-        <span className="text-sm text-gray-500 ml-auto">
+        <span className="text-sm text-[var(--text-muted)] ml-auto">
           {filtered.length} pedido(s)
         </span>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm rounded-lg px-3 py-2">
+        <div className="bg-[var(--erro-bg)] text-[var(--erro-fg)] text-sm rounded-lg px-3 py-2">
           {error}
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-12 text-center text-[var(--text-muted)]">
           Nenhuma sugestão encontrada.
         </div>
       ) : (
@@ -96,15 +96,15 @@ export default function AdminSuggestionsClient({
           {filtered.map((s) => (
             <div
               key={s.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+              className="bg-[var(--neo-bg)] rounded-xl shadow-sm border border-[var(--neo-line)] p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-mono text-gray-500">{s.code}</p>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <p className="text-xs font-mono text-[var(--text-muted)]">{s.code}</p>
+                  <h2 className="text-lg font-semibold text-[var(--text)]">
                     {s.title}
                   </h2>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     {s.user?.full_name || s.user?.email || "Usuário"} ·{" "}
                     {new Date(s.created_at).toLocaleString("pt-BR")}
                     {s.module_hint ? ` · ${s.module_hint}` : ""}
@@ -122,25 +122,25 @@ export default function AdminSuggestionsClient({
 
               <div className="mt-3 grid gap-2 text-sm">
                 <p>
-                  <span className="font-medium text-gray-700">O que: </span>
-                  <span className="text-gray-600">
+                  <span className="font-medium text-[var(--text)]">O que: </span>
+                  <span className="text-[var(--text-muted)]">
                     {s.what_wanted || s.summary}
                   </span>
                 </p>
                 {s.why_wanted && (
                   <p>
-                    <span className="font-medium text-gray-700">Por quê: </span>
-                    <span className="text-gray-600">{s.why_wanted}</span>
+                    <span className="font-medium text-[var(--text)]">Por quê: </span>
+                    <span className="text-[var(--text-muted)]">{s.why_wanted}</span>
                   </p>
                 )}
-                <p className="text-gray-600 bg-gray-50 rounded-lg p-3">
+                <p className="text-[var(--text-muted)] bg-[var(--neo-flat)] rounded-lg p-3">
                   {s.summary}
                 </p>
               </div>
 
               <div className="mt-4 grid md:grid-cols-3 gap-3 items-end">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
                     Status
                   </label>
                   <select
@@ -149,7 +149,7 @@ export default function AdminSuggestionsClient({
                       handleUpdate(s.id, e.target.value as SuggestionStatus)
                     }
                     disabled={savingId === s.id}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
                   >
                     {STATUSES.map((st) => (
                       <option key={st} value={st}>
@@ -159,7 +159,7 @@ export default function AdminSuggestionsClient({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
                     Prioridade
                   </label>
                   <select
@@ -172,7 +172,7 @@ export default function AdminSuggestionsClient({
                       )
                     }
                     disabled={savingId === s.id}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
                   >
                     {(
                       Object.keys(SUGGESTION_PRIORITY_LABELS) as SuggestionPriority[]
@@ -184,7 +184,7 @@ export default function AdminSuggestionsClient({
                   </select>
                 </div>
                 <div className="md:col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
                     Nota para o autor
                   </label>
                   <div className="flex gap-2">
@@ -194,13 +194,13 @@ export default function AdminSuggestionsClient({
                         setNotesDraft((d) => ({ ...d, [s.id]: e.target.value }))
                       }
                       placeholder="Feedback opcional"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="flex-1 px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
                     />
                     <button
                       type="button"
                       disabled={savingId === s.id}
                       onClick={() => handleUpdate(s.id, s.status)}
-                      className="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:bg-gray-400"
+                      className="px-3 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg text-sm hover:brightness-110 disabled:opacity-60"
                     >
                       Salvar
                     </button>

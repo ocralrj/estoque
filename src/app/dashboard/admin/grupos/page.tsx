@@ -32,7 +32,7 @@ export default async function GruposPage() {
         {profile?.role === "super_admin" && (
           <Link
             href="/dashboard/admin/grupos/novo"
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
           >
             Criar Grupo
           </Link>
@@ -80,7 +80,7 @@ export default async function GruposPage() {
             {profile?.role === "super_admin" && (
               <Link
                 href="/dashboard/admin/grupos/novo"
-                className="inline-block mt-4 text-primary-600 hover:text-primary-700"
+                className="inline-block mt-4 text-[var(--primary)] hover:underline"
               >
                 Criar primeiro grupo
               </Link>

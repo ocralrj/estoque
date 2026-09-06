@@ -81,7 +81,7 @@ export default async function GedDocumentosPage({
           </Link>
           <Link
             href="/dashboard/ged/documentos/novo"
-            className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)] hover:brightness-105"
+            className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)] hover:brightness-105"
           >
             Novo documento
           </Link>
@@ -142,7 +142,7 @@ export default async function GedDocumentosPage({
           <div className="flex items-end gap-2">
             <button
               type="submit"
-              className="flex-1 rounded-full bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
+              className="flex-1 rounded-full bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
             >
               Buscar
             </button>
@@ -157,7 +157,7 @@ export default async function GedDocumentosPage({
       </section>
 
       <section className="neo-card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="neo-flat overflow-x-auto">
           <table className="min-w-full text-left">
             <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
               <tr>

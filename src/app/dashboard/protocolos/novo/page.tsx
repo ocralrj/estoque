@@ -80,48 +80,48 @@ export default function NovoProtocoloPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Novo Protocolo</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-[var(--text)]">Novo Protocolo</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">
           Abra um novo protocolo para acompanhar solicitações e atribuir responsáveis.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 max-w-3xl">
+      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6 max-w-3xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="p-3 bg-[var(--erro-bg)] border border-[var(--neo-line)] rounded-lg text-[var(--erro-fg)] text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
+            <label className="block text-sm font-medium text-[var(--text)] mb-2">Título *</label>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
               placeholder="Descreva o objetivo do protocolo"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+            <label className="block text-sm font-medium text-[var(--text)] mb-2">Descrição</label>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={5}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
               placeholder="Detalhe o que deve ser tratado neste protocolo"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Prioridade</label>
+            <label className="block text-sm font-medium text-[var(--text)] mb-2">Prioridade</label>
             <select
               value={priority}
               onChange={(event) => setPriority(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
               {priorities.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -133,11 +133,11 @@ export default function NovoProtocoloPage() {
 
           {isManager && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Atribuir responsável</label>
+              <label className="block text-sm font-medium text-[var(--text)] mb-2">Atribuir responsável</label>
               <select
                 value={assignedTo}
                 onChange={(event) => setAssignedTo(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
               >
                 <option value="">Nenhum</option>
                 {users.map((user) => (

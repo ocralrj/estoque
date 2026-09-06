@@ -254,7 +254,7 @@ export default function Sidebar({
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
             title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-            className="neo-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+            className="neo-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
           >
             <svg
               className={clsx("h-4 w-4 transition-transform", isCollapsed && "rotate-180")}

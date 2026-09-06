@@ -16,6 +16,7 @@ export function ThemeScript() {
     else r.classList.remove('dark');
     r.style.colorScheme = t;
     r.dataset.theme = t;
+    r.dataset.tema = t === 'dark' ? 'escuro' : 'claro';
   } catch (e) {}
 })();
 `;

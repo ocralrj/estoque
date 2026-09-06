@@ -1,0 +1,66 @@
+/* =====================================================================
+   PONTE — tokens antigos do projeto expressos nos tokens do NEO
+   =====================================================================
+
+   O sistema já tinha o seu próprio conjunto de variáveis (--surface,
+   --stroke, --muted, --danger…), usadas em dezenas de telas. Trocar o
+   globals.css pelo neo.css de uma vez apagaria essas variáveis e deixaria
+   metade da interface sem cor definida.
+
+   Este arquivo redefine cada token antigo em termos do NEO. Efeito prático:
+   as telas existentes passam a usar a paleta nova sem nenhuma alteração de
+   código, e a migração para as classes do NEO pode ser feita tela a tela,
+   sem pressa e sem quebrar nada no caminho.
+
+   Quando não sobrar nenhum uso de um token antigo, ele pode sair daqui.
+   ===================================================================== */
+
+:root {
+  /* superfícies */
+  --bg: var(--neo-bg);
+  --surface: var(--neo-bg);
+  --surface-strong: var(--neo-flat-alt);
+  --surface-soft: var(--neo-flat);
+  --surface-raised: var(--neo-bg);
+  --panel: var(--neo-bg);
+  --panel-strong: var(--neo-flat-alt);
+
+  /* texto */
+  --muted: var(--text-muted);
+  --muted-strong: var(--text);
+  --button-text: var(--on-accent);
+
+  /* traço e foco */
+  --stroke: var(--neo-line);
+  --ring: var(--primary-soft);
+
+  /* acento */
+  --primary-strong: var(--primary-dark);
+
+  /* estados — o antigo tinha um valor só por estado; usamos a superfície,
+     que é o papel que ele cumpria (fundo de badge, faixa de alerta) */
+  --danger: var(--erro-bg);
+  --success: var(--ok-bg);
+  --success-strong: var(--ok-solid);
+  --warning: var(--aviso-bg);
+
+  /* sombras usadas pelas classes .neo-* antigas */
+  --shadow-dark: var(--neo-dark);
+  --shadow-light: var(--neo-light);
+}
+
+/* O NEO alterna por [data-tema]; o projeto alterna por .dark e
+   [data-theme]. O ThemeScript passou a marcar os três, mas mantemos o
+   espelhamento aqui para que qualquer um deles sozinho já funcione. */
+html.dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Zona plana dentro de cartão: o conteúdo denso perde o relevo para que a
+   cor semântica volte a ser legível. É a regra central do NEO — ver a
+   seção 2 de docs/neo-sistema-de-design.md. */
+.neo-card table,
+.neo-card > .neo-flat {
+  background: var(--neo-flat);
+}

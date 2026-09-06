@@ -1,0 +1,382 @@
+/* =====================================================================
+   NEO — sistema de design neumórfico com escopo
+   Tema claro por padrão; escuro por preferência do SO ou [data-tema="escuro"]
+   ===================================================================== */
+
+:root{
+  /* superfície esculpida */
+  --neo-bg:#e6eaf0;
+  --neo-light:#ffffff;
+  --neo-dark:#b4bdcb;
+  --neo-edge:#7b8493;
+
+  /* superfície plana — conteúdo denso DENTRO do cartão */
+  --neo-flat:#f4f6fa;
+  --neo-flat-alt:#eaeef4;
+  --neo-line:#ccd3de;
+  --flat-light:#ffffff;   /* relevo dentro da zona plana */
+  --flat-dark:#c9d1de;
+
+  /* texto */
+  --text:#16202f;
+  --text-muted:#4a5568;
+  --text-disabled:#6b7280;
+
+  /* ação */
+  --primary:#1d4ed8;
+  --primary-soft:#2563eb;
+  --primary-dark:#1e3a8a;
+  --on-accent:#ffffff;
+
+  /* estados semânticos: par superfície + texto */
+  --ok-bg:#d7f0e2;      --ok-fg:#0d5433;   --ok-solid:#146c43;
+  --aviso-bg:#fdeacb;   --aviso-fg:#6b3f04; --aviso-solid:#8a5a06;
+  --erro-bg:#f8d9d6;    --erro-fg:#8c1d16; --erro-solid:#b3261e;
+  --info-bg:#dbe6fb;    --info-fg:#17408f; --info-solid:#1d4ed8;
+
+  /* forma e tempo */
+  --r-lg:26px; --r-md:14px; --r-sm:9px;
+  --dur:.28s; --dur-lento:.42s;
+  --ease:cubic-bezier(.22,.61,.36,1);
+
+  /* relevo — 3 níveis, nunca invente um quarto */
+  --relevo-1:5px 5px 10px var(--neo-dark), -5px -5px 10px var(--neo-light);
+  --relevo-2:9px 9px 18px var(--neo-dark), -9px -9px 18px var(--neo-light);
+  --relevo-3:14px 14px 28px var(--neo-dark), -14px -14px 28px var(--neo-light);
+  --afundado:inset 4px 4px 8px var(--neo-dark), inset -4px -4px 8px var(--neo-light);
+  --afundado-leve:inset 2px 2px 5px var(--neo-dark), inset -2px -2px 5px var(--neo-light);
+  --relevo-plano:3px 3px 6px var(--flat-dark), -3px -3px 6px var(--flat-light);
+}
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"]){
+    --neo-bg:#272c34;
+    --neo-light:#353b45;
+    --neo-dark:#1a1e24;
+    --neo-edge:#98a2b1;
+
+    --neo-flat:#1f232a;
+    --neo-flat-alt:#232830;
+    --neo-line:#3d4450;
+    --flat-light:#2b313a;
+    --flat-dark:#14171c;
+
+    --text:#e9edf4;
+    --text-muted:#aab4c3;
+    --text-disabled:#8d97a6;
+
+    --primary:#8cb3f8;
+    --primary-soft:#a6c6fa;
+    --primary-dark:#c2d8fc;
+    --on-accent:#0d1b3a;
+
+    --ok-bg:#123a28;      --ok-fg:#8fe0b4;   --ok-solid:#6fd6a1;
+    --aviso-bg:#3d2f0d;   --aviso-fg:#f2ce7e; --aviso-solid:#e8bd5c;
+    --erro-bg:#40201d;    --erro-fg:#f5a9a2; --erro-solid:#ef8e85;
+    --info-bg:#16294d;    --info-fg:#a8c6fa; --info-solid:#8cb3f8;
+  }
+}
+[data-tema="escuro"]{
+  --neo-bg:#272c34;  --neo-light:#353b45; --neo-dark:#1a1e24; --neo-edge:#98a2b1;
+  --neo-flat:#1f232a; --neo-flat-alt:#232830; --neo-line:#3d4450;
+  --flat-light:#2b313a; --flat-dark:#14171c;
+  --text:#e9edf4; --text-muted:#aab4c3; --text-disabled:#8d97a6;
+  --primary:#8cb3f8; --primary-soft:#a6c6fa; --primary-dark:#c2d8fc; --on-accent:#0d1b3a;
+  --ok-bg:#123a28; --ok-fg:#8fe0b4; --ok-solid:#6fd6a1;
+  --aviso-bg:#3d2f0d; --aviso-fg:#f2ce7e; --aviso-solid:#e8bd5c;
+  --erro-bg:#40201d; --erro-fg:#f5a9a2; --erro-solid:#ef8e85;
+  --info-bg:#16294d; --info-fg:#a8c6fa; --info-solid:#8cb3f8;
+}
+
+/* ===================== BASE ===================== */
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--neo-bg);color:var(--text);
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  font-size:15px;line-height:1.55;
+}
+:where(a){color:var(--primary)}
+:where(button,input,select,textarea){font:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radius:4px}
+
+/* ===================== 1. SUPERFÍCIES ===================== */
+.neo-card{background:var(--neo-bg);border-radius:var(--r-lg);padding:24px;box-shadow:var(--relevo-3)}
+.neo-panel{background:var(--neo-bg);border-radius:var(--r-md);padding:18px;box-shadow:var(--relevo-1)}
+.neo-inset{background:var(--neo-bg);border-radius:var(--r-md);padding:16px;box-shadow:var(--afundado)}
+
+/* zona plana: TODO conteúdo denso vive aqui dentro */
+.neo-flat{
+  background:var(--neo-flat);border-radius:var(--r-md);
+  box-shadow:var(--afundado-leve);overflow:hidden;
+}
+
+/* ===================== 2. BOTÕES ===================== */
+/* Sem pseudo-elemento sobreposto: um <button class="neo-btn">Texto</button> cru
+   sempre mostra o texto. Overlay com z-index cobre nós de texto puro. */
+.neo-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:0 20px;
+  border:1px solid var(--neo-edge);border-radius:var(--r-md);
+  background-color:var(--neo-bg);background-image:none;
+  color:var(--primary-dark);font-weight:600;letter-spacing:.02em;cursor:pointer;
+  box-shadow:var(--relevo-1);
+  transition:color var(--dur) var(--ease),background-color var(--dur) var(--ease),
+             box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.neo-btn:hover:not(:disabled){
+  color:var(--on-accent);border-color:transparent;
+  background-image:linear-gradient(135deg,var(--primary-soft),var(--primary) 55%,var(--primary-dark));
+  box-shadow:0 8px 22px rgba(29,78,216,.4);
+}
+.neo-btn:active:not(:disabled){box-shadow:var(--afundado)}
+.neo-btn:disabled{
+  cursor:not-allowed;color:var(--text-disabled);background-image:none;
+  border-style:dashed;box-shadow:var(--afundado-leve);
+}
+.neo-btn--primario{
+  color:var(--on-accent);border-color:transparent;
+  background-image:linear-gradient(135deg,var(--primary-soft),var(--primary) 55%,var(--primary-dark));
+}
+.neo-btn--primario:hover:not(:disabled){box-shadow:0 10px 26px rgba(29,78,216,.5)}
+.neo-btn--perigo{
+  color:var(--on-accent);border-color:transparent;
+  background-image:linear-gradient(135deg,var(--erro-solid),var(--erro-fg));
+}
+.neo-btn--perigo:hover:not(:disabled){
+  background-image:linear-gradient(135deg,var(--erro-solid),var(--erro-fg));
+  box-shadow:0 8px 22px rgba(179,38,30,.42);
+}
+.neo-btn--fantasma{box-shadow:none;background-color:transparent;border-color:transparent;color:var(--primary)}
+.neo-btn--fantasma:hover:not(:disabled){
+  box-shadow:var(--relevo-1);background-color:var(--neo-bg);background-image:none;
+  color:var(--primary);border-color:var(--neo-edge);
+}
+.neo-icon-btn{
+  width:44px;height:44px;padding:0;display:inline-grid;place-items:center;
+  border:1px solid var(--neo-edge);border-radius:50%;background:var(--neo-bg);color:var(--text-muted);
+  cursor:pointer;box-shadow:var(--relevo-1);transition:color var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.neo-icon-btn:hover{color:var(--primary)}
+.neo-icon-btn:active{box-shadow:var(--afundado)}
+
+/* ===================== 3. CAMPOS ===================== */
+.neo-field{margin-bottom:20px}
+.neo-control{position:relative}
+.neo-field :is(input,textarea,select){
+  width:100%;min-height:52px;padding:20px 16px 6px;
+  color:var(--text);background:var(--neo-bg);
+  border:1px solid var(--neo-edge);border-radius:var(--r-md);
+  box-shadow:var(--afundado);outline:none;
+  transition:border-color var(--dur) var(--ease);
+}
+.neo-field textarea{min-height:104px;padding-top:24px;resize:vertical}
+.neo-field :is(input,textarea)::placeholder{color:transparent}
+.neo-field label{
+  position:absolute;left:16px;top:16px;color:var(--text-muted);
+  pointer-events:none;transform-origin:left top;
+  transition:transform var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.neo-field :is(input,textarea):focus + label,
+.neo-field :is(input,textarea):not(:placeholder-shown) + label,
+.neo-field select + label{transform:translateY(-11px) scale(.74);color:var(--primary);font-weight:600}
+.neo-field :is(input,textarea,select):focus{border-color:var(--primary-soft)}
+.neo-control::after{
+  content:"";position:absolute;left:14px;right:14px;bottom:5px;height:2px;
+  background:var(--primary);border-radius:2px;
+  transform:scaleX(0);transform-origin:left;transition:transform var(--dur) var(--ease);
+}
+.neo-control:focus-within::after{transform:scaleX(1)}
+.neo-msg{display:block;margin:6px 0 0 4px;font-size:.8rem;font-weight:600;color:var(--erro-fg);
+  opacity:0;transform:translateY(-4px);transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+.neo-field.is-invalid :is(input,textarea,select){border-color:var(--erro-solid);border-width:2px}
+.neo-field.is-invalid label,
+.neo-field.is-invalid :is(input,textarea):not(:placeholder-shown) + label{color:var(--erro-fg)}
+.neo-field.is-invalid .neo-control::after{background:var(--erro-solid);transform:scaleX(1)}
+.neo-field.is-invalid .neo-msg{opacity:1;transform:none}
+
+/* autopreenchimento do Chrome */
+.neo-field input:-webkit-autofill,
+.neo-field input:-webkit-autofill:hover,
+.neo-field input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text);
+  -webkit-box-shadow:0 0 0 1000px var(--neo-bg) inset, var(--afundado);
+  transition:background-color 9999s ease-out;
+}
+.neo-field input:-webkit-autofill + label{transform:translateY(-11px) scale(.74);color:var(--primary);font-weight:600}
+
+/* ===================== 4. SELEÇÃO ===================== */
+.neo-check{display:inline-flex;align-items:center;gap:9px;cursor:pointer;color:var(--text)}
+.neo-check input{width:19px;height:19px;accent-color:var(--primary);cursor:pointer}
+.neo-switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer}
+.neo-switch input{position:absolute;opacity:0;pointer-events:none}
+.neo-switch i{
+  width:48px;height:27px;border-radius:14px;background:var(--neo-bg);
+  border:1px solid var(--neo-edge);box-shadow:var(--afundado-leve);
+  position:relative;transition:border-color var(--dur) var(--ease);
+}
+.neo-switch i::after{
+  content:"";position:absolute;left:3px;top:2px;width:20px;height:20px;border-radius:50%;
+  background:var(--neo-bg);border:1px solid var(--neo-edge);box-shadow:var(--relevo-1);
+  transition:transform var(--dur) var(--ease),background var(--dur) var(--ease);
+}
+.neo-switch input:checked + i{border-color:var(--primary)}
+.neo-switch input:checked + i::after{transform:translateX(21px);background:var(--primary);border-color:var(--primary)}
+.neo-switch input:focus-visible + i{outline:3px solid var(--primary);outline-offset:3px}
+
+/* ===================== 5. NAVEGAÇÃO ===================== */
+.neo-nav{
+  display:flex;align-items:center;gap:6px;padding:10px 14px;
+  background:var(--neo-bg);border-radius:var(--r-md);box-shadow:var(--relevo-2);
+}
+.neo-nav a{
+  padding:9px 15px;border-radius:var(--r-sm);color:var(--text-muted);
+  text-decoration:none;font-weight:600;transition:box-shadow var(--dur) var(--ease),color var(--dur) var(--ease);
+}
+.neo-nav a:hover{color:var(--text);box-shadow:var(--relevo-1)}
+.neo-nav a[aria-current="page"]{
+  color:var(--primary);box-shadow:var(--afundado);
+  /* estado ativo NÃO depende só de cor: ganha relevo invertido + sublinhado */
+  text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;
+}
+.neo-tabs{display:flex;gap:8px;padding:6px;background:var(--neo-bg);border-radius:var(--r-md);box-shadow:var(--afundado-leve)}
+.neo-tabs button{
+  flex:1;min-height:40px;border:0;border-radius:var(--r-sm);background:transparent;
+  color:var(--text-muted);font-weight:600;cursor:pointer;transition:all var(--dur) var(--ease);
+}
+.neo-tabs button[aria-selected="true"]{background:var(--neo-bg);color:var(--primary);box-shadow:var(--relevo-1)}
+
+/* ===================== 6. FEEDBACK ===================== */
+.neo-alerta{
+  display:flex;gap:12px;align-items:flex-start;padding:14px 16px;
+  border-radius:var(--r-md);border-left:4px solid;font-size:.92rem;
+}
+.neo-alerta--ok{background:var(--ok-bg);color:var(--ok-fg);border-color:var(--ok-solid)}
+.neo-alerta--aviso{background:var(--aviso-bg);color:var(--aviso-fg);border-color:var(--aviso-solid)}
+.neo-alerta--erro{background:var(--erro-bg);color:var(--erro-fg);border-color:var(--erro-solid)}
+.neo-alerta--info{background:var(--info-bg);color:var(--info-fg);border-color:var(--info-solid)}
+
+.neo-badge{
+  display:inline-block;padding:3px 10px;border-radius:20px;
+  font-size:.76rem;font-weight:700;letter-spacing:.02em;
+}
+.neo-badge--ok{background:var(--ok-bg);color:var(--ok-fg)}
+.neo-badge--aviso{background:var(--aviso-bg);color:var(--aviso-fg)}
+.neo-badge--erro{background:var(--erro-bg);color:var(--erro-fg)}
+.neo-badge--info{background:var(--info-bg);color:var(--info-fg)}
+
+.neo-progresso{height:12px;border-radius:8px;background:var(--neo-bg);box-shadow:var(--afundado-leve);overflow:hidden}
+.neo-progresso>i{display:block;height:100%;border-radius:8px;
+  background:linear-gradient(90deg,var(--primary-soft),var(--primary));transition:width var(--dur-lento) var(--ease)}
+
+.neo-skeleton{border-radius:var(--r-sm);background:var(--neo-bg);box-shadow:var(--afundado-leve);
+  animation:neoPulsa 1.5s var(--ease) infinite alternate}
+@keyframes neoPulsa{to{opacity:.55}}
+
+
+/* ===================== 6b. SITUAÇÃO EM RELEVO ======================
+   Estado semântico sobre superfície esculpida: a COR vai na fonte, não no
+   fundo (o fundo tem de ser igual ao da superfície para o relevo existir).
+   As 4 cores passam de 7.4:1 sobre o fundo, mas têm luminância quase
+   idêntica entre si (1.00 a 1.08:1) — em deuteranopia "Pendente" e
+   "Reprovado" viram a mesma cor. Por isso o GLIFO não é enfeite: é o
+   segundo canal exigido pela WCAG 1.4.1. Não remova.
+   ================================================================== */
+.neo-sit{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 13px;border-radius:20px;
+  font-size:.78rem;font-weight:700;letter-spacing:.01em;
+  background:var(--neo-bg);box-shadow:var(--relevo-1);
+}
+.neo-sit::before{font-size:.82rem;line-height:1;font-weight:900}
+.neo-sit--ok{color:var(--ok-fg)}        .neo-sit--ok::before{content:"\2713"}
+.neo-sit--aviso{color:var(--aviso-fg)}  .neo-sit--aviso::before{content:"\25D0"}
+.neo-sit--erro{color:var(--erro-fg)}    .neo-sit--erro::before{content:"\2715"}
+.neo-sit--info{color:var(--info-fg)}    .neo-sit--info::before{content:"\25D4"}
+/* variante afundada, para quando a linha inteira já está em relevo */
+.neo-sit--afundado{box-shadow:var(--afundado-leve)}
+/* dentro da zona plana o relevo tem de usar a COR DA ZONA, senão a pastilha
+   aparece como um retângulo de cor errada em vez de parecer esculpida */
+.neo-flat .neo-sit,
+.neo-prosa .neo-sit{background:var(--neo-flat);box-shadow:var(--relevo-plano)}
+
+/* alerta em relevo: mesma lógica — cor na fonte, glifo obrigatório,
+   barra lateral colorida como terceiro reforço */
+.neo-alerta--relevo{
+  background:var(--neo-bg);box-shadow:var(--relevo-1);
+  border-left:4px solid;
+}
+.neo-alerta--relevo::before{font-size:1.05rem;font-weight:900;line-height:1.3}
+.neo-alerta--relevo.neo-alerta--ok{color:var(--ok-fg);border-color:var(--ok-solid)}
+.neo-alerta--relevo.neo-alerta--ok::before{content:"\2713"}
+.neo-alerta--relevo.neo-alerta--aviso{color:var(--aviso-fg);border-color:var(--aviso-solid)}
+.neo-alerta--relevo.neo-alerta--aviso::before{content:"\25D0"}
+.neo-alerta--relevo.neo-alerta--erro{color:var(--erro-fg);border-color:var(--erro-solid)}
+.neo-alerta--relevo.neo-alerta--erro::before{content:"\2715"}
+.neo-alerta--relevo.neo-alerta--info{color:var(--info-fg);border-color:var(--info-solid)}
+.neo-alerta--relevo.neo-alerta--info::before{content:"\25D4"}
+
+/* badge plano também ganha glifo — mesma razão de luminância */
+.neo-badge::before{margin-right:5px;font-weight:900}
+.neo-badge--ok::before{content:"\2713"}
+.neo-badge--aviso::before{content:"\25D0"}
+.neo-badge--erro::before{content:"\2715"}
+.neo-badge--info::before{content:"\25D4"}
+
+/* tabela em relevo — linhas esculpidas.
+   Custa +17% de altura e mais repintura: use até ~15 linhas.
+   Acima disso, .neo-tabela dentro de .neo-flat. */
+.neo-tabela--relevo{border-collapse:separate;border-spacing:0 9px;background:transparent}
+.neo-tabela--relevo th{background:transparent;border:0;padding:0 14px 4px}
+.neo-tabela--relevo td{
+  background:var(--neo-bg);border:0;padding:11px 14px;
+  box-shadow:var(--afundado-leve);
+}
+.neo-tabela--relevo td:first-child{border-radius:10px 0 0 10px}
+.neo-tabela--relevo td:last-child{border-radius:0 10px 10px 0}
+.neo-tabela--relevo tbody tr:nth-child(even) td{background:var(--neo-bg)}
+.neo-tabela--relevo tbody tr:hover td{box-shadow:var(--afundado)}
+
+/* ===================== 7. DADOS DENSOS — SEMPRE PLANO ===================== */
+.neo-tabela{width:100%;border-collapse:collapse;background:var(--neo-flat);font-size:.92rem}
+.neo-tabela th{
+  text-align:left;padding:11px 14px;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-muted);background:var(--neo-flat-alt);border-bottom:1px solid var(--neo-line);
+}
+.neo-tabela td{padding:11px 14px;border-bottom:1px solid var(--neo-line)}
+.neo-tabela tbody tr:last-child td{border-bottom:0}
+/* zebra é OPT-IN: com listras a pastilha em relevo cai sobre duas cores
+   diferentes. Em tabela larga, ligue a zebra e use .neo-badge (plano). */
+.neo-tabela--zebra tbody tr:nth-child(even){background:var(--neo-flat-alt)}
+.neo-tabela tbody tr:hover{background:var(--info-bg)}
+
+.neo-lista{list-style:none;margin:0;padding:0;background:var(--neo-flat)}
+.neo-lista li{padding:12px 14px;border-bottom:1px solid var(--neo-line)}
+.neo-lista li:last-child{border-bottom:0}
+
+/* ===================== 8. SOBREPOSIÇÃO ===================== */
+.neo-modal{border:0;padding:0;background:transparent;max-width:min(520px,92vw)}
+.neo-modal::backdrop{background:rgba(12,18,28,.55);backdrop-filter:blur(3px)}
+.neo-modal>div{background:var(--neo-bg);border-radius:var(--r-lg);padding:26px;box-shadow:var(--relevo-3)}
+
+/* ===================== 9. TIPOGRAFIA E TEXTO LONGO ===================== */
+/* Texto corrido NÃO fica sobre superfície texturizada: usa zona plana e largura de leitura */
+.neo-prosa{max-width:68ch;background:var(--neo-flat);border-radius:var(--r-md);padding:26px 30px;box-shadow:var(--afundado-leve)}
+.neo-prosa :is(h1,h2,h3){line-height:1.25;letter-spacing:-.015em}
+.neo-prosa p{margin:0 0 1em}
+
+/* ===================== ACESSIBILIDADE ===================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Alto contraste do SO: o relevo some, a borda assume */
+@media (forced-colors:active){
+  .neo-card,.neo-panel,.neo-btn,.neo-icon-btn,.neo-field :is(input,textarea,select){
+    box-shadow:none;border:1px solid CanvasText;
+  }
+}

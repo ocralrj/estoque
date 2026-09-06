@@ -47,6 +47,30 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - Provedores: Google Gemini (padrão, tier gratuito) ou OpenAI-compatível (Groq, etc.). Config em `src/lib/ai/config.ts`.
 - Rate limit por usuário (padrão 40/hora, somente em memory — reseta no deploy). Ver `src/lib/ai/rate-limit.ts`.
 
+## Sistema de design NEO
+
+Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
+
+- **Escopo misto, não neumorfismo em tudo.** A moldura (`.neo-card`) carrega o
+  relevo; conteúdo denso (tabela, lista) vai em `.neo-flat`. O motivo é medido:
+  quando toda superfície tem a cor do fundo — a definição do neumorfismo — não
+  sobra canal para cor semântica, e "Aprovado" e "Reprovado" ficam idênticos.
+- **Situação usa `.neo-sit` e o glifo é obrigatório.** As quatro cores
+  semânticas têm contraste 1.00:1 **entre si**: em escala de cinza são o mesmo
+  tom. O símbolo (✓ ◐ ✕ ◔, injetado por `::before`) é o segundo canal que a
+  WCAG 1.4.1 exige. Remover o glifo devolve o problema — não é decoração.
+- Zebra de tabela é opt-in (`.neo-tabela--zebra`): a `.neo-sit` adapta o fundo à
+  superfície, e com linhas alternadas uma delas fica com a cor errada. Em tabela
+  larga, use `.neo-badge`, que tem fundo próprio.
+- `src/app/neo-ponte.css` traduz os tokens antigos do projeto (`--surface`,
+  `--stroke`, `--muted`…) para os do NEO, para as telas migrarem sem quebrar.
+  Quando um token antigo não tiver mais uso, pode sair de lá.
+- O alternador marca `.dark`, `[data-theme]` **e** `[data-tema]` — o NEO lê o
+  último; os dois primeiros seguem em uso pelo Tailwind e pelo CSS antigo.
+- A seção 8 do documento traz um verificador para colar no console do navegador:
+  aponta conteúdo denso fora de zona plana, campo sem rótulo e cor fora dos
+  tokens. Rode antes de dar uma migração por concluída.
+
 ## Layout e responsividade
 
 - `DashboardShell` (`@/components/layout`) é a casca client do dashboard: guarda o estado da sidebar recolhida (persistido em `localStorage`, chave `ocral-sidebar-collapsed`) e a gaveta de navegação do mobile.

@@ -83,48 +83,48 @@ export default function ResetPasswordPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Validando link...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)]">
+        <p className="text-sm text-[var(--text-muted)]">Validando link...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
       <div className="absolute top-4 right-4">
         <ThemeToggle compact />
       </div>
-      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-md p-8 border border-transparent dark:border-gray-800">
+      <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">OCRAL</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Definir nova senha</p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
+          <p className="text-[var(--text-muted)] mt-1">Definir nova senha</p>
         </div>
 
         {!hasSession ? (
           <div className="space-y-4">
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
               Link inválido ou expirado. Solicite um novo e-mail de recuperação.
             </p>
             <Link
               href="/auth/forgot-password"
-              className="block w-full text-center bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 rounded-lg text-sm"
+              className="block w-full text-center bg-[var(--primary)] hover:brightness-110 text-[var(--on-accent)] font-medium py-2 rounded-lg text-sm"
             >
               Solicitar novo link
             </Link>
-            <p className="text-center text-sm text-gray-500">
-              <Link href="/auth/login" className="text-primary-600 hover:underline">
+            <p className="text-center text-sm text-[var(--text-muted)]">
+              <Link href="/auth/login" className="text-[var(--primary)] hover:underline">
                 Voltar ao login
               </Link>
             </p>
           </div>
         ) : success ? (
-          <div className="bg-green-50 border border-green-100 text-green-800 rounded-lg px-4 py-3 text-sm">
+          <div className="bg-[var(--ok-bg)] border border-[var(--neo-line)] text-[var(--ok-fg)] rounded-lg px-4 py-3 text-sm">
             Senha atualizada com sucesso. Redirecionando...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text)] mb-1">
                 Nova senha
               </label>
               <PasswordInput
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text)] mb-1">
                 Confirmar senha
               </label>
               <PasswordInput
@@ -152,7 +152,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="w-full bg-[var(--primary)] hover:brightness-110 text-[var(--on-accent)] font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
             >
               {loading ? "Salvando..." : "Salvar nova senha"}
             </button>

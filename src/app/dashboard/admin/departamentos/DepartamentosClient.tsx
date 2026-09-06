@@ -132,7 +132,7 @@ export default function DepartamentosClient({
               setCriando((c) => !c);
               setEditando(null);
             }}
-            className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
+            className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)]"
           >
             {criando ? "Cancelar" : "Novo departamento"}
           </button>
@@ -163,7 +163,7 @@ export default function DepartamentosClient({
                 type="button"
                 onClick={salvarNovo}
                 disabled={pendente}
-                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
               >
                 {pendente ? "Salvando…" : "Criar"}
               </button>
@@ -230,7 +230,7 @@ export default function DepartamentosClient({
                     type="button"
                     onClick={() => salvarEdicao(d.id, d.nome)}
                     disabled={pendente}
-                    className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+                    className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
                   >
                     {pendente ? "Salvando…" : "Salvar"}
                   </button>

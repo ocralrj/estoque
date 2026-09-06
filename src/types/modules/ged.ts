@@ -100,20 +100,21 @@ export interface GedAuditEntry {
   user?: { full_name: string | null; email: string } | null;
 }
 
-/** Classe do badge de status, alinhada às variáveis do tema. */
+/**
+ * Situação do documento nas classes do NEO (seção 3b): a pastilha mantém a cor
+ * da superfície, a cor vai na fonte, e o glifo do ::before é o segundo canal
+ * que a WCAG 1.4.1 exige — cor sozinha não pode carregar a informação.
+ */
 export const GED_STATUS_CLASSES: Record<GedStatus, string> = {
-  Assinado: "bg-[var(--success)] text-[var(--text)]",
-  Ativo: "bg-[var(--primary-soft)] text-[var(--primary-strong)]",
-  Arquivado: "bg-[var(--warning)] text-[var(--text)]",
-  Rascunho: "bg-[var(--surface-strong)] text-[var(--muted-strong)]",
-  Eliminado: "bg-[var(--danger)] text-[var(--text)]",
+  Assinado: "neo-sit neo-sit--ok",
+  Ativo: "neo-sit neo-sit--info",
+  Arquivado: "neo-sit neo-sit--aviso",
+  Rascunho: "neo-sit neo-sit--aviso",
+  Eliminado: "neo-sit neo-sit--erro",
 };
 
 export function gedStatusClass(status: string): string {
-  return (
-    GED_STATUS_CLASSES[status as GedStatus] ??
-    "bg-[var(--surface-strong)] text-[var(--muted-strong)]"
-  );
+  return GED_STATUS_CLASSES[status as GedStatus] ?? "neo-sit neo-sit--info";
 }
 
 /** Dias restantes até o vencimento — negativo quando já venceu. */

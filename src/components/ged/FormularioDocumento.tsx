@@ -566,7 +566,7 @@ export default function FormularioDocumento({
               <button
                 type="submit"
                 disabled={pendente || preparando || lendo}
-                className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)] disabled:opacity-60"
+                className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)] disabled:opacity-60"
               >
                 {progresso ?? (editando ? "Salvar alterações" : "Cadastrar documento")}
               </button>
@@ -603,7 +603,7 @@ export default function FormularioDocumento({
 }
 
 const entrada =
-  "mt-2 w-full rounded-[1rem] border border-[var(--stroke)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-primary-500/30";
+  "mt-2 w-full rounded-[1rem] border border-[var(--stroke)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30";
 
 function Campo({
   label,

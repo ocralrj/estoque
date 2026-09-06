@@ -65,24 +65,24 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Usuários</h1>
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Usuários</h1>
 
       {feedback && (
         <p
           className={`text-sm rounded-lg px-3 py-2 mb-4 ${
             feedback.kind === "ok"
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-700"
+              ? "bg-[var(--ok-bg)] text-[var(--ok-fg)]"
+              : "bg-[var(--erro-bg)] text-[var(--erro-fg)]"
           }`}
         >
           {feedback.text}
         </p>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
+        <div className="neo-flat overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+          <thead className="bg-[var(--neo-flat)] text-[var(--text-muted)] text-xs uppercase">
             <tr>
               <th className="px-4 py-3 text-left">Nome / Email</th>
               <th className="px-4 py-3 text-left">Função</th>
@@ -90,7 +90,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
               <th className="px-4 py-3 text-left">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-[var(--neo-line)]">
             {users.map((u) => {
               const ehSuperAdmin = u.role === "super_admin";
               // Super admin é intocável por terceiros: nem papel, nem status.
@@ -102,12 +102,12 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
               const busy = pending && busyId === u.id;
 
               return (
-                <tr key={u.id} className="hover:bg-gray-50">
+                <tr key={u.id} className="hover:bg-[var(--neo-flat)]">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-[var(--text)]">
                       {u.full_name || "Sem nome definido"}
                     </p>
-                    <p className="text-gray-400 text-xs">{u.email}</p>
+                    <p className="text-[var(--text-muted)] text-xs">{u.email}</p>
                   </td>
                   <td className="px-4 py-3">
                     {editable ? (
@@ -119,7 +119,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                             updateUserRole(u.id, e.target.value as UserRole)
                           )
                         }
-                        className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+                        className="border border-[var(--neo-line)] rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ring)] disabled:opacity-50"
                       >
                         {availableRoles.map((r) => (
                           <option key={r} value={r}>
@@ -132,7 +132,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         className={
                           ehSuperAdmin
                             ? "font-semibold text-[var(--primary-strong)]"
-                            : "text-gray-600"
+                            : "text-[var(--text-muted)]"
                         }
                       >
                         {roleLabel(u.role)}
@@ -141,18 +141,14 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-xs rounded-full px-2 py-0.5 ${
-                        u.active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-600"
-                      }`}
+                      className={`neo-sit ${u.active ? "neo-sit--ok" : "neo-sit--erro"}`}
                     >
                       {u.active ? "Ativo" : "Inativo"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {ehSuperAdmin ? (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {u.id === meuId ? "sua conta" : "protegido"}
                       </span>
                     ) : (
@@ -160,7 +156,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         <button
                           disabled={busy}
                           onClick={() => run(u.id, () => setUserActive(u.id, !u.active))}
-                          className="text-xs text-primary-600 hover:underline disabled:opacity-50"
+                          className="text-xs text-[var(--primary)] hover:underline disabled:opacity-50"
                         >
                           {u.active ? "Desativar" : "Ativar"}
                         </button>

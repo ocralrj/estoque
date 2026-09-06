@@ -14,10 +14,10 @@ export default function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseStyles = "rounded-2xl font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/30 active:scale-[0.98] border border-white/40";
+  const baseStyles = "rounded-2xl font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30 active:scale-[0.98] border border-white/40";
 
   const variants = {
-    primary: "bg-[var(--primary)] text-white border-transparent shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.15)] hover:brightness-105",
+    primary: "bg-[var(--primary)] text-[var(--on-accent)] border-transparent shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.15)] hover:brightness-105",
     secondary: "neo-soft text-[var(--text)] hover:translate-y-[-1px]",
     danger: "bg-[var(--danger)] text-[var(--text)] shadow-[8px_8px_18px_rgba(235,150,150,0.25),-8px_-8px_18px_rgba(255,255,255,0.15)] hover:brightness-105",
     ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--surface)]",

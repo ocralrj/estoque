@@ -79,7 +79,7 @@ export default function DashboardHeader({
             type="button"
             onClick={onOpenMenu}
             aria-label="Abrir menu"
-            className="neo-button mr-auto inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/30 lg:hidden"
+            className="neo-button mr-auto inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30 lg:hidden"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -92,7 +92,7 @@ export default function DashboardHeader({
             type="button"
             onClick={() => setNotificationsOpen((value) => !value)}
             className={
-              `neo-button inline-flex items-center justify-center h-11 w-11 rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/30` +
+              `neo-button inline-flex items-center justify-center h-11 w-11 rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30` +
               (unreadCount > 0 ? " animate-[bounce_0.7s_ease-in-out_infinite]" : "")
             }
             title={unreadCount > 0 ? `${unreadCount} notificações não lidas` : "Notificações"}
@@ -107,7 +107,7 @@ export default function DashboardHeader({
                 <path d="M12 2a6 6 0 0 0-6 6v4.586l-.707.707A1 1 0 0 0 5 15h14a1 1 0 0 0 .707-1.707L18 12.586V8a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 20Z" />
               </svg>
               {unreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-[var(--erro-solid)] ring-2 ring-[var(--neo-bg)]" />
               ) : null}
             </span>
           </button>
@@ -167,10 +167,10 @@ export default function DashboardHeader({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--primary)] hover:brightness-105 text-white font-bold text-sm shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.12)] transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--primary)] hover:brightness-105 text-[var(--on-accent)] font-bold text-sm shadow-[8px_8px_18px_rgba(122,109,216,0.28),-8px_-8px_18px_rgba(255,255,255,0.12)] transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
           title="Sugerir uma melhoria"
         >
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/20">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--neo-bg)]/20">
             <svg
               className="w-3.5 h-3.5"
               viewBox="0 0 24 24"

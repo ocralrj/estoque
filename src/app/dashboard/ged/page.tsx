@@ -61,7 +61,7 @@ export default async function GedPage() {
         </div>
         <Link
           href="/dashboard/ged/documentos"
-          className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white shadow-[10px_10px_18px_rgba(122,109,216,0.28)] hover:brightness-105 transition-all"
+          className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)] hover:brightness-105 transition-all"
         >
           Acessar documentos
         </Link>

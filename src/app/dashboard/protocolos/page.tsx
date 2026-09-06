@@ -32,58 +32,58 @@ export default async function ProtocolosPage() {
     <div>
       <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Protocolos</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-[var(--text)]">Protocolos</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             Gerencie solicitações, acompanhe status e atribua responsáveis.
           </p>
         </div>
         <Link
           href="/dashboard/protocolos/novo"
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
         >
           Novo Protocolo
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
+        <div className="neo-flat overflow-x-auto">
           <table className="w-full min-w-[900px]">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   NUP
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Título
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Prioridade
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Solicitante
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Responsável
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Atualizado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-[var(--neo-bg)] divide-y divide-[var(--neo-line)]">
               {protocols && protocols.length > 0 ? (
                 protocols.map((protocol) => (
-                  <tr key={protocol.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={protocol.id} className="hover:bg-[var(--neo-flat)]">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {protocol.nup}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{protocol.title}</td>
+                    <td className="px-6 py-4 text-sm text-[var(--text)]">{protocol.title}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${protocolStatusClass(protocol.status)}`}>
                         {protocolStatusLabel(protocol.status)}
@@ -94,19 +94,19 @@ export default async function ProtocolosPage() {
                         {priorityLabel(protocol.priority)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {protocol.requester?.full_name || protocol.requester?.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {protocol.assigned_to?.full_name || protocol.assigned_to?.email || "—"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {formatDate(protocol.updated_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link
                         href={`/dashboard/protocolos/${protocol.id}`}
-                        className="text-primary-600 hover:text-primary-800"
+                        className="text-[var(--primary)] hover:underline"
                       >
                         Ver
                       </Link>
@@ -115,7 +115,7 @@ export default async function ProtocolosPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-[var(--text-muted)]">
                     Nenhum protocolo encontrado.
                   </td>
                 </tr>

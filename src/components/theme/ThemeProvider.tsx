@@ -26,6 +26,9 @@ function applyTheme(theme: Theme) {
   root.classList.toggle("dark", theme === "dark");
   root.style.colorScheme = theme;
   root.dataset.theme = theme;
+  // O NEO lê [data-tema="claro"|"escuro"]; marcamos os dois vocabulários
+  // para que as telas antigas e as novas respondam ao mesmo alternador.
+  root.dataset.tema = theme === "dark" ? "escuro" : "claro";
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

@@ -51,7 +51,7 @@ export default function UserMenu({ profile }: { profile: Profile }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="neo-button inline-flex items-center gap-2 rounded-full p-1 pr-3 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+        className="neo-button inline-flex items-center gap-2 rounded-full p-1 pr-3 focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
         aria-haspopup="menu"
         aria-expanded={open}
         title={displayName}

@@ -19,10 +19,10 @@ export default async function AdminSuggestionsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-[var(--text)]">
           Sugestões de melhoria
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-[var(--text-muted)] mt-1">
           Pedidos enviados por todos os usuários. Atualize status e prioridade.
         </p>
       </div>

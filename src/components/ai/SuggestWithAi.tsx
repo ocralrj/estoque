@@ -110,10 +110,10 @@ export default function SuggestWithAi({
         onClick={runSuggest}
         disabled={disabled || loading}
         className={clsx(
-          "inline-flex items-center gap-1.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-gray-900 disabled:opacity-50",
+          "inline-flex items-center gap-1.5 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-1 dark:focus:ring-offset-gray-900 disabled:opacity-50",
           variant === "inline"
-            ? "text-xs text-amber-700 hover:text-amber-900 dark:text-amber-300"
-            : "px-2.5 py-1.5 rounded-lg text-xs bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 dark:hover:bg-amber-900/50"
+            ? "text-xs text-[var(--aviso-fg)] hover:text-[var(--aviso-fg)]"
+            : "px-2.5 py-1.5 rounded-lg text-xs bg-[var(--aviso-bg)] text-[var(--aviso-fg)] border border-[var(--neo-line)] hover:bg-[var(--aviso-bg)]"
         )}
         title="Gerar descrição com IA (você revisa antes de usar)"
       >
@@ -122,21 +122,21 @@ export default function SuggestWithAi({
       </button>
 
       {open && (
-        <div className="absolute z-40 mt-2 w-[min(100vw-2rem,22rem)] left-0 sm:left-auto sm:right-0 bg-white border border-gray-200 rounded-xl shadow-xl p-3 space-y-3">
+        <div className="absolute z-40 mt-2 w-[min(100vw-2rem,22rem)] left-0 sm:left-auto sm:right-0 bg-[var(--neo-bg)] border border-[var(--neo-line)] rounded-xl shadow-xl p-3 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+              <p className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5">
                 <SparkIcon />
                 Sugestões por IA
               </p>
-              <p className="text-[11px] text-gray-500 mt-0.5">
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                 Preview — aceite, edite no campo ou descarte. Não grava sozinho.
               </p>
             </div>
             <button
               type="button"
               onClick={handleDiscard}
-              className="text-gray-400 hover:text-gray-600 p-0.5"
+              className="text-[var(--text-muted)] hover:text-[var(--text-muted)] p-0.5"
               aria-label="Fechar"
             >
               ×
@@ -144,20 +144,20 @@ export default function SuggestWithAi({
           </div>
 
           {loading && (
-            <p className="text-sm text-gray-500 py-4 text-center">
+            <p className="text-sm text-[var(--text-muted)] py-4 text-center">
               Gerando sugestões...
             </p>
           )}
 
           {error && !loading && (
             <div className="space-y-2">
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
                 {error}
               </p>
               <button
                 type="button"
                 onClick={runSuggest}
-                className="text-xs text-primary-600 hover:underline"
+                className="text-xs text-[var(--primary)] hover:underline"
               >
                 Tentar novamente
               </button>
@@ -167,7 +167,7 @@ export default function SuggestWithAi({
           {!loading && !error && items.length > 0 && (
             <>
               {(aviso || source === "fallback") && (
-                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5">
+                <p className="text-[11px] text-[var(--aviso-fg)] bg-[var(--aviso-bg)] border border-[var(--neo-line)] rounded-lg px-2 py-1.5">
                   {aviso ||
                     "Modo local (IA sem chave ou indisponível). Conteúdo pode ser genérico."}
                 </p>
@@ -183,21 +183,21 @@ export default function SuggestWithAi({
                         "w-full text-left rounded-lg border px-3 py-2 transition-colors",
                         selected === idx
                           ? "border-primary-500 bg-primary-50 ring-1 ring-primary-500"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
+                          : "border-[var(--neo-line)] hover:border-[var(--neo-line)] bg-[var(--neo-bg)]"
                       )}
                     >
-                      <p className="text-sm text-gray-900">{item.texto}</p>
+                      <p className="text-sm text-[var(--text)]">{item.texto}</p>
                       {item.justificativa && (
-                        <p className="text-[11px] text-gray-500 mt-1">
+                        <p className="text-[11px] text-[var(--text-muted)] mt-1">
                           {item.justificativa}
                         </p>
                       )}
                       <span
                         className={clsx(
                           "inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded",
-                          item.confianca === "alta" && "bg-green-100 text-green-800",
-                          item.confianca === "media" && "bg-yellow-100 text-yellow-800",
-                          item.confianca === "baixa" && "bg-gray-100 text-gray-700"
+                          item.confianca === "alta" && "bg-[var(--ok-bg)] text-[var(--ok-fg)]",
+                          item.confianca === "media" && "bg-[var(--aviso-bg)] text-[var(--aviso-fg)]",
+                          item.confianca === "baixa" && "bg-[var(--neo-flat-alt)] text-[var(--text)]"
                         )}
                       >
                         confiança: {item.confianca}
@@ -207,11 +207,11 @@ export default function SuggestWithAi({
                 ))}
               </ul>
 
-              <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+              <div className="flex flex-wrap gap-2 pt-1 border-t border-[var(--neo-line)]">
                 <button
                   type="button"
                   onClick={handleAccept}
-                  className="flex-1 min-w-[6rem] px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-600 text-white hover:bg-primary-700"
+                  className="flex-1 min-w-[6rem] px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--primary)] text-[var(--on-accent)] hover:brightness-110"
                 >
                   Usar esta
                 </button>
@@ -219,14 +219,14 @@ export default function SuggestWithAi({
                   type="button"
                   onClick={runSuggest}
                   disabled={loading}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--neo-flat-alt)] text-[var(--text)] hover:bg-[var(--neo-flat-alt)]"
                 >
                   Regenerar
                 </button>
                 <button
                   type="button"
                   onClick={handleDiscard}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)]"
                 >
                   Descartar
                 </button>
@@ -242,7 +242,7 @@ export default function SuggestWithAi({
 function SparkIcon({ className }: { className?: string }) {
   return (
     <svg
-      className={clsx("w-3.5 h-3.5 text-amber-600", className)}
+      className={clsx("w-3.5 h-3.5 text-[var(--aviso-solid)]", className)}
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden

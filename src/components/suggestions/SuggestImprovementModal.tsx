@@ -225,21 +225,21 @@ export default function SuggestImprovementModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="suggest-title"
-        className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-lg bg-[var(--neo-bg)] rounded-2xl shadow-2xl border border-[var(--neo-line)] flex flex-col max-h-[90vh]"
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+        <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-[var(--neo-line)]">
           <div>
             <h2
               id="suggest-title"
-              className="text-lg font-semibold text-gray-900 flex items-center gap-2"
+              className="text-lg font-semibold text-[var(--text)] flex items-center gap-2"
             >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400 text-amber-950">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--aviso-solid)] text-[var(--on-accent)]">
                 <MagicIcon />
               </span>
               Sugerir uma melhoria
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-[var(--text-muted)] mt-1">
               Conte sua ideia — a IA ajuda só a deixar o texto claro, sem decidir
               como será feito.
             </p>
@@ -247,7 +247,7 @@ export default function SuggestImprovementModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+            className="text-[var(--text-muted)] hover:text-[var(--text-muted)] p-1 rounded-lg hover:bg-[var(--neo-flat-alt)]"
             aria-label="Fechar"
           >
             <CloseIcon />
@@ -295,14 +295,14 @@ export default function SuggestImprovementModal({
 
         {/* Footer / input */}
         {tab === "nova" && step !== "success" && (
-          <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+          <div className="border-t border-[var(--neo-line)] px-5 py-4 space-y-3">
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
             {aiMeta && step === "chat" && (
-              <p className="text-xs text-gray-500">{aiMeta}</p>
+              <p className="text-xs text-[var(--text-muted)]">{aiMeta}</p>
             )}
 
             {step === "chat" && (
@@ -316,13 +316,13 @@ export default function SuggestImprovementModal({
                     rows={2}
                     disabled={thinking}
                     placeholder="Escreva sua ideia... (Enter envia, Shift+Enter quebra linha)"
-                    className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm disabled:bg-gray-50"
+                    className="flex-1 resize-none px-3 py-2 border border-[var(--neo-line)] rounded-xl focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent text-sm disabled:bg-[var(--neo-flat)]"
                   />
                   <button
                     type="button"
                     onClick={handleSend}
                     disabled={!input.trim() || thinking}
-                    className="h-10 w-10 shrink-0 rounded-xl bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 disabled:bg-gray-300 transition-colors"
+                    className="h-10 w-10 shrink-0 rounded-xl bg-[var(--primary)] text-[var(--on-accent)] flex items-center justify-center hover:brightness-110 disabled:opacity-50 transition-colors"
                     aria-label="Enviar"
                   >
                     <SendIcon />
@@ -333,7 +333,7 @@ export default function SuggestImprovementModal({
                     type="button"
                     onClick={resetChat}
                     disabled={thinking}
-                    className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 disabled:opacity-50"
+                    className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1 disabled:opacity-50"
                   >
                     <RestartIcon />
                     Recomeçar
@@ -348,8 +348,8 @@ export default function SuggestImprovementModal({
                     className={clsx(
                       "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                       ready
-                        ? "bg-primary-600 text-white hover:bg-primary-700"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200",
+                        ? "bg-[var(--primary)] text-[var(--on-accent)] hover:brightness-110"
+                        : "bg-[var(--neo-flat-alt)] text-[var(--text)] hover:bg-[var(--neo-flat-alt)]",
                       "disabled:opacity-50"
                     )}
                   >
@@ -364,7 +364,7 @@ export default function SuggestImprovementModal({
                 <button
                   type="button"
                   onClick={() => setStep("chat")}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--neo-flat-alt)] text-[var(--text)] hover:bg-[var(--neo-flat-alt)]"
                 >
                   Voltar
                 </button>
@@ -372,7 +372,7 @@ export default function SuggestImprovementModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={sending}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-400"
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-[var(--on-accent)] hover:brightness-110 disabled:opacity-60"
                 >
                   {sending ? "Enviando..." : "Enviar pedido"}
                 </button>
@@ -401,8 +401,8 @@ function TabButton({
       className={clsx(
         "flex-1 py-2 text-sm font-medium rounded-lg transition-colors",
         active
-          ? "bg-primary-600 text-white"
-          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          ? "bg-[var(--primary)] text-[var(--on-accent)]"
+          : "bg-[var(--neo-flat-alt)] text-[var(--text)] hover:bg-[var(--neo-flat-alt)]"
       )}
     >
       {children}
@@ -427,15 +427,15 @@ function ChatView({
           className={clsx(
             "max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
             m.role === "user"
-              ? "ml-auto bg-primary-600 text-white rounded-br-md"
-              : "mr-auto bg-blue-50 text-blue-950 border border-blue-100 rounded-bl-md"
+              ? "ml-auto bg-[var(--primary)] text-[var(--on-accent)] rounded-br-md"
+              : "mr-auto bg-[var(--info-bg)] text-[var(--info-fg)] border border-[var(--neo-line)] rounded-bl-md"
           )}
         >
           {m.content}
         </div>
       ))}
       {thinking && (
-        <div className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm bg-gray-100 text-gray-500 border border-gray-200">
+        <div className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm bg-[var(--neo-flat-alt)] text-[var(--text-muted)] border border-[var(--neo-line)]">
           Organizando sua ideia...
         </div>
       )}
@@ -457,12 +457,12 @@ function SummaryView({
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-[var(--text-muted)]">
         Revise o resumo abaixo. Você pode editar antes de enviar. A equipe
         decide se e como implementar.
       </p>
       {aiMeta && (
-        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+        <p className="text-xs text-[var(--aviso-fg)] bg-[var(--aviso-bg)] border border-[var(--neo-line)] rounded-lg px-3 py-2">
           {aiMeta}. Conteúdo gerado por IA pode conter erros.
         </p>
       )}
@@ -471,7 +471,7 @@ function SummaryView({
         <input
           value={summary.title}
           onChange={(e) => onChange({ ...summary, title: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--ring)]"
         />
       </Field>
 
@@ -482,7 +482,7 @@ function SummaryView({
           onChange={(e) =>
             onChange({ ...summary, what_wanted: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--ring)]"
         />
       </Field>
 
@@ -493,7 +493,7 @@ function SummaryView({
           onChange={(e) =>
             onChange({ ...summary, why_wanted: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--ring)]"
         />
       </Field>
 
@@ -502,7 +502,7 @@ function SummaryView({
           rows={4}
           value={summary.summary}
           onChange={(e) => onChange({ ...summary, summary: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--ring)]"
         />
       </Field>
 
@@ -516,7 +516,7 @@ function SummaryView({
                 priority: e.target.value as SummaryResult["priority"],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
           >
             <option value="baixa">Baixa</option>
             <option value="media">Média</option>
@@ -530,7 +530,7 @@ function SummaryView({
               onChange({ ...summary, module_hint: e.target.value || null })
             }
             placeholder="Ex: Estoque"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
           />
         </Field>
       </div>
@@ -538,7 +538,7 @@ function SummaryView({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-primary-600 hover:underline"
+        className="text-sm text-[var(--primary)] hover:underline"
       >
         Continuar conversa
       </button>
@@ -557,13 +557,13 @@ function SuccessView({
 }) {
   return (
     <div className="text-center py-8">
-      <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 mb-4">
+      <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--ok-bg)] mb-4">
         <CheckIcon />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+      <h3 className="text-lg font-semibold text-[var(--text)] mb-1">
         Pedido enviado!
       </h3>
-      <p className="text-sm text-gray-600 mb-2">
+      <p className="text-sm text-[var(--text-muted)] mb-2">
         Sua sugestão foi registrada
         {code ? (
           <>
@@ -573,21 +573,21 @@ function SuccessView({
         ) : null}
         .
       </p>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-[var(--text-muted)] mb-6">
         Acompanhe o andamento em &quot;Meus pedidos&quot;.
       </p>
       <div className="flex justify-center gap-2">
         <button
           type="button"
           onClick={onNew}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700"
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-[var(--on-accent)] hover:brightness-110"
         >
           Nova sugestão
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--neo-flat-alt)] text-[var(--text)] hover:bg-[var(--neo-flat-alt)]"
         >
           Fechar
         </button>
@@ -606,19 +606,19 @@ function MySuggestionsList({
   onRefresh: () => void;
 }) {
   if (loading) {
-    return <p className="text-sm text-gray-500 text-center py-8">Carregando...</p>;
+    return <p className="text-sm text-[var(--text-muted)] text-center py-8">Carregando...</p>;
   }
 
   if (items.length === 0) {
     return (
       <div className="text-center py-10">
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-[var(--text-muted)] mb-2">
           Você ainda não enviou nenhum pedido.
         </p>
         <button
           type="button"
           onClick={onRefresh}
-          className="text-sm text-primary-600 hover:underline"
+          className="text-sm text-[var(--primary)] hover:underline"
         >
           Atualizar
         </button>
@@ -632,7 +632,7 @@ function MySuggestionsList({
         <button
           type="button"
           onClick={onRefresh}
-          className="text-xs text-gray-500 hover:text-gray-700"
+          className="text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
         >
           Atualizar
         </button>
@@ -640,12 +640,12 @@ function MySuggestionsList({
       {items.map((item) => (
         <div
           key={item.id}
-          className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50"
+          className="border border-[var(--neo-line)] rounded-xl p-4 hover:bg-[var(--neo-flat)]"
         >
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
-              <p className="text-xs font-mono text-gray-500">{item.code}</p>
-              <h4 className="text-sm font-semibold text-gray-900">
+              <p className="text-xs font-mono text-[var(--text-muted)]">{item.code}</p>
+              <h4 className="text-sm font-semibold text-[var(--text)]">
                 {item.title}
               </h4>
             </div>
@@ -658,10 +658,10 @@ function MySuggestionsList({
               {SUGGESTION_STATUS_LABELS[item.status]}
             </span>
           </div>
-          <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+          <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">
             {item.summary}
           </p>
-          <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-2 mt-2 text-xs text-[var(--text-muted)]">
             <span>
               {new Date(item.created_at).toLocaleString("pt-BR")}
             </span>
@@ -677,7 +677,7 @@ function MySuggestionsList({
             )}
           </div>
           {item.admin_notes && (
-            <p className="mt-2 text-xs bg-yellow-50 text-yellow-900 rounded-lg px-2 py-1">
+            <p className="mt-2 text-xs bg-[var(--aviso-bg)] text-[var(--aviso-fg)] rounded-lg px-2 py-1">
               Resposta da equipe: {item.admin_notes}
             </p>
           )}
@@ -696,7 +696,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">
+      <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
         {label}
       </label>
       {children}
@@ -738,7 +738,7 @@ function RestartIcon() {
 
 function CheckIcon() {
   return (
-    <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-7 h-7 text-[var(--ok-solid)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
     </svg>
   );
