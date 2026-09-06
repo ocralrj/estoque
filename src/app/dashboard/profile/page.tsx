@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { roleLabel } from "@/lib/labels";
+import FormularioNome from "./FormularioNome";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,7 @@ export default async function ProfilePage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Nome completo</p>
-              <p className="text-base font-medium text-gray-900">{profile.full_name || "Não informado"}</p>
-            </div>
+            <FormularioNome nomeAtual={profile.full_name} />
             <div>
               <p className="text-sm text-gray-500">Email</p>
               <p className="text-base font-medium text-gray-900">{profile.email}</p>

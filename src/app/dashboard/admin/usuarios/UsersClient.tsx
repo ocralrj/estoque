@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { setUserActive, updateUserRole } from "@/app/actions/users";
+import {
+  setUserActive,
+  updateUserRole,
+  promoverASuperAdmin,
+} from "@/app/actions/users";
 import { ROLE_LABELS, roleLabel } from "@/lib/labels";
 import type { Profile, UserRole } from "@/types";
 
@@ -11,19 +15,38 @@ type Feedback = { kind: "ok" | "erro"; text: string } | null;
 export default function UsersClient({
   users,
   currentRole,
+  meuId,
 }: {
   users: Profile[];
   currentRole: string;
+  meuId: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
+  // "Super Admin" não entra no seletor: conceder o papel máximo do sistema por
+  // um clique distraído num dropdown, ao lado dos demais, é fácil demais.
+  // A promoção tem botão próprio, com confirmação.
   const availableRoles: UserRole[] =
     currentRole === "super_admin"
-      ? ["super_admin", "gestor", "almoxarife", "requisitante"]
+      ? ["gestor", "almoxarife", "requisitante"]
       : ["almoxarife", "requisitante"];
+
+  function promover(u: Profile) {
+    const nome = u.full_name || u.email;
+    if (
+      !window.confirm(
+        `Tornar "${nome}" um super admin?
+
+Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o mesmo papel a outras pessoas. Depois disso, só ele próprio poderá alterar seu papel.`
+      )
+    ) {
+      return;
+    }
+    run(u.id, () => promoverASuperAdmin(u.id));
+  }
 
   function run(userId: string, action: () => Promise<{ ok: boolean; message?: string }>) {
     setBusyId(userId);
@@ -69,16 +92,21 @@ export default function UsersClient({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {users.map((u) => {
+              const ehSuperAdmin = u.role === "super_admin";
+              // Super admin é intocável por terceiros: nem papel, nem status.
               const editable =
-                currentRole === "super_admin" ||
-                u.role === "requisitante" ||
-                u.role === "almoxarife";
+                !ehSuperAdmin &&
+                (currentRole === "super_admin" ||
+                  u.role === "requisitante" ||
+                  u.role === "almoxarife");
               const busy = pending && busyId === u.id;
 
               return (
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">{u.full_name || "—"}</p>
+                    <p className="font-medium text-gray-800">
+                      {u.full_name || "Sem nome definido"}
+                    </p>
                     <p className="text-gray-400 text-xs">{u.email}</p>
                   </td>
                   <td className="px-4 py-3">
@@ -100,7 +128,15 @@ export default function UsersClient({
                         ))}
                       </select>
                     ) : (
-                      <span className="text-gray-600">{roleLabel(u.role)}</span>
+                      <span
+                        className={
+                          ehSuperAdmin
+                            ? "font-semibold text-[var(--primary-strong)]"
+                            : "text-gray-600"
+                        }
+                      >
+                        {roleLabel(u.role)}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -115,13 +151,30 @@ export default function UsersClient({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      disabled={busy}
-                      onClick={() => run(u.id, () => setUserActive(u.id, !u.active))}
-                      className="text-xs text-primary-600 hover:underline disabled:opacity-50"
-                    >
-                      {u.active ? "Desativar" : "Ativar"}
-                    </button>
+                    {ehSuperAdmin ? (
+                      <span className="text-xs text-gray-400">
+                        {u.id === meuId ? "sua conta" : "protegido"}
+                      </span>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          disabled={busy}
+                          onClick={() => run(u.id, () => setUserActive(u.id, !u.active))}
+                          className="text-xs text-primary-600 hover:underline disabled:opacity-50"
+                        >
+                          {u.active ? "Desativar" : "Ativar"}
+                        </button>
+                        {currentRole === "super_admin" && u.active && (
+                          <button
+                            disabled={busy}
+                            onClick={() => promover(u)}
+                            className="text-xs text-[var(--primary-strong)] hover:underline disabled:opacity-50"
+                          >
+                            Tornar super admin
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );

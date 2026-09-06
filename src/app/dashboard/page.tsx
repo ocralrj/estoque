@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Olá, {profile?.full_name || profile?.email}
+        Olá, {profile?.full_name?.trim() || "seja bem-vindo"}
       </h1>
 
       <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 xl:grid-cols-4">

@@ -41,7 +41,9 @@ export default function UserMenu({ profile }: { profile: Profile }) {
     router.refresh();
   }
 
-  const displayName = profile.full_name || profile.email;
+  // O nome é a identificação; o e-mail só entra quando ainda não foi definido
+  // (o próprio usuário resolve isso em Meu perfil).
+  const displayName = profile.full_name?.trim() || profile.email;
   const initial = displayName?.charAt(0).toUpperCase();
 
   return (
