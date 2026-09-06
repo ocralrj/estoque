@@ -112,9 +112,13 @@ CREATE POLICY group_members_gestor_read ON group_members
 -- RLS Policies para permissions
 ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
--- Todos podem visualizar permissões disponíveis
+-- Usuários autenticados visualizam o catálogo de permissões.
+-- `USING (true)` deixava as 38 linhas legíveis por visitantes anônimos, o que
+-- expunha o mapa de módulos, recursos e ações do sistema a quem não fez login.
+DROP POLICY IF EXISTS permissions_read_all ON permissions;
 CREATE POLICY permissions_read_all ON permissions
   FOR SELECT
+  TO authenticated
   USING (true);
 
 -- Super admin pode criar/editar permissões

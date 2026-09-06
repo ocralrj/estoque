@@ -3,7 +3,8 @@
 -- Versão idempotente — pode ser reexecutada com segurança.
 --
 -- Aplicar em: Supabase Dashboard -> SQL Editor -> New Query.
--- Depende de: schema_estoque.sql (tabela profiles e função is_manager).
+-- Depende de: schema_estoque.sql — tabela `profiles`, enum `user_role` e a
+-- função `public.get_user_role()`. Aplique aquele arquivo antes deste.
 -- ============================================================
 
 create extension if not exists "uuid-ossp";
@@ -177,11 +178,11 @@ alter table ged_retention_rules enable row level security;
 alter table ged_certificates enable row level security;
 alter table ged_audit enable row level security;
 
--- Papel do usuário autenticado, sem recursão de política.
-create or replace function ged_current_role()
-returns text as $$
-  select role::text from profiles where id = auth.uid();
-$$ language sql stable security definer;
+-- O papel do usuário vem de public.get_user_role(), criada em
+-- schema_estoque.sql (SECURITY DEFINER + search_path fixo). Não declare outra
+-- função aqui: duplicar o helper foi como o projeto acabou com três versões da
+-- mesma consulta, uma delas sem `set search_path`.
+drop function if exists ged_current_role();
 
 -- Leitura: qualquer usuário autenticado enxerga o acervo.
 drop policy if exists "GED: leitura autenticada de pastas" on ged_folders;
@@ -213,26 +214,26 @@ create policy "GED: leitura autenticada da auditoria"
 drop policy if exists "GED: escrita de pastas por gestão" on ged_folders;
 create policy "GED: escrita de pastas por gestão"
   on ged_folders for all
-  using (ged_current_role() in ('super_admin', 'gestor', 'almoxarife'))
-  with check (ged_current_role() in ('super_admin', 'gestor', 'almoxarife'));
+  using (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'))
+  with check (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'));
 
 drop policy if exists "GED: escrita de documentos por gestão" on ged_documents;
 create policy "GED: escrita de documentos por gestão"
   on ged_documents for all
-  using (ged_current_role() in ('super_admin', 'gestor', 'almoxarife'))
-  with check (ged_current_role() in ('super_admin', 'gestor', 'almoxarife'));
+  using (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'))
+  with check (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'));
 
 drop policy if exists "GED: escrita de regras por gestão" on ged_retention_rules;
 create policy "GED: escrita de regras por gestão"
   on ged_retention_rules for all
-  using (ged_current_role() in ('super_admin', 'gestor'))
-  with check (ged_current_role() in ('super_admin', 'gestor'));
+  using (public.get_user_role()::text in ('super_admin', 'gestor'))
+  with check (public.get_user_role()::text in ('super_admin', 'gestor'));
 
 drop policy if exists "GED: escrita de certificados por gestão" on ged_certificates;
 create policy "GED: escrita de certificados por gestão"
   on ged_certificates for all
-  using (ged_current_role() in ('super_admin', 'gestor'))
-  with check (ged_current_role() in ('super_admin', 'gestor'));
+  using (public.get_user_role()::text in ('super_admin', 'gestor'))
+  with check (public.get_user_role()::text in ('super_admin', 'gestor'));
 
 -- ============================================================
 -- SEED: apenas regras de temporalidade (parametrização, não conteúdo)

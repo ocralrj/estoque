@@ -47,7 +47,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // `api` fica de fora: rotas de API autenticam por conta própria (sessão ou
+  // CRON_SECRET) e não têm cookie de navegador. Sem esta exclusão o middleware
+  // redirecionava /api/internal/keep-alive para o login com 307, e a rotina
+  // anti-pausa do Supabase nunca chegava a executar.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

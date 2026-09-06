@@ -33,6 +33,24 @@ Os arquivos `supabase/fix_rls_redirect_loop.sql` e
 redirecionamento causado por política RLS recursiva em `profiles` e falhas do
 trigger que cria o perfil no cadastro.
 
+## Conferir o que está exposto sem login
+
+A checagem mais rápida de vazamento usa a própria API REST com a chave pública
+(`anon`), que é pública por design. Toda tabela deve devolver `[]` ou um erro —
+nunca linhas de dados:
+
+```bash
+for t in profiles notifications products movements protocolos permissions ged_documents; do
+  printf "%-24s " "$t"
+  curl -s -H "apikey: <chave anon>"     "https://ffsymnxutfjmvwnurfby.supabase.co/rest/v1/$t?select=*&limit=1"
+  echo
+done
+```
+
+Foi assim que se detectou, em 06/09/2026, que `permissions` devolvia as 38
+linhas do catálogo a visitantes anônimos — corrigido por
+`_manual_apply/004_fix_permissions_anon_read.sql`.
+
 ## Conferir o resultado
 
 ```sql

@@ -193,6 +193,26 @@ create trigger movement_update_quantity
 -- ============================================================
 -- RLS: habilitar em todas as tabelas
 -- ============================================================
+-- ============================================================
+-- FUNÇÃO: papel do usuário atual, sem passar pelo RLS
+--
+-- Política de `profiles` que faz SELECT em `profiles` recursiona
+-- infinitamente: a consulta ao perfil trava, o dashboard conclui que não há
+-- perfil e manda para o login, o login vê a sessão e manda para o dashboard —
+-- ERR_TOO_MANY_REDIRECTS. SECURITY DEFINER ignora o RLS e corta a recursão.
+-- Toda política que precise do papel deve usar esta função, nunca um
+-- `select ... from profiles` embutido.
+-- ============================================================
+create or replace function public.get_user_role()
+returns user_role
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
 alter table profiles enable row level security;
 alter table categories enable row level security;
 alter table products enable row level security;
@@ -211,27 +231,21 @@ drop policy if exists "Super admin e gestor veem todos os perfis" on profiles;
 create policy "Super admin e gestor veem todos os perfis"
   on profiles for select
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    public.get_user_role() in ('super_admin', 'gestor')
   );
 
 drop policy if exists "Super admin atualiza qualquer perfil" on profiles;
 create policy "Super admin atualiza qualquer perfil"
   on profiles for update
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role = 'super_admin'
-    )
+    public.get_user_role() = 'super_admin'
   );
 
 drop policy if exists "Usuário atualiza seu próprio perfil" on profiles;
 create policy "Usuário atualiza seu próprio perfil"
   on profiles for update
   using (auth.uid() = id)
-  with check (role = (select role from profiles where id = auth.uid()));
+  with check (role = public.get_user_role());
 
 -- ============================================================
 -- RLS POLICIES: categories
@@ -245,10 +259,7 @@ drop policy if exists "Super admin e gestor gerenciam categorias" on categories;
 create policy "Super admin e gestor gerenciam categorias"
   on categories for all
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    public.get_user_role() in ('super_admin', 'gestor')
   );
 
 -- ============================================================
@@ -263,20 +274,14 @@ drop policy if exists "Super admin vê todos os produtos" on products;
 create policy "Super admin vê todos os produtos"
   on products for select
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role = 'super_admin'
-    )
+    public.get_user_role() = 'super_admin'
   );
 
 drop policy if exists "Super admin, gestor e almoxarife gerenciam produtos" on products;
 create policy "Super admin, gestor e almoxarife gerenciam produtos"
   on products for all
   using (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor', 'almoxarife')
-    )
+    public.get_user_role() in ('super_admin', 'gestor', 'almoxarife')
   );
 
 -- ============================================================
@@ -291,10 +296,7 @@ drop policy if exists "Almoxarife registra movimentações" on movements;
 create policy "Almoxarife registra movimentações"
   on movements for insert
   with check (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor', 'almoxarife')
-    )
+    public.get_user_role() in ('super_admin', 'gestor', 'almoxarife')
   );
 
 
@@ -319,10 +321,7 @@ drop policy if exists "Gestão cria notificações" on notifications;
 create policy "Gestão cria notificações"
   on notifications for insert
   with check (
-    exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    public.get_user_role() in ('super_admin', 'gestor')
   );
 
 -- ============================================================
@@ -336,10 +335,7 @@ create policy "Usuário vê seus próprios protocolos ou protocolos atribuídos"
   using (
     auth.uid() = requester_id
     or auth.uid() = assigned_to
-    or exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    or public.get_user_role() in ('super_admin', 'gestor')
   );
 
 drop policy if exists "Usuário cria protocolo próprio" on protocolos;
@@ -352,17 +348,11 @@ create policy "Usuário atualiza seu próprio protocolo"
   on protocolos for update
   using (
     auth.uid() = requester_id
-    or exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    or public.get_user_role() in ('super_admin', 'gestor')
   )
   with check (
     auth.uid() = requester_id
-    or exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    or public.get_user_role() in ('super_admin', 'gestor')
   );
 
 drop policy if exists "Usuário exclui seu próprio protocolo" on protocolos;
@@ -370,10 +360,7 @@ create policy "Usuário exclui seu próprio protocolo"
   on protocolos for delete
   using (
     auth.uid() = requester_id
-    or exists (
-      select 1 from profiles p
-      where p.id = auth.uid() and p.role in ('super_admin', 'gestor')
-    )
+    or public.get_user_role() in ('super_admin', 'gestor')
   );
 
 -- ============================================================

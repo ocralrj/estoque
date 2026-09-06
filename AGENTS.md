@@ -37,6 +37,9 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - A quantidade de estoque é atualizada pelo trigger DB `movement_update_quantity` no insert de `movements` — não atualizar `products.quantity_current` no código da aplicação.
 - `protocolos` tem **duas** FKs para `profiles` (`requester_id` e `assigned_to`). Em embeds do PostgREST, sempre nomear a constraint — `requester:profiles!protocolos_requester_id_fkey(...)` — senão a query falha com PGRST201. O mesmo vale para qualquer tabela com FK dupla.
 - Toda tabela nova precisa de `enable row level security` **e** de políticas. Conferir com a query de RLS em `docs/APLICAR_SQL.md`.
+- **Política nunca consulta `profiles` diretamente — use `public.get_user_role()`.** Uma política de `profiles` que faz `select ... from profiles` recursiona infinitamente: a consulta ao perfil trava, o dashboard conclui que não há perfil e redireciona para o login, o login vê a sessão e redireciona para o dashboard, e o navegador aborta com `ERR_TOO_MANY_REDIRECTS`. A função `get_user_role()` (SECURITY DEFINER, declarada em `schema_estoque.sql` antes do bloco de RLS) ignora o RLS e corta a recursão. `supabase/fix_rls_redirect_loop.sql` é o reparo de emergência quando o loop aparece em produção.
+- **Existe UMA função de papel: `public.get_user_role()`**, declarada em `schema_estoque.sql`. `schema_sugestoes.sql` a redeclara idêntica (idempotente, tudo bem). Não crie variantes por módulo — o GED chegou a ter uma `ged_current_role()` própria, sem `set search_path`, até ser removida.
+- **Cuidado ao reexecutar `schema_estoque.sql` num banco já corrigido.** Cada `create policy` vem precedido de `drop policy if exists`: rodar uma versão com políticas recursivas *desfaz* correções já aplicadas. Foi o que derrubou a produção em 06/09/2026 — o schema consolidado carregava as políticas recursivas antigas.
 
 ## Funcionalidade de sugestões por IA (opcional)
 

@@ -24,7 +24,8 @@ Erro: `MIDDLEWARE_INVOCATION_FAILED` - `MIDDLEWARE_INVOCATION_FAILED`
 
 #### Variável 2:
 - **Name**: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **Value**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmc3ltbnh1dGZqbXZ3bnVyZmJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MDU4NDQsImV4cCI6MjA5OTE4MTg0NH0.-BEjJ5-8QsJcvp-mJYHXupGZ1ajlIj4AK58BHjjpzwU`
+- **Value**: copie de **Supabase → Settings → API → Project API keys → `anon` `public`**
+  (não versione a chave aqui: ela muda quando rotacionada e faz os scanners de segredo apontarem o repositório)
 - **Environments**: Marque as 3 checkboxes (Production, Preview, Development)
 - Clique em **Save**
 
