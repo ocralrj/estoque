@@ -72,6 +72,15 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - A câmera (`CapturaFoto.tsx`) pede a maior resolução do periférico e reduz
   depois: mais pixels na origem deixam o texto legível após o reamostramento.
 
+- **A trilha de auditoria acompanha o acesso ao documento.** Cada linha carrega
+  nome do documento, ação e autor — ler tudo revelaria justamente o que a
+  restrição do documento esconde. A política usa `ged_pode_ler(document_id)`;
+  registros de exclusão (sem `document_id`) só a gestão vê. A trilha não tem
+  política de INSERT: só os triggers escrevem, como SECURITY DEFINER.
+- As regras de temporalidade em `ged_retention_rules` são parametrização legal
+  (prazo de guarda e destino por tipo de documento), não conteúdo de cliente —
+  por isso vêm semeadas no schema.
+
 ## Rotina anti-pausa do Supabase
 
 O plano gratuito pausa o projeto após ~7 dias sem atividade.

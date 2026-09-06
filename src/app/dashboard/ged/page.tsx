@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
-import { formatDate, formatDateTime } from "@/lib/labels";
+import { formatDate } from "@/lib/labels";
 import {
   daysUntil,
   gedStatusClass,
-  type GedAuditEntry,
   type GedCertificate,
   type GedDocument,
   type GedRetentionRule,
@@ -22,7 +21,6 @@ export default async function GedPage() {
     { data: recentes },
     { data: certificados },
     { data: regras },
-    { data: auditoria },
   ] = await Promise.all([
     supabase.from("ged_documents").select("*", { count: "exact", head: true }),
     supabase
@@ -46,12 +44,6 @@ export default async function GedPage() {
       .eq("ativa", true)
       .order("setor")
       .returns<GedRetentionRule[]>(),
-    supabase
-      .from("ged_audit")
-      .select("*, user:profiles(full_name, email)")
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .returns<GedAuditEntry[]>(),
   ]);
 
   const vencendo = (certificados ?? []).filter(
@@ -175,11 +167,15 @@ export default async function GedPage() {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <section className="neo-card p-5">
           <h2 className="text-lg font-bold text-[var(--text)] mb-4">
             Temporalidade e descarte
           </h2>
+          <p className="-mt-2 mb-4 text-sm text-[var(--muted)]">
+            Por quanto tempo cada tipo de documento precisa ser guardado, e o que
+            fazer quando o prazo vence.
+          </p>
           <div className="space-y-3">
             {regras && regras.length > 0 ? (
               regras.map((rule) => (
@@ -205,32 +201,6 @@ export default async function GedPage() {
           </div>
         </section>
 
-        <section className="neo-card p-5">
-          <h2 className="text-lg font-bold text-[var(--text)] mb-4">
-            Trilha de auditoria
-          </h2>
-          <div className="space-y-3">
-            {auditoria && auditoria.length > 0 ? (
-              auditoria.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-3"
-                >
-                  <p className="font-semibold text-[var(--text)]">{item.acao}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {item.documento_nome}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {item.user?.full_name || item.user?.email || "Sistema"} •{" "}
-                    {formatDateTime(item.created_at)}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <EmptyHint text="Nenhum evento registrado ainda." />
-            )}
-          </div>
-        </section>
       </div>
     </div>
   );
