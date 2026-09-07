@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SuggestImprovementModal from "@/components/suggestions/SuggestImprovementModal";
@@ -7,6 +8,7 @@ import ThemeToggle from "@/components/theme/ThemeToggle";
 import UserMenu from "@/components/layout/UserMenu";
 import { formatDate } from "@/lib/labels";
 import type { Notification } from "@/types/database";
+import { usePode } from "@/components/auth/Permissoes";
 import type { Profile } from "@/types";
 
 export default function DashboardHeader({
@@ -20,6 +22,11 @@ export default function DashboardHeader({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [respondendo, setRespondendo] = useState<string | null>(null);
+  const [resposta, setResposta] = useState("");
+  const [enviandoResposta, setEnviandoResposta] = useState(false);
+  const pode = usePode();
+  const router = useRouter();
 
   useEffect(() => {
     let ativo = true;
@@ -35,7 +42,7 @@ export default function DashboardHeader({
       // não vazar notificações de terceiros se a política mudar.
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, user_id, title, message, is_read, created_at, updated_at")
+        .select("id, user_id, title, message, is_read, link, permissao, origem_id, created_at, updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -76,6 +83,51 @@ export default function DashboardHeader({
    * lista não é o mesmo que ter lido o aviso — e quem abrisse o sino de
    * passagem perdia o rastro do que ainda precisava ver.
    */
+  /** A permissão do destino vem na própria notificação. */
+  function podeAbrir(n: Notification): boolean {
+    if (!n.link) return false;
+    if (!n.permissao) return true;
+    const [m, r, a] = n.permissao.split(":");
+    return Boolean(m && r && a && pode(m, r, a));
+  }
+
+  /**
+   * Clique na notificação.
+   *
+   * Marca como lida e leva ao destino — avisar sem dizer onde é metade do
+   * trabalho. Quem não tem permissão para o destino não é levado a uma tela
+   * que vai recusá-lo: recebe o campo de resposta, para pelo menos reagir a
+   * quem avisou em vez de ficar sabendo de algo sem poder fazer nada.
+   */
+  async function aoClicar(n: Notification) {
+    if (!n.is_read) await marcarComoLida(n.id);
+
+    if (podeAbrir(n)) {
+      setNotificationsOpen(false);
+      router.push(n.link!);
+      return;
+    }
+
+    if (n.origem_id) {
+      setRespondendo((atual) => (atual === n.id ? null : n.id));
+      setResposta("");
+    }
+  }
+
+  async function enviarResposta(id: string) {
+    if (!resposta.trim()) return;
+    setEnviandoResposta(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("responder_notificacao", {
+      p_id: id,
+      p_texto: resposta.trim(),
+    });
+    setEnviandoResposta(false);
+    if (error) return;
+    setRespondendo(null);
+    setResposta("");
+  }
+
   async function marcarComoLida(id?: string) {
     const resposta = await fetch("/api/notifications/mark-read", {
       method: "POST",
@@ -181,8 +233,17 @@ export default function DashboardHeader({
                   notifications.map((notification) => (
                     <div
                       key={notification.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => aoClicar(notification)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          aoClicar(notification);
+                        }
+                      }}
                       className={
-                        `rounded-2xl border px-4 py-3 text-sm transition-colors ` +
+                        `cursor-pointer rounded-2xl border px-4 py-3 text-sm transition-colors ` +
                         (notification.is_read
                           ? "border-[var(--stroke)] bg-[var(--surface)] text-[var(--text)]"
                           : "border-[var(--primary-soft)] bg-[var(--primary-soft)] text-[var(--text)]")
@@ -199,18 +260,58 @@ export default function DashboardHeader({
 
                         {notification.is_read ? (
                           <span className="text-[11px] font-semibold text-[var(--muted)]">
-                            Lida
+                            {podeAbrir(notification) ? "Clique para abrir" : "Lida"}
                           </span>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => marcarComoLida(notification.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              marcarComoLida(notification.id);
+                            }}
                             className="rounded-full bg-[var(--neo-bg)] px-3 py-1 text-[11px] font-bold text-[var(--primary)] hover:underline"
                           >
                             Marcar como lida
                           </button>
                         )}
                       </div>
+
+                      {respondendo === notification.id && (
+                        <div
+                          className="mt-3 border-t border-[var(--stroke)] pt-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="mb-2 text-xs text-[var(--muted)]">
+                            Você não tem acesso à tela deste aviso. Responda a quem
+                            avisou:
+                          </p>
+                          <textarea
+                            value={resposta}
+                            onChange={(e) => setResposta(e.target.value)}
+                            rows={2}
+                            autoFocus
+                            placeholder="Escreva sua resposta"
+                            className="w-full rounded-lg border border-[var(--stroke)] bg-[var(--neo-bg)] px-2 py-1.5 text-xs text-[var(--text)]"
+                          />
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              disabled={enviandoResposta || !resposta.trim()}
+                              onClick={() => enviarResposta(notification.id)}
+                              className="rounded-full bg-[var(--primary)] px-3 py-1 text-[11px] font-bold text-[var(--on-accent)] disabled:opacity-50"
+                            >
+                              {enviandoResposta ? "Enviando…" : "Enviar"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRespondendo(null)}
+                              className="text-[11px] font-semibold text-[var(--muted)] hover:underline"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

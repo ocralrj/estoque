@@ -94,6 +94,12 @@ export interface Notification {
   title: string;
   message: string | null;
   is_read: boolean;
+  /** Rota que o clique abre, quando há para onde ir. */
+  link?: string | null;
+  /** Permissão exigida pelo destino, como "modulo:recurso:acao". */
+  permissao?: string | null;
+  /** Quem originou o aviso — é para essa pessoa que a resposta volta. */
+  origem_id?: string | null;
   created_at: string;
   updated_at: string;
 }
