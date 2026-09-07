@@ -229,17 +229,12 @@ export default function Sidebar({
   return (
     <aside
       className={clsx(
-        "flex shrink-0 flex-col border-r border-[var(--stroke)] bg-[var(--bg)] py-7 text-[var(--text)] transition-[width] duration-200",
+        "relative flex shrink-0 flex-col border-r border-[var(--stroke)] bg-[var(--bg)] py-7 text-[var(--text)] transition-[width] duration-200",
         isDrawer ? "h-full w-72 px-4" : "hidden min-h-screen lg:flex",
         !isDrawer && (isCollapsed ? "w-20 px-3" : "w-72 px-5")
       )}
     >
-      <div
-        className={clsx(
-          "flex items-center pb-6",
-          isCollapsed ? "justify-center" : "justify-between gap-2 px-2"
-        )}
-      >
+      <div className={clsx("pb-6", isCollapsed ? "text-center" : "px-2")}>
         {!isCollapsed && (
           <div className="min-w-0">
             <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
@@ -249,26 +244,29 @@ export default function Sidebar({
           </div>
         )}
 
-        {!isDrawer && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-            className="neo-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
-          >
-            <svg
-              className={clsx("h-4 w-4 transition-transform", isCollapsed && "rotate-180")}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
       </div>
+
+      {/* Sobre a linha que divide o menu do conteúdo: metade para dentro,
+          metade para fora, como uma alça da própria divisória. */}
+      {!isDrawer && (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
+          title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+          className="neo-button absolute -right-4 top-1/2 z-20 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] transition-all hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+        >
+          <svg
+            className={clsx("h-4 w-4 transition-transform", isCollapsed && "rotate-180")}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
 
       <nav className="flex-1 space-y-1 overflow-y-auto py-2">
         {navStructure(profile.role).map((item) => (
