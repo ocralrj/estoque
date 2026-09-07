@@ -22,6 +22,8 @@ export default function DashboardHeader({
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
+    let ativo = true;
+
     async function loadNotifications() {
       const supabase = createClient();
       const {
@@ -38,13 +40,33 @@ export default function DashboardHeader({
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (!error && data) {
-        setNotifications(data);
-        setUnreadCount(data.filter((item) => !item.is_read).length);
-      }
+      if (!ativo || error || !data) return;
+      setNotifications(data);
+      setUnreadCount(data.filter((item) => !item.is_read).length);
     }
 
     loadNotifications();
+
+    // Sem isto a lista era buscada uma única vez, na montagem: quem deixasse a
+    // aba aberta — que é o normal num sistema de trabalho — só veria um aviso
+    // novo ao recarregar a página, e a notificação chegaria tarde demais para
+    // servir de aviso.
+    //
+    // Um minuto é frequente o bastante para o aviso ainda ser útil e raro o
+    // bastante para não pesar: são cinco linhas filtradas por índice.
+    const intervalo = setInterval(loadNotifications, 60_000);
+
+    // Voltar para a aba é quando a pessoa mais espera ver novidade.
+    function aoVoltar() {
+      if (document.visibilityState === "visible") loadNotifications();
+    }
+    document.addEventListener("visibilitychange", aoVoltar);
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
   }, []);
 
   useEffect(() => {
