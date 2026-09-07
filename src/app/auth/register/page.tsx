@@ -1,148 +1,224 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import PasswordInput from "@/components/ui/PasswordInput";
-import ThemeToggle from "@/components/theme/ThemeToggle";
-import { avaliarSenha, REGRAS_SENHA } from "@/lib/senha";
+import { pedirAcesso } from "@/app/actions/acessos";
+import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
+import Logo from "@/components/layout/Logo";
 
+/**
+ * Pedido de acesso, no lugar do cadastro que criava conta na hora.
+ *
+ * A tela anterior pedia uma senha e abria a conta — o contrário do que o
+ * próprio aviso dela dizia ("o acesso é por convite"): quem soubesse o
+ * endereço entrava. Aqui a pessoa escolhe o departamento em que trabalha, e
+ * quem responde por aquele departamento decide e envia o convite.
+ *
+ * Os rótulos ficam vermelhos enquanto o campo não atende ao que precisa, e só
+ * depois de a pessoa tocar nele: um formulário que já abre acusando erro pune
+ * quem ainda nem começou.
+ */
 export default function RegisterPage() {
-  const router = useRouter();
-  const [fullName, setFullName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [departamento, setDepartamento] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [departamentos, setDepartamentos] = useState<string[]>([]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const [tocado, setTocado] = useState({ nome: false, email: false, dep: false });
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [enviado, setEnviado] = useState(false);
+
+  useEffect(() => {
+    // A view só expõe o nome dos departamentos ativos — quem está nesta tela
+    // não tem sessão, e não precisa ver gestor, descrição nem datas.
+    async function carregar() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("departamentos_publicos")
+        .select("nome");
+      setDepartamentos((data ?? []).map((d) => d.nome as string));
+    }
+    carregar();
+  }, []);
+
+  const nomeValido = nome.trim().length >= 3;
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const depValido = departamento.trim().length > 0;
+
+  const erroNome = tocado.nome && !nomeValido;
+  const erroEmail = tocado.email && !emailValido;
+  const erroDep = tocado.dep && !depValido;
+
+  const podeEnviar = nomeValido && emailValido && depValido;
+
+  async function enviar(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    if (!podeEnviar) return;
+    setErro("");
+    setEnviando(true);
 
-    const avaliacao = avaliarSenha(password);
-    if (!avaliacao.valida) {
-      setError(`A senha precisa de: ${avaliacao.faltando.join(", ").toLowerCase()}.`);
-      setLoading(false);
+    const res = await pedirAcesso({ nome, email, departamento, mensagem });
+    setEnviando(false);
+
+    if (!res.ok) {
+      setErro(res.message);
       return;
     }
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-
-    if (error) {
-      // Com o cadastro público desligado no Supabase, o provedor recusa aqui.
-      // A mensagem dele vem em inglês e não explica o caminho certo.
-      const msg = error.message.toLowerCase();
-      setError(
-        msg.includes("signup") || msg.includes("disabled") || msg.includes("not allowed")
-          ? "O cadastro é feito por convite. Peça a um administrador que envie o convite para o seu e-mail."
-          : error.message
-      );
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
+    setEnviado(true);
   }
 
+  const rotulo = (emErro: boolean) =>
+    `mb-1 block text-sm font-medium transition-colors ${
+      emErro ? "text-[var(--erro-solid)]" : "text-[var(--text)]"
+    }`;
+
+  const campo =
+    "w-full rounded-lg border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle compact />
-      </div>
-      <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
-          <p className="text-[var(--text-muted)] mt-1">Crie sua conta</p>
-          <p className="mt-3 rounded-lg bg-[var(--info-bg)] px-3 py-2 text-xs text-[var(--info-fg)]">
-            O acesso é por convite. Se a sua empresa já o cadastrou, procure o e-mail
-            com o link para definir a senha.
-          </p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[var(--neo-flat)] px-4 py-8">
+      <FundoAutenticacao />
+
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
+        <h1 className="sr-only">OCRAL — pedir acesso</h1>
+
+        <div className="mb-6 flex justify-center">
+          <Logo largura={140} prioridade />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Nome completo
-            </label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full border border-[var(--neo-line)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-              placeholder="Seu nome"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-[var(--neo-line)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-              placeholder="seu@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Senha
-            </label>
-            <PasswordInput
-              required
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-            />
-            <ul className="mt-2 space-y-1">
-              {REGRAS_SENHA.map((r) => {
-                const ok = r.testa(password);
-                return (
-                  <li
-                    key={r.id}
-                    className={`flex items-center gap-2 text-xs ${
-                      ok ? "text-[var(--ok-fg)]" : "text-[var(--text-muted)]"
-                    }`}
-                  >
-                    <span aria-hidden>{ok ? "✓" : "○"}</span>
-                    {r.texto}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          {error && (
-            <p className="text-sm text-[var(--erro-solid)] bg-[var(--erro-bg)] rounded-lg px-3 py-2">
-              {error}
+        {enviado ? (
+          <div className="text-center">
+            <p className="text-lg font-bold text-[var(--text)]">Pedido enviado</p>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              Quem responde pelo departamento <strong>{departamento}</strong> foi
+              avisado. Assim que aprovar, você recebe o acesso com uma senha
+              provisória, que deverá trocar no primeiro uso.
             </p>
-          )}
+            <Link
+              href="/auth/login"
+              className="mt-6 inline-block rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-medium text-[var(--on-accent)]"
+            >
+              Voltar ao início
+            </Link>
+          </div>
+        ) : (
+          <>
+            <p className="mb-6 rounded-lg bg-[var(--info-bg)] px-3 py-2 text-center text-sm text-[var(--info-fg)]">
+              O acesso é aprovado por quem responde pelo seu departamento. Você
+              não escolhe senha aqui — ela vem no convite.
+            </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[var(--primary)] hover:brightness-110 text-[var(--on-accent)] font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
-          >
-            {loading ? "Cadastrando..." : "Cadastrar"}
-          </button>
-        </form>
+            <form onSubmit={enviar} className="space-y-4">
+              <div>
+                <label htmlFor="nome" className={rotulo(erroNome)}>
+                  Nome completo
+                  {erroNome && (
+                    <span className="ml-2 font-normal">— escreva nome e sobrenome</span>
+                  )}
+                </label>
+                <input
+                  id="nome"
+                  value={nome}
+                  aria-invalid={erroNome}
+                  onFocus={() => setTocado((t) => ({ ...t, nome: true }))}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Como você é chamado no trabalho"
+                  className={campo}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className={rotulo(erroEmail)}>
+                  Email
+                  {erroEmail && (
+                    <span className="ml-2 font-normal">— endereço incompleto</span>
+                  )}
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  aria-invalid={erroEmail}
+                  onFocus={() => setTocado((t) => ({ ...t, email: true }))}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  className={campo}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="departamento" className={rotulo(erroDep)}>
+                  Departamento
+                  {erroDep && <span className="ml-2 font-normal">— escolha um</span>}
+                </label>
+                <select
+                  id="departamento"
+                  value={departamento}
+                  aria-invalid={erroDep}
+                  onFocus={() => setTocado((t) => ({ ...t, dep: true }))}
+                  onChange={(e) => setDepartamento(e.target.value)}
+                  className={campo}
+                >
+                  <option value="">Onde você trabalha</option>
+                  {departamentos.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  Quem responde por este departamento recebe seu pedido.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="mensagem" className="mb-1 block text-sm font-medium text-[var(--text)]">
+                  Recado{" "}
+                  <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
+                </label>
+                <textarea
+                  id="mensagem"
+                  rows={2}
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Algo que ajude quem vai aprovar a te reconhecer"
+                  className={campo}
+                />
+              </div>
+
+              {erro && (
+                <p className="rounded-lg bg-[var(--erro-bg)] px-3 py-2 text-sm text-[var(--erro-fg)]">
+                  {erro}
+                </p>
+              )}
+
+              {podeEnviar ? (
+                <button
+                  type="submit"
+                  disabled={enviando}
+                  className="w-full rounded-lg bg-[var(--primary)] py-2 text-sm font-medium text-[var(--on-accent)] transition-colors hover:brightness-110 disabled:opacity-50"
+                >
+                  {enviando ? "Enviando..." : "Pedir acesso"}
+                </button>
+              ) : (
+                <p className="rounded-lg bg-[var(--neo-flat)] px-3 py-2 text-center text-xs text-[var(--text-muted)]">
+                  {!nomeValido
+                    ? "Escreva seu nome completo para continuar"
+                    : !emailValido
+                      ? "Informe um e-mail válido para continuar"
+                      : "Escolha o departamento para continuar"}
+                </p>
+              )}
+            </form>
+          </>
+        )}
 
         <p className="mt-6 text-center text-sm text-[var(--text-muted)]">
           Já tem conta?{" "}
-          <Link href="/auth/login" className="text-[var(--primary)] hover:underline font-medium">
+          <Link href="/auth/login" className="font-medium text-[var(--primary)] hover:underline">
             Entrar
           </Link>
         </p>

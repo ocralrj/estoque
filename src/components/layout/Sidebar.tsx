@@ -39,6 +39,7 @@ const TODAS_AS_PERMISSOES = [
   "sugestoes:todas:read",
   "protocolos:protocolos:read",
   "admin:users:read",
+  "admin:users:create",
   "admin:departamentos:read",
   "admin:groups:read",
   "admin:audit:read",
@@ -102,6 +103,7 @@ const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
       dica: "Usuários, grupos, departamentos e trilha de auditoria",
       roles: ["super_admin", "gestor"],
       children: [
+        { href: "/dashboard/admin/acessos", label: "Pedidos de acesso", icone: "usuarios", permissao: "admin:users:create", dica: "Quem pediu acesso pela tela pública, esperando aprovação", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/usuarios", label: "Usuários", icone: "usuarios", permissao: "admin:users:read", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/departamentos", label: "Departamentos", icone: "departamentos", permissao: "admin:departamentos:read", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/grupos", label: "Grupos", icone: "grupos", permissao: "admin:groups:read", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
