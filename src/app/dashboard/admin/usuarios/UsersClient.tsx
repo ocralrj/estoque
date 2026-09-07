@@ -336,55 +336,42 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                       </div>
                     </td>
                     <td data-rotulo="Função" className="px-4 py-3">
-                      {editable ? (
-                        <select
-                          value={u.role}
-                          disabled={busy}
-                          aria-label={`Função de ${u.full_name || u.email}`}
-                          onChange={(e) =>
-                            run(u.id, () =>
-                              updateUserRole(u.id, e.target.value as UserRole)
-                            )
-                          }
-                          className="rounded border border-[var(--neo-line)] px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ring)] disabled:opacity-50"
-                        >
-                          {availableRoles.map((r) => (
-                            <option key={r} value={r}>
-                              {ROLE_LABELS[r]}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span
-                          className={
-                            ehSuperAdmin
-                              ? "font-semibold text-[var(--primary-strong)]"
-                              : "text-[var(--text-muted)]"
-                          }
-                        >
-                          {roleLabel(u.role)}
-                        </span>
-                      )}
+                      <SeletorEmBotao
+                        rotulo={`Função de ${u.full_name || u.email}`}
+                        valor={u.role}
+                        texto={roleLabel(u.role)}
+                        opcoes={availableRoles.map((r) => ({
+                          valor: r,
+                          texto: ROLE_LABELS[r],
+                        }))}
+                        editavel={editable}
+                        ocupado={busy}
+                        aparencia={
+                          ehSuperAdmin
+                            ? "font-bold text-[var(--primary-strong)]"
+                            : undefined
+                        }
+                        aoEscolher={(valor) =>
+                          run(u.id, () => updateUserRole(u.id, valor as UserRole))
+                        }
+                      />
                     </td>
                     <td data-rotulo="Departamento" className="px-4 py-3">
-                      <select
-                        value={u.departamento ?? ""}
-                        disabled={busy}
-                        aria-label={`Departamento de ${u.full_name || u.email}`}
-                        onChange={(e) =>
-                          run(u.id, () =>
-                            definirDepartamento(u.id, e.target.value || null)
-                          )
+                      <SeletorEmBotao
+                        rotulo={`Departamento de ${u.full_name || u.email}`}
+                        valor={u.departamento ?? ""}
+                        texto={u.departamento || "Sem departamento"}
+                        opcoes={[
+                          { valor: "", texto: "Sem departamento" },
+                          ...departamentos.map((d) => ({ valor: d, texto: d })),
+                        ]}
+                        editavel={editable}
+                        ocupado={busy}
+                        apagado={!u.departamento}
+                        aoEscolher={(valor) =>
+                          run(u.id, () => definirDepartamento(u.id, valor || null))
                         }
-                        className="rounded border border-[var(--neo-line)] bg-[var(--neo-bg)] px-2 py-1 text-xs text-[var(--text)] disabled:opacity-50"
-                      >
-                        <option value="">Sem departamento</option>
-                        {departamentos.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </td>
                     <td data-rotulo="Situação" className="px-4 py-3">
                       <CelulaSituacao
@@ -429,6 +416,87 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 }
 
 /**
+ * Um valor que vira seletor ao ser pressionado.
+ *
+ * Antes cada célula mostrava o seletor aberto o tempo todo, e a coluna de
+ * situação mostrava seletor E pastilha, dizendo a mesma coisa duas vezes. Numa
+ * tabela de vinte pessoas isso são sessenta caixas cinzas competindo com o
+ * conteúdo, e a tela parece um formulário em vez de uma lista.
+ *
+ * Aqui o valor é só um valor até alguém querer mudá-lo. O seletor abre no
+ * clique, já com o foco, e fecha ao escolher ou ao perder o foco — nenhuma
+ * confirmação a mais do que já havia.
+ */
+function SeletorEmBotao({
+  rotulo,
+  valor,
+  texto,
+  opcoes,
+  editavel,
+  ocupado,
+  aparencia,
+  apagado,
+  aoEscolher,
+}: {
+  rotulo: string;
+  valor: string;
+  texto: string;
+  opcoes: { valor: string; texto: string }[];
+  editavel: boolean;
+  ocupado: boolean;
+  /** Classes extras do rótulo em repouso. */
+  aparencia?: string;
+  /** Valor ausente: fica esmaecido, como um campo por preencher. */
+  apagado?: boolean;
+  aoEscolher: (valor: string) => void;
+}) {
+  const [editando, setEditando] = useState(false);
+
+  if (!editavel) {
+    return (
+      <span className={aparencia ?? "text-sm text-[var(--text-muted)]"}>{texto}</span>
+    );
+  }
+
+  if (!editando) {
+    return (
+      <button
+        type="button"
+        disabled={ocupado}
+        onClick={() => setEditando(true)}
+        aria-label={`${rotulo}: ${texto}. Pressione para alterar`}
+        className={`neo-button rounded-full px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${
+          apagado ? "text-[var(--text-muted)]" : "text-[var(--text)]"
+        } ${aparencia ?? ""}`}
+      >
+        {texto}
+      </button>
+    );
+  }
+
+  return (
+    <select
+      autoFocus
+      value={valor}
+      disabled={ocupado}
+      aria-label={rotulo}
+      onBlur={() => setEditando(false)}
+      onChange={(e) => {
+        setEditando(false);
+        if (e.target.value !== valor) aoEscolher(e.target.value);
+      }}
+      className="rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-1.5 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:opacity-50"
+    >
+      {opcoes.map((o) => (
+        <option key={o.valor} value={o.valor}>
+          {o.texto}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/**
  * Situação da conta, editável na própria célula.
  *
  * Escolher "Férias" abre a data de retorno e só então salva: o banco recusa
@@ -448,103 +516,127 @@ function CelulaSituacao({
   ocupado: boolean;
   aoSalvar: (status: StatusUsuario, retorno: string | null) => void;
 }) {
+  const [editando, setEditando] = useState(false);
   const [pedindoData, setPedindoData] = useState(false);
   const [data, setData] = useState(perfil.retorno_previsto ?? "");
+
+  const emFerias = situacao === "ferias" && perfil.retorno_previsto;
 
   const pastilha = (
     <span className={STATUS_CLASSES[situacao]}>{STATUS_LABELS[situacao]}</span>
   );
 
-  const emFerias = situacao === "ferias" && perfil.retorno_previsto;
+  const dica = emFerias
+    ? `Volta prevista para ${formatDate(perfil.retorno_previsto!)}. A conta volta a Ativo sozinha no primeiro acesso a partir dessa data.`
+    : null;
 
+  // Sem permissão de alterar, a pastilha é só informação.
   if (!editavel) {
+    return dica ? (
+      <Tooltip lado="cima" texto={dica}>
+        {pastilha}
+      </Tooltip>
+    ) : (
+      pastilha
+    );
+  }
+
+  // Escolher "Férias" exige a data de volta antes de salvar: o banco recusa
+  // férias sem prazo, e é essa data que devolve a conta ao normal sozinha.
+  if (pedindoData) {
     return (
-      <div className="space-y-1">
-        {emFerias ? (
-          <Tooltip
-            lado="cima"
-            texto={`Volta prevista para ${formatDate(perfil.retorno_previsto!)}. A conta volta a Ativo sozinha no primeiro acesso a partir dessa data.`}
+      <div className="space-y-2">
+        <label className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+          Retorno previsto
+        </label>
+        <input
+          type="date"
+          min={amanha()}
+          value={data}
+          autoFocus
+          onChange={(e) => setData(e.target.value)}
+          className="rounded border border-[var(--neo-line)] bg-[var(--neo-bg)] px-2 py-1 text-xs text-[var(--text)]"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={ocupado || data.length !== 10}
+            onClick={() => {
+              aoSalvar("ferias", data);
+              setPedindoData(false);
+            }}
+            className="rounded-full bg-[var(--primary)] px-3 py-1 text-[11px] font-bold text-[var(--on-accent)] disabled:opacity-50"
           >
-            {pastilha}
-          </Tooltip>
-        ) : (
-          pastilha
-        )}
+            Salvar
+          </button>
+          <button
+            type="button"
+            onClick={() => setPedindoData(false)}
+            className="text-[11px] font-semibold text-[var(--text-muted)] hover:underline"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-2">
-      {pedindoData ? (
-        <div className="space-y-2">
-          <label className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            Retorno previsto
-          </label>
-          <input
-            type="date"
-            min={amanha()}
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            className="rounded border border-[var(--neo-line)] bg-[var(--neo-bg)] px-2 py-1 text-xs text-[var(--text)]"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={ocupado || data.length !== 10}
-              onClick={() => {
-                aoSalvar("ferias", data);
-                setPedindoData(false);
-              }}
-              className="rounded-full bg-[var(--primary)] px-3 py-1 text-[11px] font-bold text-[var(--on-accent)] disabled:opacity-50"
-            >
-              Salvar
-            </button>
-            <button
-              type="button"
-              onClick={() => setPedindoData(false)}
-              className="text-[11px] font-semibold text-[var(--text-muted)] hover:underline"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <select
-            value={situacao}
-            disabled={ocupado}
-            aria-label={`Situação de ${perfil.full_name || perfil.email}`}
-            onChange={(e) => {
-              const escolha = e.target.value as StatusUsuario;
-              if (escolha === "ferias") {
-                setData(perfil.retorno_previsto ?? "");
-                setPedindoData(true);
-                return;
-              }
-              aoSalvar(escolha, null);
-            }}
-            className="rounded border border-[var(--neo-line)] bg-[var(--neo-bg)] px-2 py-1 text-xs text-[var(--text)] disabled:opacity-50"
-          >
-            <option value="ativo">Ativo</option>
-            <option value="ferias">Férias</option>
-            <option value="inativo">Inativo</option>
-          </select>
+  if (editando) {
+    return (
+      <select
+        autoFocus
+        value={situacao}
+        disabled={ocupado}
+        aria-label={`Situação de ${perfil.full_name || perfil.email}`}
+        onBlur={() => setEditando(false)}
+        onChange={(e) => {
+          const escolha = e.target.value as StatusUsuario;
+          setEditando(false);
+          if (escolha === situacao) return;
+          if (escolha === "ferias") {
+            setData(perfil.retorno_previsto ?? "");
+            setPedindoData(true);
+            return;
+          }
+          aoSalvar(escolha, null);
+        }}
+        className="rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-1.5 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:opacity-50"
+      >
+        <option value="ativo">Ativo</option>
+        <option value="ferias">Férias</option>
+        <option value="inativo">Inativo</option>
+      </select>
+    );
+  }
 
-          {emFerias ? (
-            <Tooltip
-              lado="cima"
-              className="block"
-              texto="A conta volta a Ativo sozinha no primeiro acesso a partir desta data, e o registro de férias é apagado."
-            >
-              <span className="text-[11px] text-[var(--text-muted)]">
-                Volta em {formatDate(perfil.retorno_previsto!)}
-              </span>
-            </Tooltip>
-          ) : (
-            pastilha
-          )}
-        </>
+  // Em repouso, a própria pastilha é o botão: um só elemento diz a situação e
+  // oferece a mudança, em vez de a coluna repetir a mesma informação duas
+  // vezes — uma no seletor e outra na pastilha ao lado.
+  const botao = (
+    <button
+      type="button"
+      disabled={ocupado}
+      onClick={() => setEditando(true)}
+      aria-label={`Situação: ${STATUS_LABELS[situacao]}. Pressione para alterar`}
+      className="rounded-full disabled:opacity-50"
+    >
+      {pastilha}
+    </button>
+  );
+
+  return (
+    <div className="space-y-1">
+      <Tooltip
+        lado="cima"
+        texto={dica ?? `${STATUS_LABELS[situacao]} — pressione para alterar`}
+      >
+        {botao}
+      </Tooltip>
+
+      {emFerias && (
+        <p className="text-[11px] text-[var(--text-muted)]">
+          Volta em {formatDate(perfil.retorno_previsto!)}
+        </p>
       )}
     </div>
   );
