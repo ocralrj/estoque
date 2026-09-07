@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -30,6 +31,7 @@ export default function DepartamentosClient({
   const [editando, setEditando] = useState<string | null>(null);
   const [criando, setCriando] = useState(false);
   const [equipeAberta, setEquipeAberta] = useState<Departamento | null>(null);
+  const { confirmar, Dialogo } = useConfirmacao();
 
   const [novo, setNovo] = useState({ nome: "", descricao: "" });
   const [rascunho, setRascunho] = useState({
@@ -94,8 +96,15 @@ export default function DepartamentosClient({
     });
   }
 
-  function excluir(d: Departamento) {
-    if (!window.confirm(`Excluir o departamento "${d.nome}"?`)) return;
+  async function excluir(d: Departamento) {
+    const ok = await confirmar({
+      titulo: `Excluir o departamento "${d.nome}"?`,
+      mensagem:
+        "Documentos e pastas já gravados mantêm o nome antigo. Se o departamento só saiu de uso, desative-o em vez de excluir.",
+      rotuloConfirmar: "Excluir",
+      perigo: true,
+    });
+    if (!ok) return;
     setAviso(null);
     iniciar(async () => {
       const res = await excluirDepartamento(d.id);
@@ -307,6 +316,8 @@ export default function DepartamentosClient({
           Nenhum departamento cadastrado. Crie o primeiro acima.
         </p>
       )}
+
+      <Dialogo />
 
       {equipeAberta && (
         <PainelDaEquipe

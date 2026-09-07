@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { criarPasta, atualizarPasta, excluirPasta } from "@/app/actions/ged-pastas";
@@ -19,6 +20,7 @@ export default function PastasClient({
   ehAdmin: boolean;
 }) {
   const router = useRouter();
+  const { confirmar, Dialogo } = useConfirmacao();
   const [pendente, iniciar] = useTransition();
   const [aviso, setAviso] = useState<Aviso>(null);
   const [criando, setCriando] = useState(false);
@@ -57,8 +59,14 @@ export default function PastasClient({
     });
   }
 
-  function excluir(p: GedFolder) {
-    if (!window.confirm(`Excluir a pasta "${p.nome}"?`)) return;
+  async function excluir(p: GedFolder) {
+    const ok = await confirmar({
+      titulo: `Excluir a pasta "${p.nome}"?`,
+      mensagem: "Os documentos dentro dela não são apagados, mas ficam sem pasta.",
+      rotuloConfirmar: "Excluir",
+      perigo: true,
+    });
+    if (!ok) return;
     setAviso(null);
     iniciar(async () => {
       const res = await excluirPasta(p.id);
@@ -147,6 +155,8 @@ export default function PastasClient({
 
   return (
     <div className="space-y-6">
+      <Dialogo />
+
       {aviso && (
         <p
           className={`rounded-2xl px-4 py-3 text-sm font-semibold ${

@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { definirGrupoDoUsuario } from "@/app/actions/groups";
@@ -46,6 +47,7 @@ export default function MembrosDoGrupo({
   const [busca, setBusca] = useState("");
   const [erro, setErro] = useState("");
   const [adicionando, setAdicionando] = useState(false);
+  const { confirmar, Dialogo } = useConfirmacao();
 
   function mover(userId: string, destino: string | null) {
     setErro("");
@@ -69,6 +71,8 @@ export default function MembrosDoGrupo({
 
   return (
     <section className="neo-card p-5">
+      <Dialogo />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[var(--text)]">Membros</h2>
@@ -181,15 +185,15 @@ export default function MembrosDoGrupo({
               <button
                 type="button"
                 disabled={pendente}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Tirar ${p.full_name || p.email} do grupo ${nomeDoGrupo}?\n\nA pessoa fica sem grupo e perde as permissões que vinham daqui, até ser colocada em outro.`
-                    )
-                  ) {
-                    return;
-                  }
-                  mover(p.id, null);
+                onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: `Tirar ${p.full_name || p.email} do grupo ${nomeDoGrupo}?`,
+                    mensagem:
+                      "A pessoa fica sem grupo e perde as permissões que vinham daqui, até ser colocada em outro.",
+                    rotuloConfirmar: "Remover do grupo",
+                    perigo: true,
+                  });
+                  if (ok) mover(p.id, null);
                 }}
                 className="text-xs font-semibold text-[var(--erro-fg)] hover:underline disabled:opacity-50"
               >

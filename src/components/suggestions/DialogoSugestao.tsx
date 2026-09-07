@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -38,6 +39,7 @@ export default function DialogoSugestao({
   const [pendente, iniciar] = useTransition();
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState("");
+  const { confirmar, Dialogo } = useConfirmacao();
 
   function enviar() {
     if (!texto.trim()) return;
@@ -53,14 +55,14 @@ export default function DialogoSugestao({
     });
   }
 
-  function encerrar() {
-    if (
-      !window.confirm(
-        "Dar esta sugestão por atendida?\n\nEla sai da fila da equipe e é descartada 30 dias depois. Se o assunto ainda não resolveu, responda em vez de encerrar."
-      )
-    ) {
-      return;
-    }
+  async function encerrar() {
+    const ok = await confirmar({
+      titulo: "Dar esta sugestão por atendida?",
+      mensagem:
+        "Ela sai da fila da equipe e é descartada 30 dias depois. Se o assunto ainda não resolveu, responda em vez de encerrar.",
+      rotuloConfirmar: "Dar por atendida",
+    });
+    if (!ok) return;
     setErro("");
     iniciar(async () => {
       const res = await marcarSugestaoAtendida(sugestaoId);
@@ -74,6 +76,8 @@ export default function DialogoSugestao({
 
   return (
     <div className="mt-4 border-t border-[var(--neo-line)] pt-4">
+      <Dialogo />
+
       {mensagens.length > 0 && (
         <ul className="mb-4 space-y-3">
           {mensagens.map((m) => (

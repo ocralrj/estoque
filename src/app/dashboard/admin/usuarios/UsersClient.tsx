@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -55,6 +56,7 @@ export default function UsersClient({
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [criando, setCriando] = useState(false);
   const [fotoNova, setFotoNova] = useState<AvatarPreparado | null>(null);
+  const { confirmar, Dialogo } = useConfirmacao();
 
   const [novo, setNovo] = useState({
     email: "",
@@ -74,17 +76,15 @@ export default function UsersClient({
       ? ["gestor", "almoxarife", "requisitante"]
       : ["almoxarife", "requisitante"];
 
-  function promover(u: Profile) {
+  async function promover(u: Profile) {
     const nome = u.full_name || u.email;
-    if (
-      !window.confirm(
-        `Tornar "${nome}" um super admin?
-
-Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o mesmo papel a outras pessoas. Depois disso, só ele próprio poderá alterar seu papel.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirmar({
+      titulo: `Tornar "${nome}" um super admin?`,
+      mensagem:
+        "Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o mesmo papel a outras pessoas. Depois disso, só ele próprio poderá alterar seu papel.",
+      rotuloConfirmar: "Tornar super admin",
+    });
+    if (!ok) return;
     run(u.id, () => promoverASuperAdmin(u.id));
   }
 
@@ -147,6 +147,8 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 
   return (
     <div className="mx-auto max-w-5xl">
+      <Dialogo />
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-[var(--text)]">Usuários</h1>
         <button

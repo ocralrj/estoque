@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { excluirDocumento, urlDeDownload } from "@/app/actions/ged";
@@ -32,6 +33,7 @@ export default function AcoesDocumento({
   const [pendente, iniciar] = useTransition();
   const [baixando, setBaixando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const { confirmar, Dialogo } = useConfirmacao();
 
   async function baixar() {
     if (!storagePath) return;
@@ -69,8 +71,15 @@ export default function AcoesDocumento({
     }
   }
 
-  function excluir() {
-    if (!window.confirm(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  async function excluir() {
+    const ok = await confirmar({
+      titulo: `Excluir "${nome}"?`,
+      mensagem:
+        "O arquivo sai do acervo e a ação não pode ser desfeita. A trilha de auditoria guarda o registro da exclusão.",
+      rotuloConfirmar: "Excluir documento",
+      perigo: true,
+    });
+    if (!ok) return;
     setErro(null);
     iniciar(async () => {
       const res = await excluirDocumento(id);
@@ -85,6 +94,7 @@ export default function AcoesDocumento({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Dialogo />
       {storagePath && (
         <button
           type="button"
