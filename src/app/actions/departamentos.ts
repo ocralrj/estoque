@@ -102,7 +102,8 @@ export async function atualizarDepartamento(
   nome: string,
   descricao: string | undefined,
   ativo: boolean,
-  propagarNome: boolean
+  propagarNome: boolean,
+  gestorId?: string | null
 ): Promise<ActionResult<{ registrosAtualizados: number }>> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
@@ -128,6 +129,9 @@ export async function atualizarDepartamento(
       nome: nomeNovo,
       descricao: descricao?.trim().slice(0, 300) || null,
       ativo,
+      // `undefined` não é mudança: quem chamar sem informar o gestor mantém o
+      // que está lá, em vez de apagá-lo sem querer.
+      ...(gestorId !== undefined ? { gestor_id: gestorId || null } : {}),
     })
     .eq("id", id);
 

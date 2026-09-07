@@ -1,6 +1,7 @@
 import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { listarDepartamentos } from "@/app/actions/departamentos";
+import { listarCargos } from "@/app/actions/cargos";
 import UsersClient from "./UsersClient";
 
 export default async function UsersPage() {
@@ -12,7 +13,10 @@ export default async function UsersPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  const dep = await listarDepartamentos(true);
+  const [dep, cargos] = await Promise.all([
+    listarDepartamentos(true),
+    listarCargos(),
+  ]);
 
   const { data: grupos } = await supabase
     .from("user_groups")
@@ -25,6 +29,7 @@ export default async function UsersPage() {
       currentRole={profile?.role ?? ""}
       meuId={user.id}
       departamentos={dep.ok ? dep.data.map((d) => d.nome) : []}
+      cargos={cargos.ok ? cargos.data : []}
       grupos={(grupos ?? []).map((g) => ({
         id: g.id as string,
         nome: g.name as string,

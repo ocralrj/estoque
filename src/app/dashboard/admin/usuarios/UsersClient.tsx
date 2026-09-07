@@ -1,5 +1,8 @@
 "use client";
 
+import type { Cargo } from "@/types/modules/admin";
+import { IconeEditar, IconeSuperAdmin } from "@/components/ui/IconesAcao";
+import EditarUsuario from "./EditarUsuario";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -42,6 +45,7 @@ export default function UsersClient({
   meuId,
   departamentos,
   grupos,
+  cargos,
 }: {
   users: Profile[];
   currentRole: string;
@@ -49,6 +53,7 @@ export default function UsersClient({
   departamentos: string[];
   /** Grupos disponíveis, do mais alto ao mais baixo na hierarquia. */
   grupos: { id: string; nome: string; nivel: number }[];
+  cargos: Cargo[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -57,6 +62,7 @@ export default function UsersClient({
   const [criando, setCriando] = useState(false);
   const [fotoNova, setFotoNova] = useState<AvatarPreparado | null>(null);
   const { confirmar, Dialogo } = useConfirmacao();
+  const [editandoUsuario, setEditandoUsuario] = useState<Profile | null>(null);
 
   const [novo, setNovo] = useState({
     email: "",
@@ -148,6 +154,17 @@ export default function UsersClient({
   return (
     <div className="mx-auto max-w-5xl">
       <Dialogo />
+
+      {editandoUsuario && (
+        <EditarUsuario
+          usuario={editandoUsuario}
+          papeisDisponiveis={availableRoles}
+          grupos={grupos}
+          departamentos={departamentos}
+          cargos={cargos}
+          aoFechar={() => setEditandoUsuario(null)}
+        />
+      )}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-[var(--text)]">Usuários</h1>
@@ -436,24 +453,59 @@ export default function UsersClient({
                       />
                     </td>
                     <td className="px-4 py-3">
-                      {ehSuperAdmin ? (
-                        <span className="text-xs text-[var(--text-muted)]">
-                          {u.id === meuId ? "sua conta" : "protegido"}
-                        </span>
-                      ) : u.id === meuId ? (
-                        <span className="text-xs text-[var(--text-muted)]">sua conta</span>
-                      ) : (
-                        currentRole === "super_admin" &&
-                        situacao === "ativo" && (
-                          <button
-                            disabled={busy}
-                            onClick={() => promover(u)}
-                            className="text-xs text-[var(--primary-strong)] hover:underline disabled:opacity-50"
+                      {/* Ícones, e não texto repetido: "Editar" e "Tornar super
+                          admin" em toda linha somam mais ruído que informação.
+                          Cada um leva rótulo acessível e dica, porque ícone
+                          sozinho é adivinhação. */}
+                      <div className="flex items-center gap-1">
+                        {editable && (
+                          <Tooltip
+                            lado="cima"
+                            texto={`Editar ${u.full_name || u.email} — função, grupo, departamento, cargo e situação`}
                           >
-                            Tornar super admin
-                          </button>
-                        )
-                      )}
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setEditandoUsuario(u)}
+                              aria-label={`Editar ${u.full_name || u.email}`}
+                              className="neo-button inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--text)] disabled:opacity-50"
+                            >
+                              <IconeEditar />
+                            </button>
+                          </Tooltip>
+                        )}
+
+                        {!ehSuperAdmin &&
+                          u.id !== meuId &&
+                          currentRole === "super_admin" &&
+                          situacao === "ativo" && (
+                            <Tooltip
+                              lado="cima"
+                              texto="Tornar super admin — passa a poder excluir documentos e gerenciar todos os usuários"
+                            >
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => promover(u)}
+                                aria-label={`Tornar ${u.full_name || u.email} super admin`}
+                                className="neo-button inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--primary-strong)] disabled:opacity-50"
+                              >
+                                <IconeSuperAdmin />
+                              </button>
+                            </Tooltip>
+                          )}
+
+                        {ehSuperAdmin && (
+                          <span className="text-xs text-[var(--text-muted)]">
+                            {u.id === meuId ? "sua conta" : "protegido"}
+                          </span>
+                        )}
+                        {!ehSuperAdmin && u.id === meuId && (
+                          <span className="text-xs text-[var(--text-muted)]">
+                            sua conta
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

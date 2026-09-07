@@ -37,12 +37,21 @@ export default function DepartamentosClient({
   const [equipeAberta, setEquipeAberta] = useState<Departamento | null>(null);
   const { confirmar, Dialogo } = useConfirmacao();
 
+  // Só quem responde pela gestão pode ser gestor de departamento: o cargo pode
+  // ser qualquer um, mas quem decide um pedido de acesso precisa poder criar
+  // usuário.
+  const candidatosAGestor = Object.values(membros)
+    .flat()
+    .filter((p) => p.role === "super_admin" || p.role === "gestor")
+    .filter((p, i, lista) => lista.findIndex((x) => x.id === p.id) === i);
+
   const [novo, setNovo] = useState({ nome: "", descricao: "" });
   const [rascunho, setRascunho] = useState({
     nome: "",
     descricao: "",
     ativo: true,
     propagar: true,
+    gestor: "",
   });
 
   function abrirEdicao(d: Departamento) {
@@ -54,6 +63,7 @@ export default function DepartamentosClient({
       descricao: d.descricao ?? "",
       ativo: d.ativo,
       propagar: true,
+      gestor: d.gestor_id ?? "",
     });
   }
 
@@ -80,7 +90,8 @@ export default function DepartamentosClient({
         rascunho.nome,
         rascunho.descricao,
         rascunho.ativo,
-        rascunho.propagar
+        rascunho.propagar,
+        rascunho.gestor || null
       );
       if (!res.ok) {
         setAviso({ tipo: "erro", texto: res.message });
@@ -213,6 +224,28 @@ export default function DepartamentosClient({
                     }
                     className={campo}
                   />
+                </div>
+
+                <div>
+                  <label className={rotulo}>Gestor do departamento</label>
+                  <select
+                    value={rascunho.gestor}
+                    onChange={(e) =>
+                      setRascunho({ ...rascunho, gestor: e.target.value })
+                    }
+                    className={campo}
+                  >
+                    <option value="">Sem gestor definido</option>
+                    {candidatosAGestor.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Recebe os pedidos de acesso deste departamento. Sem gestor, eles
+                    vão para a administração.
+                  </p>
                 </div>
 
                 <label className="flex items-center gap-2 text-sm text-[var(--text)]">

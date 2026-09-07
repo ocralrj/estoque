@@ -60,6 +60,8 @@ export interface Departamento {
   nome: string;
   descricao: string | null;
   ativo: boolean;
+  /** Quem responde pelo departamento e recebe os pedidos de acesso dele. */
+  gestor_id?: string | null;
   created_at: string;
 }
 
