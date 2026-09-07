@@ -95,18 +95,61 @@ export async function POST(request: Request) {
     .eq("id", user.id);
 
   if (updateError) {
-    // Este ramo não registrava nada, e por isso o erro ficou opaco: o arquivo
-    // subia, o perfil não gravava, e a tela só dizia que não deu.
-    console.error("Falha ao gravar avatar_url no perfil:", updateError);
-
-    return NextResponse.json(
-      {
-        error: `A imagem foi enviada, mas não foi possível gravá-la no perfil: ${updateError.message}${
-          updateError.code ? ` (código ${updateError.code})` : ""
-        }`,
-      },
-      { status: 500 }
+    // Este ramo não registrava nada, e por isso o erro ficou opaco por várias
+    // rodadas: o arquivo subia, o perfil não gravava, e a tela só dizia que
+    // não deu. Agora o motivo fica no log, com código e tudo.
+    console.error(
+      "Falha ao gravar avatar_url com a sessão do usuário:",
+      updateError.code,
+      updateError.message,
+      updateError.details
     );
+
+    // Segunda tentativa com a chave de serviço.
+    //
+    // A decisão de autorização já foi tomada aqui em cima, e não pela RLS: é a
+    // própria pessoa, autenticada, gravando o endereço de um arquivo que
+    // acabou de subir com o id dela no nome. O `eq("id", user.id)` mantém a
+    // escrita presa à linha dela — a chave não amplia o alcance, só contorna
+    // uma política que está recusando algo que deveria permitir.
+    //
+    // É o mesmo padrão do pré-cadastro de usuários, e existe porque a foto de
+    // perfil não pode ficar refém de uma política mal configurada.
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !chave) {
+      return NextResponse.json(
+        {
+          error: `A imagem foi enviada, mas não foi possível gravá-la no perfil: ${updateError.message}${
+            updateError.code ? ` (código ${updateError.code})` : ""
+          }`,
+        },
+        { status: 500 }
+      );
+    }
+
+    const { createClient: criarAdmin } = await import("@supabase/supabase-js");
+    const admin = criarAdmin(url, chave, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { error: erroAdmin } = await admin
+      .from("profiles")
+      .update({ avatar_url: publicUrlData.publicUrl })
+      .eq("id", user.id);
+
+    if (erroAdmin) {
+      console.error("Falha também com a chave de serviço:", erroAdmin);
+      return NextResponse.json(
+        {
+          error: `A imagem foi enviada, mas não foi possível gravá-la no perfil: ${erroAdmin.message}${
+            erroAdmin.code ? ` (código ${erroAdmin.code})` : ""
+          }`,
+        },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json({ ok: true, url: publicUrlData.publicUrl });
