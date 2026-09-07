@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
+import { SENHA_INICIAL } from "@/lib/senha";
 import type { UserRole } from "@/types/database";
 
 type ActionResult = { ok: true } | { ok: false; message: string };
@@ -175,15 +176,19 @@ export async function atualizarMeuNome(nome: string): Promise<ActionResult> {
 }
 
 /**
- * Convida alguém por e-mail, em vez de deixar o cadastro aberto ao público.
+ * Pré-cadastra alguém com senha conhecida e departamento definido.
  *
  * Usa a chave de serviço, que ignora o RLS — por isso a checagem de papel é
- * feita ANTES, com a sessão do solicitante, e nunca com essa chave. Ela existe
- * só no servidor e jamais é enviada ao navegador.
+ * feita ANTES, com a sessão de quem convida, e nunca com essa chave. Ela existe
+ * só no servidor e jamais chega ao navegador.
+ *
+ * A conta nasce com `must_change_password`, então a senha inicial só serve para
+ * entrar uma vez: enquanto não for trocada, a pessoa não alcança o sistema.
  */
 export async function convidarUsuario(
-  email: string
-): Promise<{ ok: true } | { ok: false; message: string }> {
+  email: string,
+  departamento?: string | null
+): Promise<{ ok: true; senha: string } | { ok: false; message: string }> {
   const { user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
@@ -199,7 +204,7 @@ export async function convidarUsuario(
     return {
       ok: false,
       message:
-        "Convite indisponível: falta SUPABASE_SERVICE_ROLE_KEY nas variáveis de produção.",
+        "Pré-cadastro indisponível: falta SUPABASE_SERVICE_ROLE_KEY nas variáveis de produção.",
     };
   }
 
@@ -208,25 +213,37 @@ export async function convidarUsuario(
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const destino = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const { error } = await admin.auth.admin.inviteUserByEmail(limpo, {
-    redirectTo: destino ? `${destino}/auth/callback?next=/auth/reset-password` : undefined,
+  // email_confirm: a pessoa não precisa confirmar nada — quem cadastrou já
+  // sabe que o endereço existe, e ela entra direto com a senha inicial.
+  const { data, error } = await admin.auth.admin.createUser({
+    email: limpo,
+    password: SENHA_INICIAL,
+    email_confirm: true,
   });
 
   if (error) {
-    // A mensagem do provedor vem em inglês e às vezes expõe detalhe interno.
     const msg = error.message.toLowerCase();
-    if (msg.includes("already") || msg.includes("registered")) {
+    if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
       return { ok: false, message: "Este e-mail já tem conta no sistema." };
     }
-    if (msg.includes("rate")) {
-      return { ok: false, message: "Muitos convites seguidos. Aguarde alguns minutos." };
-    }
-    return { ok: false, message: "Não foi possível enviar o convite." };
+    return { ok: false, message: "Não foi possível criar o acesso." };
+  }
+
+  const novoId = data.user?.id;
+  if (novoId) {
+    // O gatilho já criou o perfil como requisitante; completamos com o
+    // departamento e a marca de troca obrigatória.
+    await admin
+      .from("profiles")
+      .update({
+        departamento: departamento?.trim() || null,
+        must_change_password: true,
+      })
+      .eq("id", novoId);
   }
 
   revalidatePath("/dashboard/admin/usuarios");
-  return { ok: true };
+  return { ok: true, senha: SENHA_INICIAL };
 }
 
 /**
@@ -261,5 +278,21 @@ export async function definirDepartamento(
   }
 
   revalidatePath("/dashboard/admin/usuarios");
+  return { ok: true };
+}
+
+/** Registra que a senha inicial foi trocada, liberando o acesso ao sistema. */
+export async function concluirTrocaDeSenha(): Promise<ActionResult> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ must_change_password: false })
+    .eq("id", user.id);
+
+  if (error) return { ok: false, message: "Não foi possível concluir a troca." };
+
+  revalidatePath("/dashboard");
   return { ok: true };
 }

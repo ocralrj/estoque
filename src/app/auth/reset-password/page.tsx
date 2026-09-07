@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LogoOcral from "@/components/ui/LogoOcral";
+import { avaliarSenha } from "@/lib/senha";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -51,8 +52,8 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+    if (!avaliarSenha(password).valida) {
+      setError("A senha não atende aos requisitos: 8 caracteres, maiúscula, minúscula, número e caractere especial.");
       return;
     }
     if (password !== confirm) {

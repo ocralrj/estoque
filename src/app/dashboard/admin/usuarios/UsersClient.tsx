@@ -31,6 +31,7 @@ export default function UsersClient({
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [convidando, setConvidando] = useState(false);
   const [novoEmail, setNovoEmail] = useState("");
+  const [novoDepto, setNovoDepto] = useState("");
 
   // "Super Admin" não entra no seletor: conceder o papel máximo do sistema por
   // um clique distraído num dropdown, ao lado dos demais, é fácil demais.
@@ -74,13 +75,14 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
     if (!email) return;
     setFeedback(null);
     startTransition(async () => {
-      const res = await convidarUsuario(email);
+      const res = await convidarUsuario(email, novoDepto || null);
       if (res.ok) {
         setNovoEmail("");
+        setNovoDepto("");
         setConvidando(false);
         setFeedback({
           kind: "ok",
-          text: `Convite enviado para ${email}. A pessoa recebe um link para definir a senha.`,
+          text: `Acesso criado para ${email}. Senha inicial: ${res.senha} — informe à pessoa. Ela será obrigada a trocá-la no primeiro acesso.`,
         });
         router.refresh();
       } else {
@@ -104,33 +106,58 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 
       {convidando && (
         <div className="mb-6 rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-4">
-          <label
-            htmlFor="convite"
-            className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]"
-          >
-            E-mail de quem vai entrar
-          </label>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <input
-              id="convite"
-              type="email"
-              value={novoEmail}
-              onChange={(e) => setNovoEmail(e.target.value)}
-              placeholder="pessoa@empresa.com.br"
-              className="flex-1 rounded-[1rem] border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
-            />
-            <button
-              type="button"
-              onClick={convidar}
-              disabled={pending || !novoEmail.trim()}
-              className="rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
-            >
-              {pending ? "Enviando…" : "Enviar convite"}
-            </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="convite"
+                className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]"
+              >
+                E-mail de quem vai entrar
+              </label>
+              <input
+                id="convite"
+                type="email"
+                value={novoEmail}
+                onChange={(e) => setNovoEmail(e.target.value)}
+                placeholder="pessoa@empresa.com.br"
+                className="mt-2 w-full rounded-[1rem] border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="convite-depto"
+                className="block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]"
+              >
+                Departamento
+              </label>
+              <select
+                id="convite-depto"
+                value={novoDepto}
+                onChange={(e) => setNovoDepto(e.target.value)}
+                className="mt-2 w-full rounded-[1rem] border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
+              >
+                <option value="">Definir depois</option>
+                {departamentos.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={convidar}
+            disabled={pending || !novoEmail.trim()}
+            className="mt-3 rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
+          >
+            {pending ? "Criando…" : "Criar acesso"}
+          </button>
+
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            A pessoa entra como requisitante e define a própria senha pelo link. Ajuste o
-            papel depois, na lista abaixo.
+            A pessoa entra como requisitante, com a senha provisória{" "}
+            <strong className="font-mono">Mudar@123</strong>, e é obrigada a trocá-la no
+            primeiro acesso. O departamento define quais documentos do GED ela enxerga —
+            ajuste o papel depois, na lista abaixo.
           </p>
         </div>
       )}

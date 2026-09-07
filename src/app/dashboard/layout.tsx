@@ -11,5 +11,9 @@ export default async function DashboardLayout({
 
   if (!profile || !profile.active) redirect("/auth/login");
 
+  // Senha provisória: enquanto não for trocada, ela é conhecida por quem
+  // cadastrou o acesso — e por quem tiver lido o e-mail.
+  if (profile.must_change_password) redirect("/auth/trocar-senha");
+
   return <DashboardShell profile={profile}>{children}</DashboardShell>;
 }

@@ -8,6 +8,8 @@ export interface Profile {
   role: UserRole;
   /** Departamento a que pertence — define o que vê no GED. */
   departamento?: string | null;
+  /** true enquanto a senha provisória não for trocada. */
+  must_change_password?: boolean;
   active: boolean;
   created_at: string;
   updated_at: string;

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 
-/** Mesma exigência do formulário de cadastro. */
-const MIN_PASSWORD_LENGTH = 6;
+import { avaliarSenha } from "@/lib/senha";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -18,9 +17,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Preencha todos os campos." }, { status: 400 });
   }
 
-  if (password.length < MIN_PASSWORD_LENGTH) {
+  const avaliacao = avaliarSenha(password);
+  if (!avaliacao.valida) {
     return NextResponse.json(
-      { error: `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.` },
+      { error: `A senha precisa de: ${avaliacao.faltando.join(", ").toLowerCase()}.` },
       { status: 400 }
     );
   }

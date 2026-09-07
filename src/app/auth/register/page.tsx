@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import LogoOcral from "@/components/ui/LogoOcral";
+import { avaliarSenha, REGRAS_SENHA } from "@/lib/senha";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,8 +22,9 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+    const avaliacao = avaliarSenha(password);
+    if (!avaliacao.valida) {
+      setError(`A senha precisa de: ${avaliacao.faltando.join(", ").toLowerCase()}.`);
       setLoading(false);
       return;
     }
@@ -104,8 +106,24 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
             />
+            <ul className="mt-2 space-y-1">
+              {REGRAS_SENHA.map((r) => {
+                const ok = r.testa(password);
+                return (
+                  <li
+                    key={r.id}
+                    className={`flex items-center gap-2 text-xs ${
+                      ok ? "text-[var(--ok-fg)]" : "text-[var(--text-muted)]"
+                    }`}
+                  >
+                    <span aria-hidden>{ok ? "✓" : "○"}</span>
+                    {r.texto}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
           {error && (
