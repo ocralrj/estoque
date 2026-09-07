@@ -91,6 +91,10 @@ const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
       permissao: "certificados:certificates:read",
       dica: "Certificados digitais das empresas, com aviso de vencimento",
       roles: ["super_admin", "gestor", "almoxarife"],
+      children: [
+        { href: "/dashboard/certificados", label: "Todos", icone: "certificados", permissao: "certificados:certificates:read", dica: "O acervo, ordenado pelo que vence primeiro", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/certificados/empresas", label: "Empresas", icone: "departamentos", permissao: "certificados:certificates:read", dica: "As empresas e quem cuida dos certificados de cada uma", roles: ["super_admin", "gestor", "almoxarife"] },
+      ],
     },
     {
       href: "/dashboard/sugestoes",
