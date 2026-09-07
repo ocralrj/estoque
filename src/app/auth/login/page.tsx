@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
+import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
 
 function LoginForm() {
   const router = useRouter();
@@ -39,8 +40,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
-      <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-[var(--neo-line)]">
+    <div className="relative flex min-h-screen items-center justify-center bg-[var(--neo-flat)] px-4">
+      <FundoAutenticacao />
+
+      {/* A sombra é mais funda do que a dos cartões internos: aqui o cartão
+          precisa se descolar de uma foto, não de uma superfície lisa. */}
+      <div className="relative w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
           <p className="text-[var(--text-muted)] mt-1">Acesse sua conta</p>
@@ -113,8 +118,9 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)]">
-          <p className="text-sm text-[var(--text-muted)]">Carregando...</p>
+        <div className="relative flex min-h-screen items-center justify-center bg-[var(--neo-flat)]">
+          <FundoAutenticacao />
+          <p className="relative text-sm text-[var(--text-muted)]">Carregando...</p>
         </div>
       }
     >
