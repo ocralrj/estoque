@@ -70,3 +70,34 @@ export function formatDateTime(value: string): string {
 export function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("pt-BR");
 }
+
+/** Situação da conta, como aparece na tela. */
+export const STATUS_LABELS: Record<string, string> = {
+  ativo: "Ativo",
+  ferias: "Férias",
+  inativo: "Inativo",
+};
+
+/**
+ * Classes da pastilha de situação.
+ *
+ * O glifo do `.neo-sit` é obrigatório: as quatro cores semânticas do sistema
+ * têm contraste 1:1 entre si, então a cor sozinha não diria nada a quem não as
+ * distingue. O neon é o terceiro reforço, nunca a informação.
+ */
+export const STATUS_CLASSES: Record<string, string> = {
+  ativo: "neo-sit neo-sit--ok neo-sit--neon-ok",
+  ferias: "neo-sit neo-sit--aviso neo-sit--neon-aviso",
+  inativo: "neo-sit neo-sit--erro neo-sit--neon-erro",
+};
+
+/** Situação a partir do perfil, tolerando bases sem a coluna `status`. */
+export function statusDoPerfil(p: {
+  status?: string | null;
+  active?: boolean;
+}): "ativo" | "ferias" | "inativo" {
+  if (p.status === "ferias" || p.status === "inativo" || p.status === "ativo") {
+    return p.status;
+  }
+  return p.active === false ? "inativo" : "ativo";
+}

@@ -112,7 +112,10 @@ function NavItemComponent({
       const destino = item.href || item.children?.[0]?.href;
       // Recolhida, o rótulo some — a dica passa a ser a única identificação.
       return (
-        <Tooltip texto={item.dica ? `${item.label} — ${item.dica}` : item.label}>
+        <Tooltip
+          className="block w-full"
+          texto={item.dica ? `${item.label} — ${item.dica}` : item.label}
+        >
           <Link
             href={destino || "#"}
             onClick={onNavigate}
@@ -139,24 +142,24 @@ function NavItemComponent({
           {/* Grupo com destino próprio navega ao ser clicado; sem destino,
               o rótulo apenas abre e fecha, como antes. */}
           {item.href ? (
-            <Tooltip texto={item.dica ?? item.label}>
+            <Tooltip className="flex flex-1" texto={item.dica ?? item.label}>
               <Link
                 href={item.href}
                 onClick={() => {
                   setIsOpen(true);
                   onNavigate?.();
                 }}
-                className="flex-1 px-4 py-3 text-sm font-bold text-inherit"
+                className="w-full px-4 py-3 text-sm font-bold text-inherit"
               >
                 {item.label}
               </Link>
             </Tooltip>
           ) : (
-            <Tooltip texto={item.dica ?? item.label}>
+            <Tooltip className="flex flex-1" texto={item.dica ?? item.label}>
               <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex-1 px-4 py-3 text-left text-sm font-bold text-inherit"
+                className="w-full px-4 py-3 text-left text-sm font-bold text-inherit"
               >
                 {item.label}
               </button>
@@ -200,7 +203,10 @@ function NavItemComponent({
   }
 
   return (
-    <Tooltip texto={item.dica ? `${item.label} — ${item.dica}` : item.label}>
+    <Tooltip
+      className="block w-full"
+      texto={item.dica ? `${item.label} — ${item.dica}` : item.label}
+    >
     <Link
       href={item.href || "#"}
       onClick={onNavigate}

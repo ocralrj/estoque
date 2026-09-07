@@ -1,22 +1,27 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   criarDepartamento,
   atualizarDepartamento,
   excluirDepartamento,
-  type Departamento,
 } from "@/app/actions/departamentos";
-import { formatDate } from "@/lib/labels";
+import { formatDate, roleLabel } from "@/lib/labels";
+import Avatar from "@/components/ui/Avatar";
+import Tooltip from "@/components/ui/Tooltip";
+import type { Departamento, MembroDepartamento } from "@/types/modules/admin";
 
 type Aviso = { tipo: "ok" | "erro"; texto: string } | null;
 
 export default function DepartamentosClient({
   inicial,
+  membros,
   ehAdmin,
 }: {
   inicial: Departamento[];
+  /** Pessoas de cada departamento, indexadas pelo nome. */
+  membros: Record<string, MembroDepartamento[]>;
   ehAdmin: boolean;
 }) {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function DepartamentosClient({
   const [aviso, setAviso] = useState<Aviso>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [criando, setCriando] = useState(false);
+  const [equipeAberta, setEquipeAberta] = useState<Departamento | null>(null);
 
   const [novo, setNovo] = useState({ nome: "", descricao: "" });
   const [rascunho, setRascunho] = useState({
@@ -262,6 +268,11 @@ export default function DepartamentosClient({
                   <p className="mt-2 text-sm text-[var(--muted)]">{d.descricao}</p>
                 )}
 
+                <FileiraDeAvatares
+                  pessoas={membros[d.nome] ?? []}
+                  aoAbrir={() => setEquipeAberta(d)}
+                />
+
                 <p className="mt-3 border-t border-[var(--stroke)] pt-3 text-xs text-[var(--muted)]">
                   Criado em {formatDate(d.created_at)}
                 </p>
@@ -296,6 +307,140 @@ export default function DepartamentosClient({
           Nenhum departamento cadastrado. Crie o primeiro acima.
         </p>
       )}
+
+      {equipeAberta && (
+        <PainelDaEquipe
+          departamento={equipeAberta}
+          pessoas={membros[equipeAberta.nome] ?? []}
+          aoFechar={() => setEquipeAberta(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * As pessoas do departamento, em círculos sobrepostos.
+ *
+ * Mostra no máximo cinco e resume o resto num "+N": a fileira serve para
+ * reconhecer de relance quem está ali, e passar de cinco rostos já não se lê de
+ * relance. O nome vem na dica, e o painel completo abre no clique.
+ */
+function FileiraDeAvatares({
+  pessoas,
+  aoAbrir,
+}: {
+  pessoas: MembroDepartamento[];
+  aoAbrir: () => void;
+}) {
+  if (pessoas.length === 0) {
+    return (
+      <p className="mt-3 text-xs text-[var(--muted)]">
+        Ninguém lotado aqui ainda. O departamento é atribuído em Administração →
+        Usuários.
+      </p>
+    );
+  }
+
+  const visiveis = pessoas.slice(0, 5);
+  const restantes = pessoas.length - visiveis.length;
+
+  return (
+    <div className="mt-3 flex items-center gap-2">
+      <div className="neo-pilha flex items-center">
+        {visiveis.map((p) => (
+          <Tooltip key={p.id} lado="cima" texto={`${p.nome} — ${roleLabel(p.role)}`}>
+            <button
+              type="button"
+              onClick={aoAbrir}
+              aria-label={`Ver a equipe de ${p.nome}`}
+              className="relative rounded-full ring-2 ring-[var(--surface)] transition-transform hover:z-10 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] active:scale-95"
+            >
+              <Avatar nome={p.nome} email={p.email} url={p.avatar_url} tamanho={32} />
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={aoAbrir}
+        className="text-xs font-semibold text-[var(--primary)] hover:underline"
+      >
+        {restantes > 0
+          ? `+${restantes} — ver todos`
+          : `${pessoas.length} pessoa${pessoas.length > 1 ? "s" : ""}`}
+      </button>
+    </div>
+  );
+}
+
+/** Painel com a foto, o nome e o contato de cada pessoa do departamento. */
+function PainelDaEquipe({
+  departamento,
+  pessoas,
+  aoFechar,
+}: {
+  departamento: Departamento;
+  pessoas: MembroDepartamento[];
+  aoFechar: () => void;
+}) {
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") aoFechar();
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [aoFechar]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Equipe de ${departamento.nome}`}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      onClick={aoFechar}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="neo-card max-h-[80vh] w-full max-w-md overflow-y-auto p-5"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-[var(--text)]">{departamento.nome}</h3>
+            <p className="text-sm text-[var(--muted)]">
+              {pessoas.length} pessoa{pessoas.length === 1 ? "" : "s"} neste departamento
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={aoFechar}
+            aria-label="Fechar"
+            className="neo-button rounded-full px-3 py-1.5 text-sm font-bold text-[var(--text)]"
+          >
+            ✕
+          </button>
+        </div>
+
+        <ul className="mt-4 space-y-3">
+          {pessoas.map((p) => (
+            <li
+              key={p.id}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-3"
+            >
+              <Avatar nome={p.nome} email={p.email} url={p.avatar_url} tamanho={48} />
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-[var(--text)]">{p.nome}</p>
+                <p className="truncate text-xs text-[var(--muted)]">{p.email}</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  {roleLabel(p.role)}
+                  {!p.ativo && " · sem acesso"}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

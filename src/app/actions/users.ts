@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { SENHA_INICIAL } from "@/lib/senha";
-import type { UserRole } from "@/types/database";
+import type { StatusUsuario, UserRole } from "@/types/database";
 
 type ActionResult = { ok: true } | { ok: false; message: string };
 
@@ -66,16 +66,46 @@ export async function updateUserRole(
   return { ok: true };
 }
 
-export async function setUserActive(
+/**
+ * Define a situação da conta: Ativo, Férias ou Inativo.
+ *
+ * Substitui o par ativar/desativar. Férias não bloqueia o acesso de propósito:
+ * é entrando que a pessoa dispara o próprio retorno, quando a data prevista já
+ * passou (ver `encerrarFeriasVencidas`). A data de volta é exigida aqui e
+ * também no banco, por restrição — férias sem prazo nunca acabariam sozinhas.
+ */
+export async function definirStatus(
   userId: string,
-  active: boolean
+  status: StatusUsuario,
+  retornoPrevisto?: string | null
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   if (userId === user.id) {
-    return { ok: false, message: "Você não pode desativar a própria conta." };
+    return { ok: false, message: "Você não pode alterar o status da própria conta." };
+  }
+
+  if (!["ativo", "ferias", "inativo"].includes(status)) {
+    return { ok: false, message: "Status inválido." };
+  }
+
+  let retorno: string | null = null;
+  if (status === "ferias") {
+    const data = (retornoPrevisto ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return { ok: false, message: "Informe a data prevista de retorno." };
+    }
+    // Uma volta no passado encerraria as férias no acesso seguinte, o que na
+    // prática é registrar férias que não existem.
+    const hoje = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+    }).format(new Date());
+    if (data <= hoje) {
+      return { ok: false, message: "A data de retorno precisa ser futura." };
+    }
+    retorno = data;
   }
 
   const grantable = GRANTABLE_ROLES[profile?.role ?? ""] ?? [];
@@ -91,7 +121,7 @@ export async function setUserActive(
   if (target?.role === "super_admin") {
     return {
       ok: false,
-      message: "Um super admin não pode ser desativado por outra pessoa.",
+      message: "Um super admin não pode ter o status alterado por outra pessoa.",
     };
   }
 
@@ -101,10 +131,19 @@ export async function setUserActive(
 
   const { error } = await supabase
     .from("profiles")
-    .update({ active })
+    .update({ status, retorno_previsto: retorno })
     .eq("id", userId);
 
-  if (error) return { ok: false, message: "Não foi possível atualizar o usuário." };
+  if (error) {
+    if (error.code === "42703" || error.code === "PGRST204") {
+      return {
+        ok: false,
+        message:
+          "Faltam as colunas de status. Execute supabase/_manual_apply/013_status_usuario.sql.",
+      };
+    }
+    return { ok: false, message: "Não foi possível atualizar o usuário." };
+  }
 
   revalidatePath("/dashboard/admin/usuarios");
   return { ok: true };
@@ -185,17 +224,54 @@ export async function atualizarMeuNome(nome: string): Promise<ActionResult> {
  * A conta nasce com `must_change_password`, então a senha inicial só serve para
  * entrar uma vez: enquanto não for trocada, a pessoa não alcança o sistema.
  */
+export interface NovoUsuario {
+  email: string;
+  nome?: string | null;
+  papel?: UserRole;
+  departamento?: string | null;
+  status?: StatusUsuario;
+  retornoPrevisto?: string | null;
+}
+
 export async function convidarUsuario(
-  email: string,
-  departamento?: string | null
+  entrada: NovoUsuario
 ): Promise<{ ok: true; senha: string } | { ok: false; message: string }> {
   const { user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
-  const limpo = email.trim().toLowerCase();
+  const limpo = entrada.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(limpo)) {
     return { ok: false, message: "E-mail inválido." };
+  }
+
+  // O papel obedece ao mesmo limite de quem cria: sem isto, o gestor criaria
+  // pela porta dos fundos alguém com mais poder do que ele próprio pode
+  // conceder na lista.
+  const papel = entrada.papel ?? "requisitante";
+  const podeConceder = GRANTABLE_ROLES[profile?.role ?? ""] ?? [];
+  if (!podeConceder.includes(papel) || papel === "super_admin") {
+    return { ok: false, message: "Você não pode conceder esse papel." };
+  }
+
+  const status: StatusUsuario = entrada.status ?? "ativo";
+  if (!["ativo", "ferias", "inativo"].includes(status)) {
+    return { ok: false, message: "Status inválido." };
+  }
+
+  let retorno: string | null = null;
+  if (status === "ferias") {
+    const data = (entrada.retornoPrevisto ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return { ok: false, message: "Informe a data prevista de retorno." };
+    }
+    const hoje = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+    }).format(new Date());
+    if (data <= hoje) {
+      return { ok: false, message: "A data de retorno precisa ser futura." };
+    }
+    retorno = data;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -233,13 +309,24 @@ export async function convidarUsuario(
   if (novoId) {
     // O gatilho já criou o perfil como requisitante; completamos com o
     // departamento e a marca de troca obrigatória.
-    await admin
+    const base = {
+      full_name: entrada.nome?.trim().slice(0, 120) || null,
+      role: papel,
+      departamento: entrada.departamento?.trim() || null,
+      must_change_password: true,
+    };
+
+    const { error: erroPerfil } = await admin
       .from("profiles")
-      .update({
-        departamento: departamento?.trim() || null,
-        must_change_password: true,
-      })
+      .update({ ...base, status, retorno_previsto: retorno })
       .eq("id", novoId);
+
+    // Sem a migração 013 as colunas de status ainda não existem, e a conta
+    // ficaria sem nome nem papel por causa delas. O resto do cadastro é salvo
+    // do mesmo jeito; só a situação fica pendente.
+    if (erroPerfil?.code === "PGRST204" || erroPerfil?.code === "42703") {
+      await admin.from("profiles").update(base).eq("id", novoId);
+    }
   }
 
   revalidatePath("/dashboard/admin/usuarios");

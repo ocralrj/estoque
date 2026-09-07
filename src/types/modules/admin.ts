@@ -48,3 +48,27 @@ export interface UserPermissions {
   action: string;
   description: string;
 }
+
+/**
+ * Departamento: área da empresa que origina documentos no GED.
+ *
+ * Fica aqui, e não no arquivo de actions, porque componentes de cliente
+ * importam este tipo — e um módulo `"use server"` só deve exportar funções.
+ */
+export interface Departamento {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  created_at: string;
+}
+
+/** Pessoa lotada em um departamento, no recorte exibido nos avatares. */
+export interface MembroDepartamento {
+  id: string;
+  nome: string;
+  email: string;
+  avatar_url: string | null;
+  role: string;
+  ativo: boolean;
+}

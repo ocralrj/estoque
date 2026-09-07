@@ -2,18 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
+import type { Departamento, MembroDepartamento } from "@/types/modules/admin";
 
 type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; message: string };
 
-export interface Departamento {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  ativo: boolean;
-  created_at: string;
-}
 
 function revalidar() {
   revalidatePath("/dashboard/admin/departamentos");
@@ -188,4 +182,48 @@ export async function excluirDepartamento(id: string): Promise<ActionResult> {
 
   revalidar();
   return { ok: true, data: undefined };
+}
+
+/**
+ * Quem trabalha em cada departamento.
+ *
+ * Devolvido agrupado pelo nome do departamento, que é como o vínculo existe:
+ * `profiles.departamento` guarda o nome, não a chave — foi assim que a
+ * visibilidade do GED foi montada, para que o histórico continue correto quando
+ * alguém muda de área.
+ *
+ * Só a gestão chama isto, e é a gestão que já enxerga todos os perfis pelo RLS.
+ */
+export async function listarMembrosPorDepartamento(): Promise<
+  ActionResult<Record<string, MembroDepartamento[]>>
+> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, avatar_url, role, active, status, departamento")
+    .not("departamento", "is", null)
+    .order("full_name", { nullsFirst: false });
+
+  if (error) {
+    return { ok: false, message: "Não foi possível carregar as pessoas." };
+  }
+
+  const porDepartamento: Record<string, MembroDepartamento[]> = {};
+  for (const linha of data ?? []) {
+    const dep = (linha.departamento as string | null)?.trim();
+    if (!dep) continue;
+    (porDepartamento[dep] ??= []).push({
+      id: linha.id as string,
+      nome: (linha.full_name as string | null) ?? (linha.email as string),
+      email: linha.email as string,
+      avatar_url: (linha.avatar_url as string | null) ?? null,
+      role: linha.role as string,
+      ativo: linha.active !== false,
+    });
+  }
+
+  return { ok: true, data: porDepartamento };
 }

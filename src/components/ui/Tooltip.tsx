@@ -18,10 +18,18 @@ type Lado = "direita" | "esquerda" | "cima" | "baixo";
 export default function Tooltip({
   texto,
   lado = "direita",
+  className = "inline-flex",
   children,
 }: {
   texto: string;
   lado?: Lado;
+  /**
+   * Forma do invólucro. O padrão `inline-flex` serve para dicas em botões e
+   * ícones no meio de um texto, mas envolver um item de lista com ele o tira
+   * do fluxo em bloco — é o que fazia o menu lateral quebrar em duas colunas.
+   * Quem envolve um elemento de bloco passa `block w-full`.
+   */
+  className?: string;
   children: React.ReactNode;
 }) {
   const id = useId();
@@ -91,7 +99,7 @@ export default function Tooltip({
         onMouseLeave={fechar}
         onFocus={() => abrir(true)}
         onBlur={fechar}
-        className="inline-flex"
+        className={className}
       >
         {children}
       </span>

@@ -1,10 +1,16 @@
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
-import { listarDepartamentos } from "@/app/actions/departamentos";
+import {
+  listarDepartamentos,
+  listarMembrosPorDepartamento,
+} from "@/app/actions/departamentos";
 import DepartamentosClient from "./DepartamentosClient";
 
 export default async function DepartamentosPage() {
   const { profile } = await requireSession(MANAGER_ROLES);
-  const res = await listarDepartamentos();
+  const [res, membros] = await Promise.all([
+    listarDepartamentos(),
+    listarMembrosPorDepartamento(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -19,6 +25,7 @@ export default async function DepartamentosPage() {
       {res.ok ? (
         <DepartamentosClient
           inicial={res.data}
+          membros={membros.ok ? membros.data : {}}
           ehAdmin={profile?.role === "super_admin"}
         />
       ) : (

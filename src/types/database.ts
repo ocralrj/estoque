@@ -1,5 +1,13 @@
 export type UserRole = 'super_admin' | 'gestor' | 'almoxarife' | 'requisitante';
 
+/**
+ * Situação da conta.
+ *
+ * "ferias" não bloqueia o acesso de propósito: é entrando que a pessoa dispara
+ * o próprio retorno, quando a data prevista já passou.
+ */
+export type StatusUsuario = 'ativo' | 'ferias' | 'inativo';
+
 export interface Profile {
   id: string;
   email: string;
@@ -10,6 +18,10 @@ export interface Profile {
   departamento?: string | null;
   /** true enquanto a senha provisória não for trocada. */
   must_change_password?: boolean;
+  /** Situação da conta. `active` é derivado daqui por gatilho no banco. */
+  status?: StatusUsuario;
+  /** Volta prevista, obrigatória enquanto o status for "ferias". */
+  retorno_previsto?: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
