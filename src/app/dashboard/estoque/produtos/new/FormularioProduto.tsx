@@ -10,6 +10,9 @@ export default function FormularioProduto() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locaisUsados, setLocaisUsados] = useState<
+    { local: string; itens: string[] }[]
+  >([]);
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -22,13 +25,64 @@ export default function FormularioProduto() {
   });
 
   useEffect(() => {
-    async function loadCategories() {
+    async function carregar() {
       const supabase = createClient();
-      const { data } = await supabase.from("categories").select("*").order("name");
-      setCategories(data || []);
+
+      const [{ data: cats }, { data: produtos }] = await Promise.all([
+        supabase.from("categories").select("*").order("name"),
+        // As localizações já em uso, com o que guardam. Um almoxarifado real
+        // tem meia dúzia de lugares, e digitá-los de novo a cada produto gera
+        // "Sala do TI", "sala do ti" e "Sala TI" convivendo — três prateleiras
+        // no relatório, uma na vida real.
+        supabase
+          .from("products")
+          .select("location, name")
+          .eq("active", true)
+          .not("location", "is", null),
+      ]);
+
+      setCategories(cats || []);
+
+      const mapa = new Map<string, string[]>();
+      for (const p of produtos ?? []) {
+        const local = (p.location as string | null)?.trim();
+        if (!local) continue;
+        const lista = mapa.get(local) ?? [];
+        lista.push(p.name as string);
+        mapa.set(local, lista);
+      }
+
+      setLocaisUsados(
+        Array.from(mapa.entries())
+          .map(([local, itens]) => ({ local, itens }))
+          .sort((a, b) => b.itens.length - a.itens.length)
+      );
     }
-    loadCategories();
+    carregar();
   }, []);
+
+  // Compara sem acento e sem caixa: "Sala do TI" e "sala do ti" são o mesmo
+  // lugar, e é justamente essa diferença que multiplica prateleiras no
+  // relatório.
+  function normalizar(t: string) {
+    return t
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  const buscado = normalizar(formData.location);
+  const locaisSemelhantes = buscado
+    ? locaisUsados.filter((l) => normalizar(l.local).includes(buscado)).slice(0, 5)
+    : locaisUsados.slice(0, 5);
+
+  // Sem estes três não existe produto: código e nome o identificam, a unidade
+  // dá sentido a qualquer quantidade. O resto pode ser preenchido depois.
+  const podeSalvar =
+    formData.code.trim().length > 0 &&
+    formData.name.trim().length > 0 &&
+    formData.unit.trim().length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -189,21 +243,73 @@ export default function FormularioProduto() {
             </label>
             <input
               type="text"
+              list="locais-em-uso"
               placeholder="ex: Prateleira A3, Sala 2"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             />
+            <datalist id="locais-em-uso">
+              {locaisUsados.map((l) => (
+                <option key={l.local} value={l.local} />
+              ))}
+            </datalist>
+
+            {/* O que já mora no lugar digitado. Responde a pergunta que se faz
+                ao guardar algo — "cabe aqui?" — mostrando o que está lá, em vez
+                de deixar a pessoa abrir outra tela para conferir. */}
+            {locaisSemelhantes.length > 0 && (
+              <div className="mt-2 rounded-lg bg-[var(--neo-flat)] px-3 py-2">
+                <p className="text-xs font-semibold text-[var(--text-muted)]">
+                  {formData.location.trim()
+                    ? "Locais parecidos já em uso — clique para reaproveitar"
+                    : "Locais já em uso"}
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {locaisSemelhantes.map((l) => (
+                    <li key={l.local}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, location: l.local })
+                        }
+                        className="text-left text-xs text-[var(--primary)] hover:underline"
+                      >
+                        <strong>{l.local}</strong>
+                        <span className="text-[var(--text-muted)]">
+                          {" "}
+                          — {l.itens.length} item(ns): {l.itens.slice(0, 3).join(", ")}
+                          {l.itens.length > 3 ? "…" : ""}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors disabled:opacity-60"
-            >
-              {loading ? "Salvando..." : "Salvar Produto"}
-            </button>
+          <div className="flex flex-wrap items-center gap-3 pt-4">
+            {/* O botão só existe quando dá para salvar. No lugar dele fica o
+                que falta — um espaço vazio deixaria a pessoa procurando um
+                botão que sumiu sem explicação. */}
+            {podeSalvar ? (
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-[var(--primary)] px-6 py-2 text-[var(--on-accent)] transition-colors hover:brightness-110 disabled:opacity-60"
+              >
+                {loading ? "Salvando..." : "Salvar Produto"}
+              </button>
+            ) : (
+              <p className="rounded-lg bg-[var(--neo-flat)] px-4 py-2 text-xs text-[var(--text-muted)]">
+                {!formData.code.trim()
+                  ? "Informe o código para continuar"
+                  : !formData.name.trim()
+                    ? "Informe o nome para continuar"
+                    : "Informe a unidade para continuar"}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => router.back()}
