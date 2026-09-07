@@ -202,3 +202,18 @@ html.dark .neo-pill,
 html.dark .neo-raised {
   box-shadow: 10px 10px 20px rgba(14,16,22,0.76), -10px -10px 20px rgba(72,79,94,0.54);
 }
+
+/* Alça de recolher a sidebar.
+   Fica sobre a linha divisória, e ali qualquer deslocamento no hover parece
+   defeito: o botão "escapa" do ponteiro justamente onde a borda é a
+   referência visual. Reage só ao ser pressionado, afundando. */
+.neo-alca {
+  box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+  transition: box-shadow 0.15s ease, color 0.15s ease;
+}
+.neo-alca:hover {
+  box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+}
+.neo-alca:active {
+  box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+}
