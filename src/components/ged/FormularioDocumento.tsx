@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SuggestWithAi from "@/components/ai/SuggestWithAi";
 import CapturaFoto, { ResumoCompressao } from "@/components/ged/CapturaFoto";
-import SeletorAcesso, { type Acesso } from "@/components/ged/SeletorAcesso";
+import SeletorAcesso, {
+  type Acesso,
+  type Visibilidade,
+} from "@/components/ged/SeletorAcesso";
 import { prepararArquivo, formatarBytes } from "@/lib/ged/arquivos";
 import type { ArquivoPreparado } from "@/lib/ged/arquivos";
 import {
@@ -78,8 +81,10 @@ export default function FormularioDocumento({
     retention_rule_id: documento?.retention_rule_id ?? "",
   });
 
-  const [visibilidade, setVisibilidade] = useState<"todos" | "restrito">(
-    (documento?.visibilidade as "todos" | "restrito") ?? "todos"
+  // Padrão: só o departamento do documento. A maioria do acervo interessa a
+  // quem trabalha na área que o arquivou.
+  const [visibilidade, setVisibilidade] = useState<Visibilidade>(
+    (documento?.visibilidade as Visibilidade) ?? "departamento"
   );
   const [acessos, setAcessos] = useState<Acesso[]>([]);
 
@@ -281,7 +286,7 @@ export default function FormularioDocumento({
         tamanho_original_bytes: arquivo?.tamanhoOriginal,
         compressao: arquivo?.compressao,
         visibilidade,
-        acessos: visibilidade === "restrito" ? acessos : [],
+        acessos,
       };
 
       const res = documento
@@ -552,6 +557,7 @@ export default function FormularioDocumento({
             <SeletorAcesso
               visibilidade={visibilidade}
               acessos={acessos}
+              departamentoDoDocumento={form.setor}
               onVisibilidade={setVisibilidade}
               onAcessos={setAcessos}
             />

@@ -228,3 +228,38 @@ export async function convidarUsuario(
   revalidatePath("/dashboard/admin/usuarios");
   return { ok: true };
 }
+
+/**
+ * Define o departamento da pessoa.
+ *
+ * É o que decide quais documentos ela enxerga no modo "departamento" do GED —
+ * sem isso preenchido, ela só vê o que for marcado como "todos" e o que ela
+ * mesma arquivou.
+ */
+export async function definirDepartamento(
+  userId: string,
+  departamento: string | null
+): Promise<ActionResult> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ departamento: departamento?.trim() || null })
+    .eq("id", userId);
+
+  if (error) {
+    if (error.code === "42703") {
+      return {
+        ok: false,
+        message:
+          "Falta a coluna de departamento. Execute supabase/_manual_apply/011_acesso_por_departamento.sql.",
+      };
+    }
+    return { ok: false, message: "Não foi possível salvar o departamento." };
+  }
+
+  revalidatePath("/dashboard/admin/usuarios");
+  return { ok: true };
+}

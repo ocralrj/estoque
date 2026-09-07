@@ -6,6 +6,8 @@ export interface Profile {
   full_name: string | null;
   avatar_url?: string | null;
   role: UserRole;
+  /** Departamento a que pertence — define o que vê no GED. */
+  departamento?: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;

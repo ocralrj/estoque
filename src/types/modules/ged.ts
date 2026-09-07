@@ -60,7 +60,7 @@ export interface GedDocument {
   /** Como o binário foi guardado — ver src/lib/ged/arquivos.ts */
   compressao: "nenhuma" | "imagem" | "gzip";
   /** todos = qualquer autenticado lê; restrito = só quem consta em ged_document_access */
-  visibilidade: "todos" | "restrito";
+  visibilidade: "todos" | "departamento" | "restrito";
   retention_rule_id: string | null;
   /** Vencimento do prazo de guarda, calculado pelo trigger no banco. */
   data_descarte: string | null;

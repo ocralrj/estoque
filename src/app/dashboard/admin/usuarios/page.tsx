@@ -1,4 +1,5 @@
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
+import { listarDepartamentos } from "@/app/actions/departamentos";
 import UsersClient from "./UsersClient";
 
 export default async function UsersPage() {
@@ -9,5 +10,14 @@ export default async function UsersPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  return <UsersClient users={users ?? []} currentRole={profile?.role ?? ""} meuId={user.id} />;
+  const dep = await listarDepartamentos(true);
+
+  return (
+    <UsersClient
+      users={users ?? []}
+      currentRole={profile?.role ?? ""}
+      meuId={user.id}
+      departamentos={dep.ok ? dep.data.map((d) => d.nome) : []}
+    />
+  );
 }

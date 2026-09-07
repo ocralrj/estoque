@@ -7,6 +7,7 @@ import {
   updateUserRole,
   promoverASuperAdmin,
   convidarUsuario,
+  definirDepartamento,
 } from "@/app/actions/users";
 import { ROLE_LABELS, roleLabel } from "@/lib/labels";
 import type { Profile, UserRole } from "@/types";
@@ -17,10 +18,12 @@ export default function UsersClient({
   users,
   currentRole,
   meuId,
+  departamentos,
 }: {
   users: Profile[];
   currentRole: string;
   meuId: string;
+  departamentos: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -151,6 +154,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
             <tr>
               <th className="px-4 py-3 text-left">Nome / Email</th>
               <th className="px-4 py-3 text-left">Função</th>
+              <th className="px-4 py-3 text-left">Departamento</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Ações</th>
             </tr>
@@ -203,6 +207,23 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         {roleLabel(u.role)}
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={u.departamento ?? ""}
+                      disabled={busy}
+                      onChange={(e) =>
+                        run(u.id, () =>
+                          definirDepartamento(u.id, e.target.value || null)
+                        )
+                      }
+                      className="rounded border border-[var(--neo-line)] bg-[var(--neo-bg)] px-2 py-1 text-xs text-[var(--text)] disabled:opacity-50"
+                    >
+                      <option value="">Sem departamento</option>
+                      {departamentos.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <span
