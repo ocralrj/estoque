@@ -151,7 +151,7 @@ export async function anexarAoProtocolo(
   );
 
   if (convidados.length > 0) {
-    await supabase.from("ged_document_access").insert(
+    const { error: erroAcesso } = await supabase.from("ged_document_access").insert(
       convidados.map((userId) => ({
         document_id: documento.id,
         user_id: userId,
@@ -159,6 +159,17 @@ export async function anexarAoProtocolo(
         granted_by: user.id,
       }))
     );
+
+    // O anexo já está arquivado; o que falhou foi o compartilhamento. Dizer
+    // isso é melhor do que deixar a pessoa acreditando que compartilhou.
+    if (erroAcesso) {
+      console.error("Falha ao compartilhar anexo do protocolo:", erroAcesso);
+      return {
+        ok: false,
+        message:
+          "O anexo foi arquivado, mas não foi possível compartilhá-lo. Compartilhe pelo GED.",
+      };
+    }
   }
 
   revalidatePath("/dashboard/protocolos");

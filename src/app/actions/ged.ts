@@ -87,24 +87,56 @@ async function sincronizarAcessos(
   documentId: string,
   concedidoPor: string,
   acessos: { user_id: string; nivel: "leitura" | "edicao" }[] | undefined
-) {
-  if (!acessos) return;
-
-  await supabase.from("ged_document_access").delete().eq("document_id", documentId);
+): Promise<string | null> {
+  if (!acessos) return null;
 
   const validos = acessos
     .filter((a) => a.user_id && (a.nivel === "leitura" || a.nivel === "edicao"))
-    .slice(0, 100)
-    .map((a) => ({
-      document_id: documentId,
-      user_id: a.user_id,
-      nivel: a.nivel,
-      granted_by: concedidoPor,
-    }));
+    .slice(0, 100);
 
-  if (validos.length > 0) {
-    await supabase.from("ged_document_access").insert(validos);
+  // Apaga só o que saiu da lista, em vez de zerar tudo e reinserir.
+  //
+  // A versão anterior fazia delete de todos e insert dos novos, sem olhar o
+  // erro de nenhum dos dois. Se o insert falhasse depois de o delete ter
+  // passado, o documento perdia TODO o compartilhamento — em silêncio, com a
+  // tela dizendo que salvou. Trabalhando pela diferença, uma falha deixa o
+  // que já existia de pé.
+  const mantidos = validos.map((a) => a.user_id);
+
+  const remocao = supabase
+    .from("ged_document_access")
+    .delete()
+    .eq("document_id", documentId);
+
+  const { error: erroRemocao } = await (mantidos.length > 0
+    ? remocao.not("user_id", "in", `(${mantidos.join(",")})`)
+    : remocao);
+
+  if (erroRemocao) {
+    console.error("Falha ao remover acessos do documento:", erroRemocao);
+    return "Não foi possível atualizar quem tem acesso ao documento.";
   }
+
+  if (validos.length === 0) return null;
+
+  const { error: erroInsercao } = await supabase
+    .from("ged_document_access")
+    .upsert(
+      validos.map((a) => ({
+        document_id: documentId,
+        user_id: a.user_id,
+        nivel: a.nivel,
+        granted_by: concedidoPor,
+      })),
+      { onConflict: "document_id,user_id" }
+    );
+
+  if (erroInsercao) {
+    console.error("Falha ao conceder acessos do documento:", erroInsercao);
+    return "O documento foi salvo, mas o compartilhamento não. Reabra e tente de novo.";
+  }
+
+  return null;
 }
 
 function revalidarGed(id?: string) {
@@ -163,9 +195,19 @@ export async function criarDocumento(
   }
 
   const criado = data as { id: string; codigo: string };
-  await sincronizarAcessos(supabase, criado.id, user.id, input.acessos);
+
+  // O documento já existe: um problema no compartilhamento não pode fazer o
+  // cadastro parecer que falhou. Mas também não pode passar calado — quem
+  // escolheu com quem compartilhar precisa saber que isso não valeu.
+  const avisoAcesso = await sincronizarAcessos(
+    supabase,
+    criado.id,
+    user.id,
+    input.acessos
+  );
 
   revalidarGed();
+  if (avisoAcesso) return { ok: false, message: avisoAcesso };
   return { ok: true, data: criado };
 }
 
@@ -198,9 +240,10 @@ export async function atualizarDocumento(
 
   if (error) return { ok: false, message: "Não foi possível atualizar o documento." };
 
-  await sincronizarAcessos(supabase, id, user.id, input.acessos);
+  const avisoAcesso = await sincronizarAcessos(supabase, id, user.id, input.acessos);
 
   revalidarGed(id);
+  if (avisoAcesso) return { ok: false, message: avisoAcesso };
   return { ok: true, data: undefined };
 }
 
