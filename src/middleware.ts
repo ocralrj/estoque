@@ -30,9 +30,22 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith("/auth");
   const isPublicRoute = pathname === "/";
-  // Recovery: usuário chega com sessão mas precisa definir nova senha
+  // Telas de /auth que uma pessoa JÁ autenticada precisa alcançar.
+  //
+  // A regra abaixo tira de /auth quem já entrou, o que faz sentido para o
+  // login. Mas há telas ali que só existem para quem tem sessão, e mandá-las
+  // para o dashboard cria um laço: o dashboard devolve para a tela, a tela
+  // devolve para o dashboard, e a pessoa fica presa numa página que nunca
+  // termina de carregar.
+  //
+  // Foi o que aconteceu com a troca da senha inicial: quem era pré-cadastrado
+  // entrava, era mandado para /auth/trocar-senha pelo layout, voltava para
+  // /dashboard pelo middleware, e não conseguia nem trocar a senha nem usar o
+  // sistema. Toda tela nova sob /auth destinada a quem tem sessão precisa
+  // entrar nesta lista.
   const isPasswordRecoveryRoute =
     pathname.startsWith("/auth/reset-password") ||
+    pathname.startsWith("/auth/trocar-senha") ||
     pathname.startsWith("/auth/callback");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
