@@ -305,3 +305,28 @@ html.dark .neo-raised {
     content: none;
   }
 }
+
+/* Sino balançando quando há aviso não lido.
+   O efeito anterior era um `bounce`: o sino pulava inteiro, como um objeto
+   caindo. Um sino balança em torno da alça, então o giro tem origem no topo e
+   alterna para os dois lados, com pausa entre as sequências — balançar sem
+   parar vira ruído visual em quem fica o dia com a tela aberta. */
+@keyframes sino-balanca {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  5%  { transform: rotate(14deg); }
+  15% { transform: rotate(-12deg); }
+  25% { transform: rotate(9deg); }
+  35% { transform: rotate(-6deg); }
+  45% { transform: rotate(3deg); }
+}
+
+.sino-balanca {
+  transform-origin: top center;
+  animation: sino-balanca 2.6s ease-in-out infinite;
+}
+
+/* Quem pede menos movimento no sistema não recebe o balanço: a contagem
+   vermelha já diz o mesmo sem depender de animação. */
+@media (prefers-reduced-motion: reduce) {
+  .sino-balanca { animation: none; }
+}

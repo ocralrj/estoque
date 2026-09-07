@@ -69,25 +69,27 @@ export default function DashboardHeader({
     };
   }, []);
 
-  useEffect(() => {
-    async function markAllAsRead() {
-      if (!notificationsOpen || unreadCount === 0) return;
+  /**
+   * Marca como lida: uma, ou todas.
+   *
+   * Antes o simples ato de abrir o painel dava tudo por lido. Bater o olho na
+   * lista não é o mesmo que ter lido o aviso — e quem abrisse o sino de
+   * passagem perdia o rastro do que ainda precisava ver.
+   */
+  async function marcarComoLida(id?: string) {
+    const resposta = await fetch("/api/notifications/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(id ? { id } : {}),
+    });
+    if (!resposta.ok) return;
 
-      const response = await fetch("/api/notifications/mark-read", {
-        method: "POST",
-      });
+    setNotifications((atuais) =>
+      atuais.map((n) => (!id || n.id === id ? { ...n, is_read: true } : n))
+    );
+    setUnreadCount((atual) => (id ? Math.max(0, atual - 1) : 0));
+  }
 
-      if (response.ok) {
-        setNotifications((current) => current.map((notification) => ({
-          ...notification,
-          is_read: true,
-        })));
-        setUnreadCount(0);
-      }
-    }
-
-    markAllAsRead();
-  }, [notificationsOpen, unreadCount]);
 
   function closeNotifications() {
     setNotificationsOpen(false);
@@ -113,25 +115,35 @@ export default function DashboardHeader({
           <button
             type="button"
             onClick={() => setNotificationsOpen((value) => !value)}
-            className={
-              `neo-button inline-flex items-center justify-center h-11 w-11 rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30` +
-              (unreadCount > 0 ? " animate-[bounce_0.7s_ease-in-out_infinite]" : "")
+            className="neo-button relative inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
+            aria-label={
+              unreadCount > 0
+                ? `Notificações: ${unreadCount} não lida(s)`
+                : "Notificações"
             }
-            title={unreadCount > 0 ? `${unreadCount} notificações não lidas` : "Notificações"}
+            title={
+              unreadCount > 0
+                ? `${unreadCount} notificação(ões) não lida(s)`
+                : "Notificações"
+            }
           >
-            <span className="relative inline-flex h-5 w-5 items-center justify-center">
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path d="M12 2a6 6 0 0 0-6 6v4.586l-.707.707A1 1 0 0 0 5 15h14a1 1 0 0 0 .707-1.707L18 12.586V8a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 20Z" />
-              </svg>
-              {unreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-[var(--erro-solid)] ring-2 ring-[var(--neo-bg)]" />
-              ) : null}
-            </span>
+            <svg
+              className={`h-5 w-5${unreadCount > 0 ? " sino-balanca" : ""}`}
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path d="M12 2a6 6 0 0 0-6 6v4.586l-.707.707A1 1 0 0 0 5 15h14a1 1 0 0 0 .707-1.707L18 12.586V8a6 6 0 0 0-6-6Zm0 18a2.5 2.5 0 0 1-2.45-2h4.9A2.5 2.5 0 0 1 12 20Z" />
+            </svg>
+
+            {/* A contagem fica fora do SVG: dentro dele giraria junto com o
+                sino e ficaria ilegível. Acima de 9 vira "9+" — o número exato
+                não muda o que a pessoa faz a seguir. */}
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--erro-solid)] px-1 text-[11px] font-extrabold leading-none text-white ring-2 ring-[var(--neo-bg)]">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {notificationsOpen && (
@@ -143,14 +155,25 @@ export default function DashboardHeader({
                     {unreadCount > 0 ? `${unreadCount} não lida(s)` : "Nenhuma nova notificação"}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeNotifications}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-strong)] hover:text-[var(--text)] transition-colors"
-                  aria-label="Fechar notificações"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => marcarComoLida()}
+                      className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                    >
+                      Marcar todas
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={closeNotifications}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--text)]"
+                    aria-label="Fechar notificações"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
               <div className="max-h-72 space-y-2 overflow-y-auto p-3 bg-[var(--surface-soft)]">
@@ -169,9 +192,25 @@ export default function DashboardHeader({
                       <p className="mt-1 text-xs text-[var(--muted)]">
                         {notification.message}
                       </p>
-                      <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
-                        {formatDate(notification.created_at)}
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                          {formatDate(notification.created_at)}
+                        </p>
+
+                        {notification.is_read ? (
+                          <span className="text-[11px] font-semibold text-[var(--muted)]">
+                            Lida
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => marcarComoLida(notification.id)}
+                            className="rounded-full bg-[var(--neo-bg)] px-3 py-1 text-[11px] font-bold text-[var(--primary)] hover:underline"
+                          >
+                            Marcar como lida
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
