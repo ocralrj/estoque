@@ -9,6 +9,7 @@ import { nomeDoNivel } from "@/lib/catalogo-permissoes";
 import MatrizDePermissoes from "./MatrizDePermissoes";
 import NivelDoGrupo from "./NivelDoGrupo";
 import MembrosDoGrupo from "./MembrosDoGrupo";
+import EditarGrupo from "./EditarGrupo";
 
 export default async function GrupoDetalhesPage({ params }: { params: { id: string } }) {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
@@ -96,24 +97,27 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
             Nível {(group.nivel as number) ?? 40} · {nomeDoNivel((group.nivel as number) ?? 40)}
           </p>
         </div>
-        {podeExcluirGrupo && (
-          <div className="flex gap-2">
-            <Link
-              href={`/dashboard/admin/grupos/${params.id}/editar`}
-              className="px-4 py-2 bg-[var(--neo-flat-alt)] text-[var(--text)] rounded-lg hover:brightness-95 transition-colors"
-            >
-              Editar
-            </Link>
+        <div className="flex flex-wrap items-start gap-2">
+          {podeEditarGrupo && (
+            <EditarGrupo
+              grupoId={params.id}
+              nome={group.name as string}
+              descricao={(group.description as string | null) ?? null}
+              ehDoSistema={Boolean(group.sistema)}
+            />
+          )}
+
+          {podeExcluirGrupo && !group.sistema && (
             <form action={deleteGroup.bind(null, params.id)}>
               <ConfirmSubmitButton
-                message="Tem certeza que deseja excluir este grupo?"
-                className="px-4 py-2 bg-[var(--erro-solid)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
+                message="Excluir este grupo? Quem estiver nele fica sem grupo e perde as permissões que vinham daqui."
+                className="rounded-full bg-[var(--danger)] px-4 py-2 text-sm font-bold text-[var(--text)]"
               >
                 Excluir
               </ConfirmSubmitButton>
             </form>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <MembrosDoGrupo
