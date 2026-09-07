@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth";
 import { roleLabel } from "@/lib/labels";
 import FormularioNome from "./FormularioNome";
 import FormularioFoto from "./FormularioFoto";
+import Avatar from "@/components/ui/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,12 @@ export default async function ProfilePage() {
     <div className="space-y-6">
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="h-16 w-16 rounded-full overflow-hidden bg-[var(--neo-flat-alt)] flex items-center justify-center text-2xl text-[var(--text)]">
-            {profile.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt="Avatar do usuário" className="h-full w-full object-cover" />
-            ) : (
-              <span>{(profile.full_name || profile.email)?.charAt(0).toUpperCase()}</span>
-            )}
-          </div>
+          <Avatar
+            nome={profile.full_name}
+            email={profile.email}
+            url={profile.avatar_url}
+            tamanho={64}
+          />
           <div>
             <h1 className="text-2xl font-semibold text-[var(--text)]">Meu Perfil</h1>
             <p className="text-sm text-[var(--text-muted)]">Gerencie sua foto e senha. O acesso continua definido pelo admin.</p>

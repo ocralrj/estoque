@@ -1,5 +1,6 @@
 "use client";
 
+import Avatar from "@/components/ui/Avatar";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,7 +45,6 @@ export default function UserMenu({ profile }: { profile: Profile }) {
   // O nome é a identificação; o e-mail só entra quando ainda não foi definido
   // (o próprio usuário resolve isso em Meu perfil).
   const displayName = profile.full_name?.trim() || profile.email;
-  const initial = displayName?.charAt(0).toUpperCase();
 
   return (
     <div className="relative" ref={containerRef}>
@@ -56,18 +56,12 @@ export default function UserMenu({ profile }: { profile: Profile }) {
         aria-expanded={open}
         title={displayName}
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--primary-soft)] text-sm font-extrabold text-[var(--primary-strong)]">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt="Foto do usuário"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            initial
-          )}
-        </span>
+        <Avatar
+          nome={profile.full_name}
+          email={profile.email}
+          url={profile.avatar_url}
+          tamanho={36}
+        />
         <span className="hidden max-w-[10rem] truncate text-sm font-bold text-[var(--text)] sm:inline">
           {displayName}
         </span>
@@ -80,18 +74,12 @@ export default function UserMenu({ profile }: { profile: Profile }) {
         >
           <div className="border-b border-[var(--stroke)] bg-[var(--surface)]/80 px-4 py-4">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[var(--primary-soft)] text-lg font-extrabold text-[var(--primary-strong)]">
-                {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.avatar_url}
-                    alt="Foto do usuário"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initial
-                )}
-              </span>
+              <Avatar
+                nome={profile.full_name}
+                email={profile.email}
+                url={profile.avatar_url}
+                tamanho={48}
+              />
               <div className="min-w-0">
                 <p className="truncate font-extrabold text-[var(--text)]">
                   {profile.full_name || "Sem nome"}
