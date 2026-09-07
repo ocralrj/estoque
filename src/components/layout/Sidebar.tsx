@@ -31,6 +31,7 @@ interface NavItem {
 const TODAS_AS_PERMISSOES = [
   "estoque:products:read",
   "estoque:movements:read",
+  "estoque:requisicoes:read",
   "estoque:alerts:read",
   "estoque:reports:read",
   "ged:documents:read",
@@ -64,6 +65,7 @@ const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
       children: [
         { href: "/dashboard/estoque/produtos", label: "Produtos", icone: "produtos", permissao: "estoque:products:read", dica: "Cadastro dos itens do almoxarifado, com saldo e ponto de reposição", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
+        { href: "/dashboard/estoque/pedidos", label: "Pedidos de material", icone: "protocolos", permissao: "estoque:requisicoes:read", dica: "Pedir material e atender o que foi pedido. A baixa no estoque acontece na entrega", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
         { href: "/dashboard/estoque/movimentacoes", label: "Movimentações", icone: "movimentacoes", permissao: "estoque:movements:read", dica: "Histórico de entradas e saídas. O saldo do produto é atualizado por aqui", roles: ["super_admin", "gestor", "almoxarife"] },
         { href: "/dashboard/estoque/alertas", label: "Alertas", icone: "alertas", permissao: "estoque:alerts:read", dica: "Produtos abaixo da quantidade mínima definida no cadastro", roles: ["super_admin", "gestor", "almoxarife"] },
         { href: "/dashboard/estoque/relatorios", label: "Relatórios", icone: "relatorios", permissao: "estoque:reports:read", dica: "Volume movimentado por período, produto e categoria", roles: ["super_admin", "gestor"] },

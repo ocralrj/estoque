@@ -425,6 +425,16 @@ export default function UsersClient({
                       />
                     </td>
                     <td data-rotulo="Departamento" className="px-4 py-3">
+                      {/* A dica traz o cargo: o departamento diz onde a pessoa
+                          trabalha, e a pergunta seguinte é sempre o que ela faz
+                          ali — sem precisar de mais uma coluna na tabela. */}
+                      <Tooltip
+                        lado="cima"
+                        texto={`${u.full_name || u.email} — ${
+                          cargos.find((c) => c.id === u.cargo_id)?.nome ??
+                          "sem cargo definido"
+                        }`}
+                      >
                       <SeletorEmBotao
                         rotulo={`Departamento de ${u.full_name || u.email}`}
                         valor={u.departamento ?? ""}
@@ -440,6 +450,7 @@ export default function UsersClient({
                           run(u.id, () => definirDepartamento(u.id, valor || null))
                         }
                       />
+                      </Tooltip>
                     </td>
                     <td data-rotulo="Situação" className="px-4 py-3">
                       <CelulaSituacao
