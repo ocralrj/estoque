@@ -64,6 +64,31 @@ export default function PedidosClient({
   const [entregas, setEntregas] = useState<Record<string, string>>({});
   const [observacao, setObservacao] = useState("");
 
+  // Uma linha vale quando tem produto E quantidade. Uma linha pela metade não
+  // é "quase pronta": é engano de digitação, e abrir o pedido assim mandaria
+  // para o almoxarifado um item que ninguém sabe qual é ou quanto.
+  const linhasCompletas = itens.filter(
+    (i) => i.productId && Number(i.quantidade) > 0
+  );
+  const linhasPelaMetade = itens.filter(
+    (i) =>
+      (i.productId && !(Number(i.quantidade) > 0)) ||
+      (!i.productId && i.quantidade.trim() !== "")
+  );
+  const produtoRepetido = linhasCompletas.some(
+    (i, idx) =>
+      linhasCompletas.findIndex((o) => o.productId === i.productId) !== idx
+  );
+
+  const podeAbrir =
+    linhasCompletas.length > 0 && linhasPelaMetade.length === 0 && !produtoRepetido;
+
+  const oQueFalta = produtoRepetido
+    ? "O mesmo produto aparece mais de uma vez"
+    : linhasPelaMetade.length > 0
+      ? "Complete o produto e a quantidade de cada linha"
+      : "Escolha ao menos um produto e a quantidade";
+
   const abertos = pedidos.filter((p) => p.status === "aberto");
   const encerrados = pedidos.filter((p) => p.status !== "aberto");
 
@@ -244,14 +269,23 @@ export default function PedidosClient({
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={enviarPedido}
-                disabled={pendente}
-                className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
-              >
-                {pendente ? "Abrindo…" : "Abrir pedido"}
-              </button>
+              {/* O botão só existe quando o pedido está pronto para sair. No
+                  lugar dele fica o que falta — um espaço vazio deixaria a
+                  pessoa procurando um botão que sumiu sem explicação. */}
+              {podeAbrir ? (
+                <button
+                  type="button"
+                  onClick={enviarPedido}
+                  disabled={pendente}
+                  className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
+                >
+                  {pendente ? "Abrindo…" : "Abrir pedido"}
+                </button>
+              ) : (
+                <p className="rounded-full bg-[var(--neo-bg)] px-4 py-2.5 text-center text-xs text-[var(--muted)]">
+                  {oQueFalta}
+                </p>
+              )}
             </div>
           )}
         </section>
