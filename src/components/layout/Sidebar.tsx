@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Tooltip from "@/components/ui/Tooltip";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -252,25 +251,13 @@ export default function Sidebar({
       )}
     >
       <div className={clsx("pb-6", isCollapsed ? "text-center" : "px-2")}>
-        {isCollapsed ? (
-          // Recolhida só cabe o símbolo — e ele sozinho já identifica.
-          <Image
-            src="/logo-ocral.png"
-            alt="OCRAL"
-            width={36}
-            height={36}
-            className="mx-auto"
-          />
-        ) : (
-          // A marca já carrega o nome; repeti-lo ao lado era redundância.
-          <Image
-            src="/logo-ocral.png"
-            alt="OCRAL"
-            width={132}
-            height={132}
-            className="mx-auto"
-            priority
-          />
+        {!isCollapsed && (
+          <div className="min-w-0">
+            <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
+              Ocral
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
+          </div>
         )}
 
       </div>

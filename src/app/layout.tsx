@@ -9,7 +9,6 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 export const metadata: Metadata = {
   title: "OCRAL",
   description: "Sistema ERP OCRAL — estoque, almoxarifado e gestão",
-  icons: { icon: "/logo-ocral.png", apple: "/logo-ocral.png" },
 };
 
 export default function RootLayout({

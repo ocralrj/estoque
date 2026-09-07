@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/theme/ThemeToggle";
-import LogoOcral from "@/components/ui/LogoOcral";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -51,7 +50,7 @@ export default function ForgotPasswordPage() {
       </div>
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
         <div className="mb-8 text-center">
-          <LogoOcral tamanho={120} comNome={false} className="justify-center" />
+          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
           <p className="text-[var(--text-muted)] mt-1">Recuperar senha</p>
         </div>
 

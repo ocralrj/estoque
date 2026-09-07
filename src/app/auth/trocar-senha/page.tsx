@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { concluirTrocaDeSenha } from "@/app/actions/users";
-import LogoOcral from "@/components/ui/LogoOcral";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { avaliarSenha, REGRAS_SENHA } from "@/lib/senha";
 
@@ -66,8 +65,7 @@ export default function TrocarSenhaPage() {
     <div className="flex min-h-screen items-center justify-center bg-[var(--neo-flat)] px-4">
       <div className="w-full max-w-md rounded-xl bg-[var(--neo-bg)] p-8 shadow-md">
         <div className="mb-6 text-center">
-          <LogoOcral tamanho={100} comNome={false} className="justify-center" />
-          <h1 className="mt-4 text-xl font-bold text-[var(--text)]">
+          <h1 className="text-xl font-bold text-[var(--text)]">
             Defina sua senha
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
