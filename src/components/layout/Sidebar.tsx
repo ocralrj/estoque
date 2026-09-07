@@ -246,15 +246,17 @@ export default function Sidebar({
 
       </div>
 
-      {/* Sobre a linha que divide o menu do conteúdo: metade para dentro,
-          metade para fora, como uma alça da própria divisória. */}
+      {/* Sobre a linha que divide o menu do conteúdo, na altura da barra de
+          opções do topo: o padding do main (36px) mais metade da barra (32px)
+          põem o centro do botão em 68px. Fica fixo ao rolar, porque a aside
+          não rola com o conteúdo. */}
       {!isDrawer && (
         <button
           type="button"
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
           title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-          className="neo-button absolute -right-4 top-1/2 z-20 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] transition-all hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          className="neo-button absolute -right-4 top-[68px] z-20 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] transition-all hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
         >
           <svg
             className={clsx("h-4 w-4 transition-transform", isCollapsed && "rotate-180")}
