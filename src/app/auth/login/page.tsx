@@ -118,22 +118,27 @@ function LoginForm() {
 
         {/* Crédito de quem desenvolveu. Telefone como link tel: — no celular,
             que é onde a maioria vê esta tela, tocar no número disca. */}
-        <footer className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-[var(--text-muted)]">
+        {/* Preto, e não a cor de destaque: o rodapé fica sobre a foto da
+            parede, onde o roxo do sistema quase desaparecia. No tema escuro o
+            fundo é escuro, então a mesma lógica inverte para branco.
+            Os links seguem sublinhados — sem a cor, é o sublinhado que os
+            distingue do texto comum. */}
+        <footer className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs font-semibold text-black dark:text-white">
           <span>
             Desenvolvido por{" "}
             <a
               href="https://www.icardcase.com.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[var(--primary)] hover:underline"
+              className="underline underline-offset-2 hover:no-underline"
             >
               www.icardcase.com.br
             </a>
           </span>
-          <span aria-hidden className="text-[var(--neo-line)]">|</span>
+          <span aria-hidden>|</span>
           <a
             href="tel:+5521988785170"
-            className="font-semibold text-[var(--primary)] hover:underline"
+            className="underline underline-offset-2 hover:no-underline"
           >
             (21) 98878-5170
           </a>

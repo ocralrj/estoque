@@ -95,8 +95,16 @@ export async function POST(request: Request) {
     .eq("id", user.id);
 
   if (updateError) {
+    // Este ramo não registrava nada, e por isso o erro ficou opaco: o arquivo
+    // subia, o perfil não gravava, e a tela só dizia que não deu.
+    console.error("Falha ao gravar avatar_url no perfil:", updateError);
+
     return NextResponse.json(
-      { error: "Não foi possível salvar a foto no perfil." },
+      {
+        error: `A imagem foi enviada, mas não foi possível gravá-la no perfil: ${updateError.message}${
+          updateError.code ? ` (código ${updateError.code})` : ""
+        }`,
+      },
       { status: 500 }
     );
   }

@@ -75,15 +75,8 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
     .order("resource", { ascending: true })
     .order("action", { ascending: true });
 
-  const permissionIds = new Set(group.permissions.map((p: any) => p.permission_id));
 
 
-  const groupedPermissions = allPermissions?.reduce((acc: any, perm: any) => {
-    if (!acc[perm.module]) acc[perm.module] = {};
-    if (!acc[perm.module][perm.resource]) acc[perm.module][perm.resource] = [];
-    acc[perm.module][perm.resource].push(perm);
-    return acc;
-  }, {});
 
   return (
     <div className="space-y-6">
@@ -136,7 +129,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
         nivelAtual={(group.nivel as number) ?? 40}
         fixo={Boolean(group.sistema)}
         podeEditar={podeEditarGrupo}
-        quantidadeDeMembros={group.members.length}
+        quantidadeDeMembros={membros.length}
       />
 
       <MatrizDePermissoes
