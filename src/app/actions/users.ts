@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { SENHA_INICIAL } from "@/lib/senha";
+import { MAX_SAIDA_BYTES } from "@/lib/imagens/avatar";
 import type { StatusUsuario, UserRole } from "@/types/database";
 
 type ActionResult = { ok: true } | { ok: false; message: string };
@@ -231,6 +232,40 @@ export interface NovoUsuario {
   departamento?: string | null;
   status?: StatusUsuario;
   retornoPrevisto?: string | null;
+  /** Foto já tratada pela tela, como data URL. Opcional. */
+  fotoBase64?: string | null;
+}
+
+const TIPOS_DE_FOTO: Record<string, string> = {
+  "image/webp": "webp",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+};
+
+/**
+ * Converte a foto que veio da tela, recusando o que não for imagem conhecida.
+ *
+ * A tela já entrega um quadrado de 256 pixels, mas uma Server Action é um
+ * endpoint como outro qualquer: o conteúdo é validado aqui de novo, sem
+ * confiar em quem chamou.
+ */
+function lerFoto(
+  dataUrl: string
+): { bytes: Uint8Array; mimeType: string; extensao: string } | null {
+  const casamento = /^data:([a-z/+-]+);base64,(.+)$/i.exec(dataUrl.trim());
+  if (!casamento) return null;
+
+  const mimeType = casamento[1].toLowerCase();
+  const extensao = TIPOS_DE_FOTO[mimeType];
+  if (!extensao) return null;
+
+  try {
+    const bytes = Uint8Array.from(Buffer.from(casamento[2], "base64"));
+    if (bytes.length === 0 || bytes.length > MAX_SAIDA_BYTES) return null;
+    return { bytes, mimeType, extensao };
+  } catch {
+    return null;
+  }
 }
 
 export async function convidarUsuario(
@@ -326,6 +361,30 @@ export async function convidarUsuario(
     // do mesmo jeito; só a situação fica pendente.
     if (erroPerfil?.code === "PGRST204" || erroPerfil?.code === "42703") {
       await admin.from("profiles").update(base).eq("id", novoId);
+    }
+
+    // A foto é opcional e não pode derrubar o cadastro: se falhar, a conta já
+    // existe e a pessoa (ou quem a cadastrou) sobe a imagem depois pelo perfil.
+    const foto = entrada.fotoBase64 ? lerFoto(entrada.fotoBase64) : null;
+    if (foto) {
+      const caminho = `${novoId}-${Date.now()}.${foto.extensao}`;
+      const { data: enviada } = await admin.storage
+        .from("avatars")
+        .upload(caminho, foto.bytes, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: foto.mimeType,
+        });
+
+      if (enviada?.path) {
+        const { data: publica } = admin.storage
+          .from("avatars")
+          .getPublicUrl(enviada.path);
+        await admin
+          .from("profiles")
+          .update({ avatar_url: publica.publicUrl })
+          .eq("id", novoId);
+      }
     }
   }
 

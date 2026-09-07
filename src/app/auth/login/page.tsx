@@ -46,9 +46,22 @@ function LoginForm() {
       {/* A sombra é mais funda do que a dos cartões internos: aqui o cartão
           precisa se descolar de uma foto, não de uma superfície lisa. */}
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
-          <p className="text-[var(--text-muted)] mt-1">Acesse sua conta</p>
+        {/* O vídeo substitui o título escrito, mas o título continua existindo
+            para quem usa leitor de tela e para os buscadores: uma marca em
+            movimento não é lida por ninguém. */}
+        <h1 className="sr-only">OCRAL — acesse sua conta</h1>
+
+        <div className="mb-7 flex justify-center">
+          <video
+            src="/video_ocral.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden
+            className="h-auto w-40 rounded-xl"
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

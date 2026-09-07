@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { roleLabel } from "@/lib/labels";
 import FormularioNome from "./FormularioNome";
+import FormularioFoto from "./FormularioFoto";
 
 export const dynamic = "force-dynamic";
 
@@ -53,23 +54,11 @@ export default async function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-[var(--text)] mb-4">Atualizar foto</h2>
-          <form action="/dashboard/profile/photo" method="post" encType="multipart/form-data" className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[var(--text)]">Foto do perfil</label>
-              <input
-                type="file"
-                name="avatar"
-                accept="image/*"
-                className="mt-2 block w-full text-sm text-[var(--text-muted)] file:border-0 file:bg-[var(--neo-flat-alt)] file:px-3 file:py-2 file:rounded-lg file:text-sm file:font-medium file:text-[var(--text)]"
-              />
-            </div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--on-accent)] hover:brightness-110 transition-colors"
-            >
-              Enviar foto
-            </button>
-          </form>
+          <FormularioFoto
+            nome={profile.full_name}
+            email={profile.email}
+            urlAtual={profile.avatar_url}
+          />
         </section>
 
         <section className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">

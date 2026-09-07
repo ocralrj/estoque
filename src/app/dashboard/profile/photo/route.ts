@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { MAX_SAIDA_BYTES } from "@/lib/imagens/avatar";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// A tela trata a imagem antes de enviar: o que chega aqui é o quadrado de 256
+// pixels, que fica na casa das dezenas de kB. O teto existe para recusar o que
+// não passou por esse caminho — antes eram 5 MB, e uma foto de celular inteira
+// era gravada sem ninguém notar.
+const MAX_BYTES = MAX_SAIDA_BYTES;
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -29,14 +34,19 @@ export async function POST(request: Request) {
 
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "A imagem deve ter no máximo 5 MB." },
+      {
+        error:
+          "A imagem excede o limite depois do tratamento. Recarregue a página e escolha de novo.",
+      },
       { status: 400 }
     );
   }
 
   const { supabase, user } = await getSession();
   if (!user) {
-    return NextResponse.redirect(new URL("/auth/login", request.url), 303);
+    // Responde em JSON, e não em redirect: quem chama é um fetch, que seguiria
+    // o redirect e receberia a página de login com status 200.
+    return NextResponse.json({ error: "Sessão expirada." }, { status: 401 });
   }
 
   const fileName = `${user.id}-${Date.now()}.${extension}`;
@@ -73,5 +83,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.redirect(new URL("/dashboard/profile", request.url), 303);
+  return NextResponse.json({ ok: true, url: publicUrlData.publicUrl });
 }

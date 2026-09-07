@@ -19,6 +19,8 @@ import {
 } from "@/lib/labels";
 import Tooltip from "@/components/ui/Tooltip";
 import Avatar from "@/components/ui/Avatar";
+import SeletorDeFoto from "@/components/ui/SeletorDeFoto";
+import { paraDataUrl, type AvatarPreparado } from "@/lib/imagens/avatar";
 import type { Profile, StatusUsuario, UserRole } from "@/types";
 
 type Feedback = { kind: "ok" | "erro"; text: string } | null;
@@ -48,6 +50,7 @@ export default function UsersClient({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [criando, setCriando] = useState(false);
+  const [fotoNova, setFotoNova] = useState<AvatarPreparado | null>(null);
 
   const [novo, setNovo] = useState({
     email: "",
@@ -110,6 +113,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
         departamento: novo.departamento || null,
         status: novo.status,
         retornoPrevisto: novo.retorno || null,
+        fotoBase64: fotoNova ? await paraDataUrl(fotoNova.blob) : null,
       });
       if (res.ok) {
         const email = novo.email.trim();
@@ -122,6 +126,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
           retorno: "",
         });
         setCriando(false);
+        setFotoNova(null);
         setFeedback({
           kind: "ok",
           text: `Acesso criado para ${email}. Senha inicial: ${res.senha} — informe à pessoa. Ela será obrigada a trocá-la no primeiro acesso.`,
@@ -249,11 +254,20 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
             )}
           </div>
 
+          <div className="mt-4 border-t border-[var(--neo-line)] pt-4">
+            <SeletorDeFoto
+              nome={novo.nome}
+              email={novo.email}
+              rotulo="Foto"
+              aoEscolher={setFotoNova}
+            />
+          </div>
+
           <button
             type="button"
             onClick={criar}
             disabled={pending || !novoValido}
-            className="mt-3 rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
+            className="mt-4 rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
           >
             {pending ? "Criando…" : "Criar acesso"}
           </button>
