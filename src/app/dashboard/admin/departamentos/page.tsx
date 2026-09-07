@@ -1,5 +1,6 @@
 import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
+import { pode } from "@/lib/permissoes";
 import {
   listarDepartamentos,
   listarMembrosPorDepartamento,
@@ -9,9 +10,10 @@ import DepartamentosClient from "./DepartamentosClient";
 export default async function DepartamentosPage() {
   const { profile } = await requireSession(MANAGER_ROLES);
   await exigirPermissao("admin", "departamentos", "read");
-  const [res, membros] = await Promise.all([
+  const [res, membros, podeGerenciarPessoas] = await Promise.all([
     listarDepartamentos(),
     listarMembrosPorDepartamento(),
+    pode("admin", "users", "manage"),
   ]);
 
   return (
@@ -29,6 +31,7 @@ export default async function DepartamentosPage() {
           inicial={res.data}
           membros={membros.ok ? membros.data : {}}
           ehAdmin={profile?.role === "super_admin"}
+          podeGerenciarPessoas={podeGerenciarPessoas}
         />
       ) : (
         <p className="neo-card p-8 text-center text-sm text-[var(--danger)]">

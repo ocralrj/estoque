@@ -18,6 +18,8 @@ export interface Profile {
   departamento?: string | null;
   /** Grupo principal: define o nível hierárquico e as permissões. */
   group_id?: string | null;
+  /** Cargo: o que a pessoa faz. Não concede acesso — isso é o grupo. */
+  cargo_id?: string | null;
   /** true enquanto a senha provisória não for trocada. */
   must_change_password?: boolean;
   /** Situação da conta. `active` é derivado daqui por gatilho no banco. */

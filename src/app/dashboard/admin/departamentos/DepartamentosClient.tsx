@@ -8,6 +8,7 @@ import {
   atualizarDepartamento,
   excluirDepartamento,
 } from "@/app/actions/departamentos";
+import { definirDepartamentoDaPessoa } from "@/app/actions/cargos";
 import { formatDate, roleLabel } from "@/lib/labels";
 import Avatar from "@/components/ui/Avatar";
 import Tooltip from "@/components/ui/Tooltip";
@@ -19,11 +20,14 @@ export default function DepartamentosClient({
   inicial,
   membros,
   ehAdmin,
+  podeGerenciarPessoas,
 }: {
   inicial: Departamento[];
   /** Pessoas de cada departamento, indexadas pelo nome. */
   membros: Record<string, MembroDepartamento[]>;
   ehAdmin: boolean;
+  /** Quem pode mover pessoas entre departamentos. */
+  podeGerenciarPessoas: boolean;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -323,6 +327,10 @@ export default function DepartamentosClient({
         <PainelDaEquipe
           departamento={equipeAberta}
           pessoas={membros[equipeAberta.nome] ?? []}
+          disponiveis={Object.entries(membros)
+            .filter(([dep]) => dep !== equipeAberta.nome)
+            .flatMap(([, lista]) => lista)}
+          podeGerenciar={podeGerenciarPessoas}
           aoFechar={() => setEquipeAberta(null)}
         />
       )}
@@ -386,16 +394,37 @@ function FileiraDeAvatares({
   );
 }
 
-/** Painel com a foto, o nome e o contato de cada pessoa do departamento. */
+/**
+ * Quem trabalha no departamento — e a porta para mudar isso.
+ *
+ * O cargo aparece ao lado do nome porque "quem é do Financeiro" e "quem faz o
+ * quê no Financeiro" são perguntas diferentes, e a segunda é a que importa
+ * quando alguém precisa falar com a pessoa certa.
+ *
+ * Mover alguém de departamento muda o que ela enxerga no GED: os documentos de
+ * visibilidade "departamento" seguem esse campo. A tela diz isso, em vez de
+ * deixar a descoberta para depois.
+ */
 function PainelDaEquipe({
   departamento,
   pessoas,
+  disponiveis,
+  podeGerenciar,
   aoFechar,
 }: {
   departamento: Departamento;
   pessoas: MembroDepartamento[];
+  /** Quem está em outro departamento, ou em nenhum. */
+  disponiveis: MembroDepartamento[];
+  podeGerenciar: boolean;
   aoFechar: () => void;
 }) {
+  const router = useRouter();
+  const [pendente, iniciar] = useTransition();
+  const [erro, setErro] = useState("");
+  const [busca, setBusca] = useState("");
+  const [adicionando, setAdicionando] = useState(false);
+
   useEffect(() => {
     function aoTeclar(e: KeyboardEvent) {
       if (e.key === "Escape") aoFechar();
@@ -403,6 +432,24 @@ function PainelDaEquipe({
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [aoFechar]);
+
+  function mover(userId: string, destino: string | null) {
+    setErro("");
+    iniciar(async () => {
+      const res = await definirDepartamentoDaPessoa(userId, destino);
+      if (!res.ok) {
+        setErro(res.message);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  const filtrados = busca.trim()
+    ? disponiveis.filter((p) =>
+        `${p.nome} ${p.email}`.toLowerCase().includes(busca.trim().toLowerCase())
+      )
+    : disponiveis;
 
   return (
     <div
@@ -414,13 +461,16 @@ function PainelDaEquipe({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="neo-card max-h-[80vh] w-full max-w-md overflow-y-auto p-5"
+        className="neo-card max-h-[85vh] w-full max-w-lg overflow-y-auto p-5"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-[var(--text)]">{departamento.nome}</h3>
+            <h3 className="text-lg font-bold text-[var(--text)]">
+              {departamento.nome}
+            </h3>
             <p className="text-sm text-[var(--muted)]">
-              {pessoas.length} pessoa{pessoas.length === 1 ? "" : "s"} neste departamento
+              {pessoas.length} pessoa{pessoas.length === 1 ? "" : "s"} neste
+              departamento
             </p>
           </div>
           <button
@@ -433,23 +483,127 @@ function PainelDaEquipe({
           </button>
         </div>
 
+        {erro && (
+          <p className="mt-3 rounded-2xl bg-[var(--erro-bg)] px-4 py-3 text-sm text-[var(--erro-fg)]">
+            {erro}
+          </p>
+        )}
+
+        {podeGerenciar && (
+          <button
+            type="button"
+            onClick={() => setAdicionando((a) => !a)}
+            className="mt-4 rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-bold text-[var(--on-accent)]"
+          >
+            {adicionando ? "Cancelar" : "Acrescentar pessoas"}
+          </button>
+        )}
+
+        {adicionando && podeGerenciar && (
+          <div className="mt-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-3">
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Filtrar por nome ou e-mail"
+              className="w-full rounded-[1rem] border border-[var(--stroke)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
+            />
+
+            <ul className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+              {filtrados.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[var(--neo-bg)] p-2.5"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Avatar
+                      nome={p.nome}
+                      email={p.email}
+                      url={p.avatar_url}
+                      tamanho={32}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--text)]">
+                        {p.nome}
+                      </p>
+                      <p className="truncate text-xs text-[var(--muted)]">
+                        {p.cargo ?? "Sem cargo"}
+                        {p.departamentoAtual
+                          ? ` · hoje em ${p.departamentoAtual}`
+                          : " · sem departamento"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={pendente}
+                    onClick={() => mover(p.id, departamento.nome)}
+                    className="neo-button rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] disabled:opacity-50"
+                  >
+                    Acrescentar
+                  </button>
+                </li>
+              ))}
+
+              {filtrados.length === 0 && (
+                <li className="py-2 text-sm text-[var(--muted)]">
+                  Ninguém encontrado.
+                </li>
+              )}
+            </ul>
+
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Cada pessoa fica em um departamento por vez, e é ele que decide quais
+              documentos do GED ela enxerga.
+            </p>
+          </div>
+        )}
+
         <ul className="mt-4 space-y-3">
           {pessoas.map((p) => (
             <li
               key={p.id}
-              className="flex items-center gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-3"
             >
-              <Avatar nome={p.nome} email={p.email} url={p.avatar_url} tamanho={48} />
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-[var(--text)]">{p.nome}</p>
-                <p className="truncate text-xs text-[var(--muted)]">{p.email}</p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">
-                  {roleLabel(p.role)}
-                  {!p.ativo && " · sem acesso"}
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar
+                  nome={p.nome}
+                  email={p.email}
+                  url={p.avatar_url}
+                  tamanho={44}
+                />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--text)]">
+                    {p.nome}
+                  </p>
+                  <p className="truncate text-xs text-[var(--muted)]">{p.email}</p>
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--primary-strong)]">
+                    {p.cargo ?? "Sem cargo definido"}
+                  </p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {roleLabel(p.role)}
+                    {!p.ativo && " · sem acesso"}
+                  </p>
+                </div>
               </div>
+
+              {podeGerenciar && (
+                <button
+                  type="button"
+                  disabled={pendente}
+                  onClick={() => mover(p.id, null)}
+                  className="text-xs font-semibold text-[var(--erro-fg)] hover:underline disabled:opacity-50"
+                >
+                  Tirar do departamento
+                </button>
+              )}
             </li>
           ))}
+
+          {pessoas.length === 0 && (
+            <li className="rounded-2xl border border-dashed border-[var(--stroke)] p-6 text-center text-sm text-[var(--muted)]">
+              Ninguém neste departamento ainda. Use &quot;Acrescentar pessoas&quot;.
+            </li>
+          )}
         </ul>
       </div>
     </div>

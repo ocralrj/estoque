@@ -71,4 +71,22 @@ export interface MembroDepartamento {
   avatar_url: string | null;
   role: string;
   ativo: boolean;
+  /** O que a pessoa faz. Null quando ninguém definiu ainda. */
+  cargo: string | null;
+  /** Departamento atual — usado para dizer de onde ela sai ao ser movida. */
+  departamentoAtual: string | null;
+}
+
+/**
+ * O que a pessoa faz na empresa.
+ *
+ * Não concede acesso: quem decide o que ela pode é o grupo. Separados de
+ * propósito — misturados, toda promoção viraria uma mexida em segurança.
+ */
+export interface Cargo {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  created_at: string;
 }

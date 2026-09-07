@@ -212,26 +212,38 @@ export async function listarMembrosPorDepartamento(): Promise<
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, avatar_url, role, active, status, departamento")
-    .not("departamento", "is", null)
+    .select(
+      "id, full_name, email, avatar_url, role, active, status, departamento, cargo:cargos(nome)"
+    )
+    .eq("active", true)
     .order("full_name", { nullsFirst: false });
 
   if (error) {
     return { ok: false, message: "Não foi possível carregar as pessoas." };
   }
 
+  const paraMembro = (linha: Record<string, unknown>): MembroDepartamento => ({
+    id: linha.id as string,
+    nome: (linha.full_name as string | null) ?? (linha.email as string),
+    email: linha.email as string,
+    avatar_url: (linha.avatar_url as string | null) ?? null,
+    role: linha.role as string,
+    ativo: linha.active !== false,
+    cargo:
+      ((linha.cargo as { nome?: string } | null)?.nome as string | undefined) ??
+      null,
+    departamentoAtual: (linha.departamento as string | null) ?? null,
+  });
+
   const porDepartamento: Record<string, MembroDepartamento[]> = {};
+  // A chave "" guarda quem ainda não está em departamento nenhum: é de lá que
+  // vem a maior parte de quem precisa ser acrescentado a um.
+  porDepartamento[""] = [];
+
   for (const linha of data ?? []) {
-    const dep = (linha.departamento as string | null)?.trim();
-    if (!dep) continue;
-    (porDepartamento[dep] ??= []).push({
-      id: linha.id as string,
-      nome: (linha.full_name as string | null) ?? (linha.email as string),
-      email: linha.email as string,
-      avatar_url: (linha.avatar_url as string | null) ?? null,
-      role: linha.role as string,
-      ativo: linha.active !== false,
-    });
+    const membro = paraMembro(linha);
+    const dep = membro.departamentoAtual?.trim() || "";
+    (porDepartamento[dep] ??= []).push(membro);
   }
 
   return { ok: true, data: porDepartamento };

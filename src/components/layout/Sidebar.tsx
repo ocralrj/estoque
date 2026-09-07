@@ -41,6 +41,7 @@ const TODAS_AS_PERMISSOES = [
   "admin:users:read",
   "admin:users:create",
   "admin:departamentos:read",
+  "admin:cargos:read",
   "admin:groups:read",
   "admin:audit:read",
 ];
@@ -106,6 +107,7 @@ const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
         { href: "/dashboard/admin/acessos", label: "Pedidos de acesso", icone: "usuarios", permissao: "admin:users:create", dica: "Quem pediu acesso pela tela pública, esperando aprovação", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/usuarios", label: "Usuários", icone: "usuarios", permissao: "admin:users:read", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/departamentos", label: "Departamentos", icone: "departamentos", permissao: "admin:departamentos:read", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/cargos", label: "Cargos", icone: "usuarios", permissao: "admin:cargos:read", dica: "O que cada pessoa faz na empresa — separado do que ela pode fazer no sistema", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/grupos", label: "Grupos", icone: "grupos", permissao: "admin:groups:read", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
         { href: "/dashboard/admin/sugestoes", label: "Sugestões", icone: "sugestoes", permissao: "sugestoes:todas:read", dica: "Melhorias enviadas por todos: responder e definir prioridade", roles: ["super_admin", "gestor"] },
         { href: "/dashboard/admin/auditoria", label: "Auditoria", icone: "auditoria", permissao: "admin:audit:read", dica: "Quem alterou papéis, grupos e permissões, e quando", roles: ["super_admin", "gestor"] },
