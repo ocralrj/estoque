@@ -143,9 +143,11 @@ export default function CargosClient({
         </div>
 
         {criando && (
-          <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 items-start gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-4 sm:grid-cols-2">
             <div>
-              <label className={rotulo}>Nome *</label>
+              <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
+                <label className={rotulo}>Nome *</label>
+              </div>
               <input
                 value={novo.nome}
                 onChange={(e) => setNovo({ ...novo, nome: e.target.value })}
@@ -154,7 +156,7 @@ export default function CargosClient({
               />
             </div>
             <div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
                 <label className={rotulo}>Descrição</label>
                 {/* A sugestão parte do nome do cargo: pedir à IA que descreva
                     um cargo sem saber qual devolveria texto genérico. */}
@@ -196,7 +198,9 @@ export default function CargosClient({
             {editando === c.id ? (
               <div className="space-y-3">
                 <div>
-                  <label className={rotulo}>Nome</label>
+                  <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
+                    <label className={rotulo}>Nome</label>
+                  </div>
                   <input
                     value={rascunho.nome}
                     onChange={(e) => setRascunho({ ...rascunho, nome: e.target.value })}
@@ -204,7 +208,7 @@ export default function CargosClient({
                   />
                 </div>
                 <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
                     <label className={rotulo}>Descrição</label>
                     <SuggestWithAi
                       fieldType="descricao_cargo"

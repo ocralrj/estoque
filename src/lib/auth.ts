@@ -25,6 +25,29 @@ function hojeNoBrasil(): string {
   }).format(new Date());
 }
 
+/** Amanhã: a data de retorno até aqui já libera o acesso, pela regra da véspera. */
+function vesperaLimite(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(d);
+}
+
+/**
+ * A pessoa está de férias e ainda não pode entrar?
+ *
+ * O bloqueio de verdade está em get_user_role(), no banco, onde nenhuma tela
+ * consegue contorná-lo. Isto aqui existe só para a tela poder dizer o motivo:
+ * bloqueio sem explicação parece defeito, e a pessoa liga para o suporte.
+ */
+export function emFeriasBloqueadas(profile: Profile | null): boolean {
+  if (!profile || profile.status !== "ferias" || !profile.retorno_previsto) {
+    return false;
+  }
+  return profile.retorno_previsto > vesperaLimite();
+}
+
 /**
  * Encerra as férias quando a data de retorno já chegou.
  *
@@ -42,7 +65,10 @@ async function encerrarFeriasVencidas(
 ): Promise<Profile> {
   if (profile.status !== "ferias") return profile;
   if (!profile.retorno_previsto) return profile;
-  if (profile.retorno_previsto > hojeNoBrasil()) return profile;
+
+  // A véspera já conta: é quando o acesso volta, e entrar é o que encerra as
+  // férias. Antes disso a pessoa nem chega aqui — get_user_role() a barra.
+  if (profile.retorno_previsto > vesperaLimite()) return profile;
 
   // A transição acontece por uma função no banco, e não por um UPDATE comum.
   //
