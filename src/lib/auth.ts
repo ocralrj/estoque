@@ -44,14 +44,41 @@ async function encerrarFeriasVencidas(
   if (!profile.retorno_previsto) return profile;
   if (profile.retorno_previsto > hojeNoBrasil()) return profile;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ status: "ativo", retorno_previsto: null })
-    .eq("id", profile.id);
+  // A transição acontece por uma função no banco, e não por um UPDATE comum.
+  //
+  // O UPDATE dependia da política de `profiles`, do gatilho que protege os
+  // campos de acesso e da ordem em que os gatilhos disparam — e quando algo
+  // ali recusava, o erro era descartado: a pessoa entrava, continuava marcada
+  // como de férias e não havia nada no log. A função decide sozinha, olha
+  // apenas quem chamou e só faz esta transição.
+  const { data: encerrou, error } = await supabase.rpc("encerrar_minhas_ferias");
 
-  // Falhar aqui não pode barrar o acesso: quem voltou de férias continua ativo
-  // para todos os efeitos, e a próxima requisição tenta de novo.
-  if (error) return profile;
+  if (error) {
+    // Silenciar aqui foi o que escondeu o problema por dias.
+    console.error(
+      "Falha ao encerrar férias vencidas:",
+      error.code,
+      error.message
+    );
+
+    // Banco sem a migração 026: tenta o caminho antigo para não travar a volta.
+    if (error.message?.includes("schema cache") || error.code === "PGRST202") {
+      const { error: erroDireto } = await supabase
+        .from("profiles")
+        .update({ status: "ativo", retorno_previsto: null })
+        .eq("id", profile.id);
+
+      if (erroDireto) {
+        console.error("Caminho antigo também falhou:", erroDireto.message);
+        return profile;
+      }
+      return { ...profile, status: "ativo", retorno_previsto: null, active: true };
+    }
+
+    return profile;
+  }
+
+  if (!encerrou) return profile;
 
   return { ...profile, status: "ativo", retorno_previsto: null, active: true };
 }
