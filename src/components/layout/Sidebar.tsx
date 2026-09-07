@@ -35,6 +35,7 @@ const TODAS_AS_PERMISSOES = [
   "estoque:reports:read",
   "ged:documents:read",
   "ged:folders:read",
+  "certificados:certificates:read",
   "sugestoes:minhas:read",
   "sugestoes:todas:read",
   "protocolos:protocolos:read",
@@ -80,6 +81,14 @@ const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
         { href: "/dashboard/ged/documentos", label: "Documentos", icone: "documentos", permissao: "ged:documents:read", dica: "Buscar, cadastrar e baixar arquivos do acervo", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
         { href: "/dashboard/ged/pastas", label: "Pastas", icone: "pastas", permissao: "ged:folders:read", dica: "Estrutura de arquivamento por departamento", roles: ["super_admin", "gestor", "almoxarife"] },
       ],
+    },
+    {
+      href: "/dashboard/certificados",
+      label: "Certificados",
+      icone: "certificados",
+      permissao: "certificados:certificates:read",
+      dica: "Certificados digitais das empresas, com aviso de vencimento",
+      roles: ["super_admin", "gestor", "almoxarife"],
     },
     {
       href: "/dashboard/sugestoes",
