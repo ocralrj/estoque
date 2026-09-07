@@ -57,11 +57,21 @@ export default async function MySuggestionsPage() {
                       {s.title}
                     </h2>
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${SUGGESTION_STATUS_COLORS[s.status]}`}
-                  >
-                    {SUGGESTION_STATUS_LABELS[s.status]}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${SUGGESTION_STATUS_COLORS[s.status]}`}
+                    >
+                      {SUGGESTION_STATUS_LABELS[s.status]}
+                    </span>
+                    {(s.idas_e_vindas ?? 0) > 0 && (
+                    <span
+                      title={`A equipe escreveu de volta ${s.idas_e_vindas} vez(es)`}
+                      className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-xs font-bold text-[var(--muted)]"
+                    >
+                      {s.idas_e_vindas}ª volta
+                    </span>
+                  )}
+                  </div>
                 </div>
                 <p className="text-sm text-[var(--text-muted)] mt-2">{s.summary}</p>
                 <div className="flex flex-wrap gap-3 mt-3 text-xs text-[var(--text-muted)]">

@@ -5,7 +5,9 @@ export type SuggestionStatus =
   | "planejada"
   | "em_andamento"
   | "concluida"
-  | "recusada";
+  | "recusada"
+  /** A gestão escreveu de volta e devolveu a bola ao autor. */
+  | "reenviada";
 
 export type SuggestionPriority = "baixa" | "media" | "alta";
 
@@ -33,6 +35,8 @@ export interface ImprovementSuggestion {
   admin_notes: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  /** Quantas vezes a gestão escreveu de volta. Alto = assunto que não fecha. */
+  idas_e_vindas?: number;
   created_at: string;
   updated_at: string;
   user?: {
@@ -79,6 +83,7 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
   em_andamento: "Em andamento",
   concluida: "Concluída",
   recusada: "Recusada",
+  reenviada: "Reenviada ao autor",
 };
 
 export const SUGGESTION_PRIORITY_LABELS: Record<SuggestionPriority, string> = {
@@ -93,6 +98,7 @@ export const SUGGESTION_STATUS_COLORS: Record<SuggestionStatus, string> = {
   em_analise: "bg-yellow-100 text-yellow-800",
   planejada: "bg-purple-100 text-purple-800",
   em_andamento: "bg-orange-100 text-orange-800",
+  reenviada: "bg-amber-100 text-amber-800",
   concluida: "bg-green-100 text-green-800",
   recusada: "bg-red-100 text-red-800",
 };

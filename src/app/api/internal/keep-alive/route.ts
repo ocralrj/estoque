@@ -47,5 +47,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ status: "ok" });
+  // A rotina diária aproveita a viagem para a faxina: notificação lida perde a
+  // utilidade e a tabela cresceria para sempre. Um agendamento próprio só para
+  // isso seria mais uma peça para manter, e esta já roda todo dia.
+  //
+  // A limpeza não pode derrubar o heartbeat: se ela falhar, o que importa
+  // — manter o projeto acordado — já aconteceu.
+  let notificacoesRemovidas: number | null = null;
+  const { data: removidas, error: erroLimpeza } = await supabase.rpc(
+    "limpar_notificacoes_antigas"
+  );
+
+  if (erroLimpeza) {
+    console.error("Falha ao limpar notificações:", erroLimpeza.message);
+  } else if (typeof removidas === "number") {
+    notificacoesRemovidas = removidas;
+  }
+
+  return NextResponse.json({ status: "ok", notificacoesRemovidas });
 }

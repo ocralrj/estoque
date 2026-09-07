@@ -110,14 +110,27 @@ export default function AdminSuggestionsClient({
                     {s.module_hint ? ` · ${s.module_hint}` : ""}
                   </p>
                 </div>
-                <span
-                  className={clsx(
-                    "px-2 py-1 text-xs font-semibold rounded-full",
-                    SUGGESTION_STATUS_COLORS[s.status]
+                {/* O número de voltas fica ao lado do status: uma sugestão no
+                    quinto vaivém é assunto que não fecha por escrito, e isso
+                    precisa saltar da lista sem abrir cada uma. */}
+                <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={clsx(
+                      "px-2 py-1 text-xs font-semibold rounded-full",
+                      SUGGESTION_STATUS_COLORS[s.status]
+                    )}
+                  >
+                    {SUGGESTION_STATUS_LABELS[s.status]}
+                  </span>
+                  {(s.idas_e_vindas ?? 0) > 0 && (
+                    <span
+                      title={`A equipe escreveu de volta ${s.idas_e_vindas} vez(es)`}
+                      className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-xs font-bold text-[var(--muted)]"
+                    >
+                      {s.idas_e_vindas}ª volta
+                    </span>
                   )}
-                >
-                  {SUGGESTION_STATUS_LABELS[s.status]}
-                </span>
+                </div>
               </div>
 
               <div className="mt-3 grid gap-2 text-sm">
