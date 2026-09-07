@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/labels";
@@ -6,6 +7,7 @@ import type { UserGroup } from "@/types/modules/admin";
 
 export default async function GruposPage() {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("admin", "groups", "read");
 
   const { data: groups, error } = await supabase
     .from("user_groups")

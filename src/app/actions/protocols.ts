@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { generateRecordCode } from "@/lib/codes";
@@ -8,6 +9,8 @@ import type { ProtocolPriority, ProtocolStatus } from "@/types/database";
 export async function createProtocol(formData: FormData) {
   const { supabase, user, profile } = await getSession();
   if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "create");
+  if (!permitido.ok) throw new Error(permitido.message);
 
   const title = (formData.get("title") as string)?.trim();
   const description = (formData.get("description") as string)?.trim();
@@ -44,6 +47,8 @@ export async function createProtocol(formData: FormData) {
 export async function updateProtocol(protocolId: string, formData: FormData) {
   const { supabase, user, profile } = await getSession();
   if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "update");
+  if (!permitido.ok) throw new Error(permitido.message);
 
   const title = (formData.get("title") as string)?.trim();
   const description = (formData.get("description") as string)?.trim();
@@ -83,6 +88,8 @@ export async function updateProtocol(protocolId: string, formData: FormData) {
 export async function deleteProtocol(protocolId: string) {
   const { supabase, user, profile } = await getSession();
   if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "delete");
+  if (!permitido.ok) throw new Error(permitido.message);
 
   const query = supabase.from("protocolos").delete().eq("id", protocolId);
   if (!isManager(profile?.role)) {

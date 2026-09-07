@@ -1,9 +1,11 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import AdminSuggestionsClient from "./AdminSuggestionsClient";
 import type { ImprovementSuggestion } from "@/types/modules/suggestions";
 
 export default async function AdminSuggestionsPage() {
   const { supabase } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("sugestoes", "todas", "read");
 
   const { data: suggestions } = await supabase
     .from("improvement_suggestions")

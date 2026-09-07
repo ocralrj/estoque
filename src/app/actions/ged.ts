@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { generateRecordCode } from "@/lib/codes";
@@ -118,6 +119,8 @@ export async function criarDocumento(
 ): Promise<ActionResult<{ id: string; codigo: string }>> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "create");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validar(input);
@@ -172,6 +175,8 @@ export async function atualizarDocumento(
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "update");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validar(input);
@@ -202,6 +207,8 @@ export async function atualizarDocumento(
 export async function excluirDocumento(id: string): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "delete");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   // Exclusão é a única operação sem volta do módulo: leva o registro, a trilha
@@ -239,6 +246,8 @@ export async function urlDeDownload(
 ): Promise<ActionResult<{ url: string }>> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "download");
+  if (!permitido.ok) return permitido;
 
   const { data, error } = await supabase.storage
     .from("ged")
@@ -267,6 +276,8 @@ export async function lerDocumentoComIa(
 > {
   const { user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "create");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const rl = checkRateLimit(`ged-extrair:${user.id}`, 30);
@@ -288,6 +299,8 @@ export async function listarUsuariosParaAcesso(): Promise<
 > {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "documents", "manage");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const { data, error } = await supabase
@@ -314,6 +327,8 @@ export async function listarAcessosDoDocumento(
 ): Promise<ActionResult<{ user_id: string; nivel: "leitura" | "edicao" }[]>> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "audit", "read");
+  if (!permitido.ok) return permitido;
 
   const { data, error } = await supabase
     .from("ged_document_access")

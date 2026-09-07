@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import type { Departamento, MembroDepartamento } from "@/types/modules/admin";
@@ -53,6 +54,8 @@ export async function criarDepartamento(
 ): Promise<ActionResult<Departamento>> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "departamentos", "create");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validarNome(nome);
@@ -103,6 +106,8 @@ export async function atualizarDepartamento(
 ): Promise<ActionResult<{ registrosAtualizados: number }>> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "departamentos", "update");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validarNome(nome);
@@ -149,6 +154,8 @@ export async function atualizarDepartamento(
 export async function excluirDepartamento(id: string): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "departamentos", "delete");
+  if (!permitido.ok) return permitido;
 
   if (profile?.role !== "super_admin") {
     return { ok: false, message: "Apenas o administrador pode excluir departamentos." };
@@ -199,6 +206,8 @@ export async function listarMembrosPorDepartamento(): Promise<
 > {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "read");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const { data, error } = await supabase

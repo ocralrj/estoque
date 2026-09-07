@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 
@@ -40,6 +41,8 @@ function validar(input: PastaInput): string | null {
 export async function criarPasta(input: PastaInput): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "folders", "create");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validar(input);
@@ -70,6 +73,8 @@ export async function atualizarPasta(
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "folders", "update");
+  if (!permitido.ok) return permitido;
   if (!podeManter(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const erro = validar(input);
@@ -100,6 +105,8 @@ export async function atualizarPasta(
 export async function excluirPasta(id: string): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("ged", "folders", "delete");
+  if (!permitido.ok) return permitido;
 
   if (profile?.role !== "super_admin") {
     return { ok: false, message: "Apenas o administrador pode excluir pastas." };

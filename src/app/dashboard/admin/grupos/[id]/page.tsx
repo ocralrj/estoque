@@ -1,11 +1,21 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { Card, ConfirmSubmitButton } from "@/components/ui";
-import { addGroupMember, removeGroupMember, addGroupPermission, removeGroupPermission, deleteGroup } from "@/app/actions/groups";
+import { addGroupMember, removeGroupMember, deleteGroup } from "@/app/actions/groups";
+import { pode } from "@/lib/permissoes";
+import { nomeDoNivel } from "@/lib/catalogo-permissoes";
+import MatrizDePermissoes from "./MatrizDePermissoes";
+import NivelDoGrupo from "./NivelDoGrupo";
 
 export default async function GrupoDetalhesPage({ params }: { params: { id: string } }) {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("admin", "groups", "read");
+
+  const podeEditarGrupo = await pode("admin", "groups", "update");
+  const podeConcederPermissoes = await pode("admin", "permissions", "manage");
+  const podeExcluirGrupo = await pode("admin", "groups", "delete");
 
   const { data: group, error } = await supabase
     .from("user_groups")
@@ -68,8 +78,11 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
           {group.description && (
             <p className="text-sm text-[var(--text-muted)] mt-1">{group.description}</p>
           )}
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary-strong)]">
+            Nível {(group.nivel as number) ?? 40} · {nomeDoNivel((group.nivel as number) ?? 40)}
+          </p>
         </div>
-        {profile?.role === "super_admin" && (
+        {podeExcluirGrupo && (
           <div className="flex gap-2">
             <Link
               href={`/dashboard/admin/grupos/${params.id}/editar`}
@@ -101,7 +114,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
                     Role: {member.profile.role}
                   </p>
                 </div>
-                {profile?.role === "super_admin" && (
+                {podeEditarGrupo && (
                   <form action={removeGroupMember.bind(null, params.id, member.user_id)}>
                     <button
                       type="submit"
@@ -114,7 +127,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
               </div>
             ))}
 
-            {profile?.role === "super_admin" && availableUsers.length > 0 && (
+            {podeEditarGrupo && availableUsers.length > 0 && (
               <div className="pt-3 border-t border-[var(--neo-line)]">
                 <p className="text-sm font-medium text-[var(--text)] mb-2">Adicionar membro:</p>
                 <form action={async (formData: FormData) => {
@@ -146,47 +159,22 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
           </div>
         </Card>
 
-        <Card title="Permissões" subtitle={`${group.permissions.length} permissões atribuídas`}>
-          <div className="space-y-4">
-            {Object.entries(groupedPermissions || {}).map(([module, resources]: [string, any]) => (
-              <div key={module}>
-                <h4 className="font-medium text-[var(--text)] mb-2 capitalize">{module}</h4>
-                {Object.entries(resources).map(([resource, perms]: [string, any]) => (
-                  <div key={resource} className="ml-4 mb-3">
-                    <p className="text-sm font-medium text-[var(--text)] mb-1">{resource}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {perms.map((perm: any) => {
-                        const hasPermission = permissionIds.has(perm.id);
-                        return (
-                          <form
-                            key={perm.id}
-                            action={hasPermission
-                              ? removeGroupPermission.bind(null, params.id, perm.id)
-                              : addGroupPermission.bind(null, params.id, perm.id)
-                            }
-                          >
-                            <button
-                              type="submit"
-                              disabled={profile?.role !== "super_admin"}
-                              className={`px-2 py-1 text-xs rounded ${
-                                hasPermission
-                                  ? "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
-                                  : "bg-[var(--surface-strong)] text-[var(--muted)]"
-                              } ${profile?.role === "super_admin" ? "hover:opacity-75 cursor-pointer" : "cursor-default"}`}
-                            >
-                              {perm.action} {hasPermission && "✓"}
-                            </button>
-                          </form>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
+
+      <NivelDoGrupo
+        grupoId={params.id}
+        nivelAtual={(group.nivel as number) ?? 40}
+        fixo={Boolean(group.sistema)}
+        podeEditar={podeEditarGrupo}
+        quantidadeDeMembros={group.members.length}
+      />
+
+      <MatrizDePermissoes
+        grupoId={params.id}
+        catalogo={(allPermissions ?? []) as never}
+        concedidas={group.permissions.map((p: any) => p.permission_id)}
+        podeEditar={podeConcederPermissoes}
+      />
     </div>
   );
 }

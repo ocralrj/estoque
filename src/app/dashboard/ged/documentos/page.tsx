@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/labels";
@@ -18,6 +19,7 @@ export default async function GedDocumentosPage({
   searchParams: SearchParams;
 }) {
   const { supabase } = await requireSession();
+  await exigirPermissao("ged", "documents", "read");
 
   // Os filtros vêm da própria URL: o formulário é um GET, então a seleção
   // sobrevive ao recarregamento e pode ser compartilhada por link.

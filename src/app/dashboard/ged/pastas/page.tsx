@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
 import { listarDepartamentos } from "@/app/actions/departamentos";
@@ -6,6 +7,7 @@ import type { GedFolder } from "@/types/modules/ged";
 
 export default async function GedPastasPage() {
   const { supabase, profile } = await requireSession(STOCK_ROLES);
+  await exigirPermissao("ged", "folders", "read");
 
   const [{ data: pastas }, dep] = await Promise.all([
     supabase

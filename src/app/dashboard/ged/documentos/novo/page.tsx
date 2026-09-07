@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
 import { listarDepartamentos } from "@/app/actions/departamentos";
@@ -6,6 +7,7 @@ import type { GedFolder, GedRetentionRule } from "@/types/modules/ged";
 
 export default async function NovoDocumentoPage() {
   const { supabase } = await requireSession(STOCK_ROLES);
+  await exigirPermissao("ged", "documents", "create");
 
   const [{ data: pastas }, { data: regras }] = await Promise.all([
     supabase

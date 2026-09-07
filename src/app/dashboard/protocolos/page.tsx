@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { isManager, requireSession } from "@/lib/auth";
 import {
@@ -11,6 +12,7 @@ import type { Protocol } from "@/types/database";
 
 export default async function ProtocolosPage() {
   const { supabase, user, profile } = await requireSession();
+  await exigirPermissao("protocolos", "protocolos", "read");
   const canManage = isManager(profile?.role);
 
   let query = supabase

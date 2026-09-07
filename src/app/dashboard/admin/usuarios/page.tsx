@@ -1,9 +1,11 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { listarDepartamentos } from "@/app/actions/departamentos";
 import UsersClient from "./UsersClient";
 
 export default async function UsersPage() {
   const { supabase, user, profile } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("admin", "users", "read");
 
   const { data: users } = await supabase
     .from("profiles")

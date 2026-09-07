@@ -1,9 +1,11 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
 import type { Product } from "@/types/database";
 
 export default async function AlertsPage() {
   const { supabase } = await requireSession(STOCK_ROLES);
+  await exigirPermissao("estoque", "alerts", "read");
 
   const { data: lowStockProductsData } = await supabase
     .from("products")

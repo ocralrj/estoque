@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
@@ -15,6 +16,7 @@ import {
 
 export default async function DocumentoPage({ params }: { params: { id: string } }) {
   const { supabase, profile } = await requireSession(STOCK_ROLES);
+  await exigirPermissao("ged", "documents", "read");
 
   const { data: documento } = await supabase
     .from("ged_documents")

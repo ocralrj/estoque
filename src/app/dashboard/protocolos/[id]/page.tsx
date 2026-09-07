@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { deleteProtocol, updateProtocol } from "@/app/actions/protocols";
@@ -20,6 +21,7 @@ const priorityOptions = [
 
 export default async function ProtocolosDetalhesPage({ params }: { params: { id: string } }) {
   const { supabase, user, profile } = await requireSession();
+  await exigirPermissao("protocolos", "protocolos", "read");
   const canManage = isManager(profile?.role);
 
   const { data: protocol, error } = await supabase

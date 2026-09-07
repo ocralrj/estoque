@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/labels";
@@ -10,6 +11,7 @@ import {
 
 export default async function MySuggestionsPage() {
   const { supabase, user } = await requireSession();
+  await exigirPermissao("sugestoes", "minhas", "read");
 
   const { data: suggestions } = await supabase
     .from("improvement_suggestions")

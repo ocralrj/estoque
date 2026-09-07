@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import DashboardShell from "@/components/layout/DashboardShell";
+import { permissoesParaCliente } from "@/lib/permissoes";
+import { ProvedorDePermissoes } from "@/components/auth/Permissoes";
 
 export default async function DashboardLayout({
   children,
@@ -15,5 +17,13 @@ export default async function DashboardLayout({
   // cadastrou o acesso — e por quem tiver lido o e-mail.
   if (profile.must_change_password) redirect("/auth/trocar-senha");
 
-  return <DashboardShell profile={profile}>{children}</DashboardShell>;
+  // As permissões descem prontas do servidor: o navegador desenha o que já foi
+  // decidido, e nunca decide por conta própria.
+  const permissoes = await permissoesParaCliente();
+
+  return (
+    <ProvedorDePermissoes permissoes={permissoes}>
+      <DashboardShell profile={profile}>{children}</DashboardShell>
+    </ProvedorDePermissoes>
+  );
 }

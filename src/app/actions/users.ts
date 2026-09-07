@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { SENHA_INICIAL } from "@/lib/senha";
@@ -24,6 +25,8 @@ export async function updateUserRole(
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "update");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   if (userId === user.id) {
@@ -82,6 +85,8 @@ export async function definirStatus(
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "manage");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   if (userId === user.id) {
@@ -160,6 +165,8 @@ export async function definirStatus(
 export async function promoverASuperAdmin(userId: string): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "update");
+  if (!permitido.ok) return permitido;
 
   if (profile?.role !== "super_admin") {
     return { ok: false, message: "Apenas um super admin pode conceder esse papel." };
@@ -273,6 +280,8 @@ export async function convidarUsuario(
 ): Promise<{ ok: true; senha: string } | { ok: false; message: string }> {
   const { user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "create");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const limpo = entrada.email.trim().toLowerCase();
@@ -405,6 +414,8 @@ export async function definirDepartamento(
 ): Promise<ActionResult> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("admin", "users", "manage");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
   const { error } = await supabase

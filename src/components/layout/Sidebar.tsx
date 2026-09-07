@@ -2,15 +2,22 @@
 
 import Tooltip from "@/components/ui/Tooltip";
 import IconeMenu from "./IconesMenu";
+import { usePode } from "@/components/auth/Permissoes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import type { Profile } from "@/types";
 
 interface NavItem {
   href?: string;
   label: string;
+  /**
+   * Permissão que revela o item, como "modulo:recurso:acao". Sem ela o item
+   * não aparece — e a página correspondente recusa o acesso direto pela URL,
+   * porque esconder o link não protege nada.
+   */
+  permissao?: string;
   /** Ícone do item. Recolhido, é a única identificação visível. */
   icone?: string;
   /** O que a tela faz, mostrado na dica ao passar o ponteiro. */
@@ -19,7 +26,24 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const navStructure = (role: string): NavItem[] => {
+/** Tudo que o menu pergunta. Fica explícito para o filtro poder ser um Set. */
+const TODAS_AS_PERMISSOES = [
+  "estoque:products:read",
+  "estoque:movements:read",
+  "estoque:alerts:read",
+  "estoque:reports:read",
+  "ged:documents:read",
+  "ged:folders:read",
+  "sugestoes:minhas:read",
+  "sugestoes:todas:read",
+  "protocolos:protocolos:read",
+  "admin:users:read",
+  "admin:departamentos:read",
+  "admin:groups:read",
+  "admin:audit:read",
+];
+
+const navStructure = (role: string, permissoes: Set<string>): NavItem[] => {
   const items: NavItem[] = [
     {
       href: "/dashboard",
@@ -31,13 +55,14 @@ const navStructure = (role: string): NavItem[] => {
     {
       label: "Estoque",
       icone: "estoque",
+      permissao: "estoque:products:read",
       dica: "Produtos do almoxarifado, entradas e saídas",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
       children: [
-        { href: "/dashboard/estoque/produtos", label: "Produtos", icone: "produtos", dica: "Cadastro dos itens do almoxarifado, com saldo e ponto de reposição", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
-        { href: "/dashboard/estoque/movimentacoes", label: "Movimentações", icone: "movimentacoes", dica: "Histórico de entradas e saídas. O saldo do produto é atualizado por aqui", roles: ["super_admin", "gestor", "almoxarife"] },
-        { href: "/dashboard/estoque/alertas", label: "Alertas", icone: "alertas", dica: "Produtos abaixo da quantidade mínima definida no cadastro", roles: ["super_admin", "gestor", "almoxarife"] },
-        { href: "/dashboard/estoque/relatorios", label: "Relatórios", icone: "relatorios", dica: "Volume movimentado por período, produto e categoria", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/estoque/produtos", label: "Produtos", icone: "produtos", permissao: "estoque:products:read", dica: "Cadastro dos itens do almoxarifado, com saldo e ponto de reposição", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
+        { href: "/dashboard/estoque/movimentacoes", label: "Movimentações", icone: "movimentacoes", permissao: "estoque:movements:read", dica: "Histórico de entradas e saídas. O saldo do produto é atualizado por aqui", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/estoque/alertas", label: "Alertas", icone: "alertas", permissao: "estoque:alerts:read", dica: "Produtos abaixo da quantidade mínima definida no cadastro", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/estoque/relatorios", label: "Relatórios", icone: "relatorios", permissao: "estoque:reports:read", dica: "Volume movimentado por período, produto e categoria", roles: ["super_admin", "gestor"] },
       ],
     },
     {
@@ -45,17 +70,19 @@ const navStructure = (role: string): NavItem[] => {
       href: "/dashboard/ged",
       label: "GED",
       icone: "ged",
+      permissao: "ged:documents:read",
       dica: "Gestão eletrônica de documentos: acervo, prazos de guarda e certificados",
       roles: ["super_admin", "gestor", "almoxarife"],
       children: [
-        { href: "/dashboard/ged/documentos", label: "Documentos", icone: "documentos", dica: "Buscar, cadastrar e baixar arquivos do acervo", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
-        { href: "/dashboard/ged/pastas", label: "Pastas", icone: "pastas", dica: "Estrutura de arquivamento por departamento", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/ged/documentos", label: "Documentos", icone: "documentos", permissao: "ged:documents:read", dica: "Buscar, cadastrar e baixar arquivos do acervo", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
+        { href: "/dashboard/ged/pastas", label: "Pastas", icone: "pastas", permissao: "ged:folders:read", dica: "Estrutura de arquivamento por departamento", roles: ["super_admin", "gestor", "almoxarife"] },
       ],
     },
     {
       href: "/dashboard/sugestoes",
       label: "Minhas Sugestões",
       icone: "sugestoes",
+      permissao: "sugestoes:minhas:read",
       dica: "Melhorias que você propôs e a resposta da equipe",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
@@ -63,30 +90,38 @@ const navStructure = (role: string): NavItem[] => {
       href: "/dashboard/protocolos",
       label: "Protocolos",
       icone: "protocolos",
+      permissao: "protocolos:protocolos:read",
       dica: "Solicitações internas com número, responsável e situação",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
       label: "Administração",
       icone: "administracao",
+      permissao: "admin:users:read",
       dica: "Usuários, grupos, departamentos e trilha de auditoria",
       roles: ["super_admin", "gestor"],
       children: [
-        { href: "/dashboard/admin/usuarios", label: "Usuários", icone: "usuarios", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/departamentos", label: "Departamentos", icone: "departamentos", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/grupos", label: "Grupos", icone: "grupos", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
-        { href: "/dashboard/admin/sugestoes", label: "Sugestões", icone: "sugestoes", dica: "Melhorias enviadas por todos: responder e definir prioridade", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/auditoria", label: "Auditoria", icone: "auditoria", dica: "Quem alterou papéis, grupos e permissões, e quando", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/usuarios", label: "Usuários", icone: "usuarios", permissao: "admin:users:read", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/departamentos", label: "Departamentos", icone: "departamentos", permissao: "admin:departamentos:read", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/grupos", label: "Grupos", icone: "grupos", permissao: "admin:groups:read", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
+        { href: "/dashboard/admin/sugestoes", label: "Sugestões", icone: "sugestoes", permissao: "sugestoes:todas:read", dica: "Melhorias enviadas por todos: responder e definir prioridade", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/auditoria", label: "Auditoria", icone: "auditoria", permissao: "admin:audit:read", dica: "Quem alterou papéis, grupos e permissões, e quando", roles: ["super_admin", "gestor"] },
       ],
     },
   ];
 
-  return items
-    .filter((item) => item.roles.includes(role))
-    .map((item) => ({
-      ...item,
-      children: item.children?.filter((child) => child.roles.includes(role)),
-    }));
+  // A filtragem é por permissão, não por papel. O papel continua no item apenas
+  // como rede: se as permissões ainda não vieram do banco, o menu volta a ser o
+  // que era antes dos grupos, em vez de aparecer vazio.
+  const visivel = (item: NavItem) =>
+    permissoes.size > 0
+      ? !item.permissao || permissoes.has(item.permissao)
+      : item.roles.includes(role);
+
+  return items.filter(visivel).map((item) => ({
+    ...item,
+    children: item.children?.filter(visivel),
+  }));
 };
 
 function NavItemComponent({
@@ -250,8 +285,24 @@ export default function Sidebar({
   variant = "desktop",
 }: SidebarProps) {
   const pathname = usePathname();
+  const pode = usePode();
   const isDrawer = variant === "drawer";
   const isCollapsed = collapsed && !isDrawer;
+
+  const permissoes = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of TODAS_AS_PERMISSOES) {
+      const [m, r, a] = item.split(":");
+      if (pode(m, r, a)) set.add(item);
+    }
+    return set;
+  }, [pode]);
+
+  // Um grupo cujos filhos sumiram todos não deve aparecer sozinho: ele levaria
+  // a uma tela que a pessoa não pode abrir.
+  const itens = navStructure(profile.role, permissoes).filter(
+    (item) => !item.children || item.children.length > 0
+  );
 
   return (
     <aside
@@ -306,7 +357,7 @@ export default function Sidebar({
       )}
 
       <nav className="flex-1 space-y-1 overflow-y-auto py-2">
-        {navStructure(profile.role).map((item) => (
+        {itens.map((item) => (
           <NavItemComponent
             key={item.href || item.label}
             item={item}

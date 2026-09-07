@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/labels";
@@ -77,6 +78,7 @@ export default async function AuditoriaPage({
   searchParams: SearchParams;
 }) {
   const { supabase } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("admin", "audit", "read");
 
   let query = supabase
     .from("audit_logs")

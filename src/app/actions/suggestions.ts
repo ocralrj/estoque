@@ -1,5 +1,6 @@
 "use server";
 
+import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { generateRecordCode } from "@/lib/codes";
@@ -19,6 +20,8 @@ export async function createSuggestion(
 ): Promise<ActionResult<ImprovementSuggestion>> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("sugestoes", "minhas", "create");
+  if (!permitido.ok) return permitido;
 
   const title = input.title?.trim();
   const raw_idea = input.raw_idea?.trim();
@@ -98,6 +101,8 @@ export async function listAllSuggestions(): Promise<
 > {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("sugestoes", "todas", "read");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) {
     return { ok: false, message: "Sem permissão" };
   }
@@ -125,6 +130,8 @@ export async function updateSuggestionStatus(
 ): Promise<ActionResult<ImprovementSuggestion>> {
   const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+  const permitido = await exigir("sugestoes", "todas", "manage");
+  if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) {
     return { ok: false, message: "Sem permissão" };
   }

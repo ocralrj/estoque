@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import {
   listarDepartamentos,
@@ -7,6 +8,7 @@ import DepartamentosClient from "./DepartamentosClient";
 
 export default async function DepartamentosPage() {
   const { profile } = await requireSession(MANAGER_ROLES);
+  await exigirPermissao("admin", "departamentos", "read");
   const [res, membros] = await Promise.all([
     listarDepartamentos(),
     listarMembrosPorDepartamento(),

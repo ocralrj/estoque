@@ -1,9 +1,11 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession, STOCK_ROLES } from "@/lib/auth";
 import { formatDateTime } from "@/lib/labels";
 
 export default async function MovementsPage() {
   const { supabase } = await requireSession(STOCK_ROLES);
+  await exigirPermissao("estoque", "movements", "read");
 
   const { data: movements } = await supabase
     .from("movements")

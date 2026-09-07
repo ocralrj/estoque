@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/labels";
@@ -14,6 +15,7 @@ const ALERT_WINDOW_DAYS = 60;
 
 export default async function GedPage() {
   const { supabase } = await requireSession();
+  await exigirPermissao("ged", "documents", "read");
 
   const [
     { count: totalDocs },

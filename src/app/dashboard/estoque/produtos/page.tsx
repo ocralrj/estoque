@@ -1,8 +1,10 @@
+import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { canManageStock, requireSession } from "@/lib/auth";
 
 export default async function ProductsPage() {
   const { supabase, profile } = await requireSession();
+  await exigirPermissao("estoque", "products", "read");
 
   const { data: products } = await supabase
     .from("products")
