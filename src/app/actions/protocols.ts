@@ -16,6 +16,7 @@ export async function createProtocol(formData: FormData) {
   const description = (formData.get("description") as string)?.trim();
   const priority = (formData.get("priority") as ProtocolPriority) || "media";
   const assigned_to = (formData.get("assigned_to") as string) || null;
+  const assigned_group_id = (formData.get("assigned_group_id") as string) || null;
 
   if (!title) {
     throw new Error("Título é obrigatório");
@@ -32,8 +33,12 @@ export async function createProtocol(formData: FormData) {
     status: "aberto",
   };
 
-  if (isManager(profile?.role) && assigned_to) {
-    payload.assigned_to = assigned_to;
+  // Atribuir é ação de quem administra o fluxo: sem a permissão, o protocolo
+  // nasce na fila geral mesmo que o campo chegue preenchido.
+  const podeAtribuir = await exigir("protocolos", "protocolos", "manage");
+  if (podeAtribuir.ok) {
+    if (assigned_to) payload.assigned_to = assigned_to;
+    if (assigned_group_id) payload.assigned_group_id = assigned_group_id;
   }
 
   const { data, error } = await supabase
@@ -174,6 +179,7 @@ export async function updateProtocol(protocolId: string, formData: FormData) {
   const priority = (formData.get("priority") as ProtocolPriority) || "media";
   const status = (formData.get("status") as ProtocolStatus) || "aberto";
   const assigned_to = (formData.get("assigned_to") as string) || null;
+  const assigned_group_id = (formData.get("assigned_group_id") as string) || null;
 
   if (!title) {
     throw new Error("Título é obrigatório");

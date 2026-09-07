@@ -1,5 +1,6 @@
 "use client";
 
+import SuggestWithAi from "@/components/ai/SuggestWithAi";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -12,7 +13,6 @@ import {
 import { Button } from "@/components/ui";
 import type { Profile } from "@/types/database";
 
-type UserOption = Pick<Profile, "id" | "email" | "full_name">;
 
 const priorities = [
   { value: "media", label: "Média" },
@@ -20,14 +20,27 @@ const priorities = [
   { value: "baixa", label: "Baixa" },
 ];
 
-export default function FormularioProtocolo() {
+interface Opcao {
+  id: string;
+  nome: string;
+}
+
+export default function FormularioProtocolo({
+  podeAtribuir,
+  pessoas,
+  grupos,
+}: {
+  podeAtribuir: boolean;
+  pessoas: Opcao[];
+  grupos: Opcao[];
+}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
-  const [assignedTo, setAssignedTo] = useState<string>("");
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [isManager, setIsManager] = useState(false);
+  const [destino, setDestino] = useState<"ninguem" | "pessoa" | "grupo">("ninguem");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedGroup, setAssignedGroup] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [arquivo, setArquivo] = useState<ArquivoPreparado | null>(null);
@@ -35,35 +48,6 @@ export default function FormularioProtocolo() {
   const [compartilharCom, setCompartilharCom] = useState<string[]>([]);
   const [progresso, setProgresso] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadUserData() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      const role = profile?.role;
-      const manager = role === "super_admin" || role === "gestor";
-      setIsManager(manager);
-
-      if (manager) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, email, full_name")
-          .eq("active", true)
-          .order("email");
-
-        setUsers(data || []);
-      }
-    }
-
-    loadUserData();
-  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +58,12 @@ export default function FormularioProtocolo() {
     formData.set("title", title);
     formData.set("description", description);
     formData.set("priority", priority);
-    if (assignedTo) formData.set("assigned_to", assignedTo);
+    if (destino === "pessoa" && assignedTo) {
+      formData.set("assigned_to", assignedTo);
+    }
+    if (destino === "grupo" && assignedGroup) {
+      formData.set("assigned_group_id", assignedGroup);
+    }
 
     try {
       const protocolo = await createProtocol(formData);
@@ -190,7 +179,25 @@ export default function FormularioProtocolo() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-2">Descrição</label>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-sm font-medium text-[var(--text)]">
+                Descrição
+              </label>
+
+              {/* A sugestão parte do título já digitado: pedir à IA que
+                  detalhe uma solicitação sem saber do que ela trata devolveria
+                  texto genérico. */}
+              <SuggestWithAi
+                fieldType="descricao_protocolo"
+                whatToSuggest="descrições objetivas de solicitações internas, dizendo o que deve ser feito e por quê"
+                domain="ERP OCRAL - Protocolos"
+                currentValue={description}
+                disabled={!title.trim()}
+                label={title.trim() ? "Sugira com IA" : "Escreva o título primeiro"}
+                context={{ titulo: title, prioridade: priority }}
+                onAccept={(texto) => setDescription(texto)}
+              />
+            </div>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
@@ -215,21 +222,74 @@ export default function FormularioProtocolo() {
             </select>
           </div>
 
-          {isManager && (
+          {podeAtribuir && (
             <div>
-              <label className="block text-sm font-medium text-[var(--text)] mb-2">Atribuir responsável</label>
-              <select
-                value={assignedTo}
-                onChange={(event) => setAssignedTo(event.target.value)}
-                className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-              >
-                <option value="">Nenhum</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name || user.email}
-                  </option>
+              <label className="mb-2 block text-sm font-medium text-[var(--text)]">
+                Este protocolo vai para
+              </label>
+
+              {/* Pessoa ou grupo, e não os dois campos ao mesmo tempo: boa
+                  parte das solicitações é para uma área — o Financeiro, o DP —
+                  e escolher uma pessoa nesses casos elege um responsável
+                  arbitrário que pode estar de férias. */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {(
+                  [
+                    ["ninguem", "Ninguém ainda", "Fica na fila geral"],
+                    ["pessoa", "Uma pessoa", "Alguém específico responde"],
+                    ["grupo", "Um grupo", "Quem estiver na área responde"],
+                  ] as const
+                ).map(([valor, titulo, detalhe]) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    onClick={() => setDestino(valor)}
+                    aria-pressed={destino === valor}
+                    className={`rounded-2xl border p-3 text-left transition ${
+                      destino === valor
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                        : "border-[var(--neo-line)] bg-[var(--neo-flat)]"
+                    }`}
+                  >
+                    <span className="block text-sm font-bold text-[var(--text)]">
+                      {titulo}
+                    </span>
+                    <span className="block text-xs text-[var(--text-muted)]">
+                      {detalhe}
+                    </span>
+                  </button>
                 ))}
-              </select>
+              </div>
+
+              {destino === "pessoa" && (
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="mt-3 w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+                >
+                  <option value="">Escolha a pessoa</option>
+                  {pessoas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {destino === "grupo" && (
+                <select
+                  value={assignedGroup}
+                  onChange={(e) => setAssignedGroup(e.target.value)}
+                  className="mt-3 w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+                >
+                  <option value="">Escolha o grupo</option>
+                  {grupos.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 
@@ -279,13 +339,13 @@ export default function FormularioProtocolo() {
               )}
             </div>
 
-            {arquivo && users.length > 0 && (
+            {arquivo && pessoas.length > 0 && (
               <div className="mt-4 border-t border-[var(--neo-line)] pt-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                   Compartilhar a leitura com
                 </p>
                 <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
-                  {users
+                  {pessoas
                     .filter((u) => u.id !== assignedTo)
                     .map((u) => (
                       <label
@@ -297,7 +357,7 @@ export default function FormularioProtocolo() {
                           checked={compartilharCom.includes(u.id)}
                           onChange={() => alternarCompartilhamento(u.id)}
                         />
-                        <span className="truncate">{u.full_name || u.email}</span>
+                        <span className="truncate">{u.nome}</span>
                       </label>
                     ))}
                 </div>
