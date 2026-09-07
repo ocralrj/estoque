@@ -82,6 +82,38 @@ export async function pedirAcesso(entrada: {
   return { ok: true, data: undefined };
 }
 
+/**
+ * Nomes dos departamentos, para a tela de pedido de acesso.
+ *
+ * Roda no servidor com a chave de serviço em vez de expor uma view ao papel
+ * anônimo. A view anterior precisava ignorar o RLS para funcionar — e uma view
+ * que ignora o RLS cresce em exposição no dia em que alguém acrescenta uma
+ * coluna ao select, sem nada no caminho para barrar. Aqui a decisão de expor
+ * está escrita: devolve nome, e só.
+ */
+export async function departamentosParaPedido(): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !chave) return [];
+
+  const admin = createClient(url, chave, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data, error } = await admin
+    .from("departamentos")
+    .select("nome")
+    .eq("ativo", true)
+    .order("nome");
+
+  if (error) {
+    console.error("Falha ao listar departamentos para o pedido:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((d) => d.nome as string);
+}
+
 export interface PedidoDeAcesso {
   id: string;
   nome: string;

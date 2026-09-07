@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { pedirAcesso } from "@/app/actions/acessos";
+import { departamentosParaPedido, pedirAcesso } from "@/app/actions/acessos";
 import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
 import Logo from "@/components/layout/Logo";
 
@@ -23,7 +22,6 @@ export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [departamento, setDepartamento] = useState("");
-  const [mensagem, setMensagem] = useState("");
   const [departamentos, setDepartamentos] = useState<string[]>([]);
 
   const [tocado, setTocado] = useState({ nome: false, email: false, dep: false });
@@ -32,16 +30,9 @@ export default function RegisterPage() {
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    // A view só expõe o nome dos departamentos ativos — quem está nesta tela
-    // não tem sessão, e não precisa ver gestor, descrição nem datas.
-    async function carregar() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("departamentos_publicos")
-        .select("nome");
-      setDepartamentos((data ?? []).map((d) => d.nome as string));
-    }
-    carregar();
+    // Vem por Server Action, que roda no servidor: nada é exposto ao papel
+    // anônimo no banco, e a lista devolvida é só de nomes.
+    departamentosParaPedido().then(setDepartamentos);
   }, []);
 
   const nomeValido = nome.trim().length >= 3;
@@ -60,7 +51,7 @@ export default function RegisterPage() {
     setErro("");
     setEnviando(true);
 
-    const res = await pedirAcesso({ nome, email, departamento, mensagem });
+    const res = await pedirAcesso({ nome, email, departamento });
     setEnviando(false);
 
     if (!res.ok) {
@@ -172,21 +163,6 @@ export default function RegisterPage() {
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   Quem responde por este departamento recebe seu pedido.
                 </p>
-              </div>
-
-              <div>
-                <label htmlFor="mensagem" className="mb-1 block text-sm font-medium text-[var(--text)]">
-                  Recado{" "}
-                  <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
-                </label>
-                <textarea
-                  id="mensagem"
-                  rows={2}
-                  value={mensagem}
-                  onChange={(e) => setMensagem(e.target.value)}
-                  placeholder="Algo que ajude quem vai aprovar a te reconhecer"
-                  className={campo}
-                />
               </div>
 
               {erro && (
