@@ -1,6 +1,7 @@
 "use client";
 
 import Tooltip from "@/components/ui/Tooltip";
+import IconeMenu from "./IconesMenu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +11,8 @@ import type { Profile } from "@/types";
 interface NavItem {
   href?: string;
   label: string;
+  /** Ícone do item. Recolhido, é a única identificação visível. */
+  icone?: string;
   /** O que a tela faz, mostrado na dica ao passar o ponteiro. */
   dica?: string;
   roles: string[];
@@ -21,53 +24,59 @@ const navStructure = (role: string): NavItem[] => {
     {
       href: "/dashboard",
       label: "Início",
+      icone: "inicio",
       dica: "Visão geral: totais de estoque, alertas e movimentações recentes",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
       label: "Estoque",
+      icone: "estoque",
       dica: "Produtos do almoxarifado, entradas e saídas",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
       children: [
-        { href: "/dashboard/estoque/produtos", label: "Produtos", dica: "Cadastro dos itens do almoxarifado, com saldo e ponto de reposição", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
-        { href: "/dashboard/estoque/movimentacoes", label: "Movimentações", dica: "Histórico de entradas e saídas. O saldo do produto é atualizado por aqui", roles: ["super_admin", "gestor", "almoxarife"] },
-        { href: "/dashboard/estoque/alertas", label: "Alertas", dica: "Produtos abaixo da quantidade mínima definida no cadastro", roles: ["super_admin", "gestor", "almoxarife"] },
-        { href: "/dashboard/estoque/relatorios", label: "Relatórios", dica: "Volume movimentado por período, produto e categoria", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/estoque/produtos", label: "Produtos", icone: "produtos", dica: "Cadastro dos itens do almoxarifado, com saldo e ponto de reposição", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
+        { href: "/dashboard/estoque/movimentacoes", label: "Movimentações", icone: "movimentacoes", dica: "Histórico de entradas e saídas. O saldo do produto é atualizado por aqui", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/estoque/alertas", label: "Alertas", icone: "alertas", dica: "Produtos abaixo da quantidade mínima definida no cadastro", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/estoque/relatorios", label: "Relatórios", icone: "relatorios", dica: "Volume movimentado por período, produto e categoria", roles: ["super_admin", "gestor"] },
       ],
     },
     {
       // Grupo com href: o rótulo navega para o painel, a seta expande.
       href: "/dashboard/ged",
       label: "GED",
+      icone: "ged",
       dica: "Gestão eletrônica de documentos: acervo, prazos de guarda e certificados",
       roles: ["super_admin", "gestor", "almoxarife"],
       children: [
-        { href: "/dashboard/ged/documentos", label: "Documentos", dica: "Buscar, cadastrar e baixar arquivos do acervo", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
-        { href: "/dashboard/ged/pastas", label: "Pastas", dica: "Estrutura de arquivamento por departamento", roles: ["super_admin", "gestor", "almoxarife"] },
+        { href: "/dashboard/ged/documentos", label: "Documentos", icone: "documentos", dica: "Buscar, cadastrar e baixar arquivos do acervo", roles: ["super_admin", "gestor", "almoxarife", "requisitante"] },
+        { href: "/dashboard/ged/pastas", label: "Pastas", icone: "pastas", dica: "Estrutura de arquivamento por departamento", roles: ["super_admin", "gestor", "almoxarife"] },
       ],
     },
     {
       href: "/dashboard/sugestoes",
       label: "Minhas Sugestões",
+      icone: "sugestoes",
       dica: "Melhorias que você propôs e a resposta da equipe",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
       href: "/dashboard/protocolos",
       label: "Protocolos",
+      icone: "protocolos",
       dica: "Solicitações internas com número, responsável e situação",
       roles: ["super_admin", "gestor", "almoxarife", "requisitante"],
     },
     {
       label: "Administração",
+      icone: "administracao",
       dica: "Usuários, grupos, departamentos e trilha de auditoria",
       roles: ["super_admin", "gestor"],
       children: [
-        { href: "/dashboard/admin/usuarios", label: "Usuários", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/departamentos", label: "Departamentos", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/grupos", label: "Grupos", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
-        { href: "/dashboard/admin/sugestoes", label: "Sugestões", dica: "Melhorias enviadas por todos: responder e definir prioridade", roles: ["super_admin", "gestor"] },
-        { href: "/dashboard/admin/auditoria", label: "Auditoria", dica: "Quem alterou papéis, grupos e permissões, e quando", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/usuarios", label: "Usuários", icone: "usuarios", dica: "Convidar pessoas, definir papéis e ativar ou desativar contas", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/departamentos", label: "Departamentos", icone: "departamentos", dica: "Áreas da empresa que originam documentos no GED", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/grupos", label: "Grupos", icone: "grupos", dica: "Conjuntos de usuários com permissões em comum", roles: ["super_admin"] },
+        { href: "/dashboard/admin/sugestoes", label: "Sugestões", icone: "sugestoes", dica: "Melhorias enviadas por todos: responder e definir prioridade", roles: ["super_admin", "gestor"] },
+        { href: "/dashboard/admin/auditoria", label: "Auditoria", icone: "auditoria", dica: "Quem alterou papéis, grupos e permissões, e quando", roles: ["super_admin", "gestor"] },
       ],
     },
   ];
@@ -79,13 +88,6 @@ const navStructure = (role: string): NavItem[] => {
       children: item.children?.filter((child) => child.roles.includes(role)),
     }));
 };
-
-/** Iniciais para o modo recolhido, onde só cabe o ícone. */
-function itemInitials(label: string): string {
-  const words = label.split(/\s+/).filter(Boolean);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
 
 function NavItemComponent({
   item,
@@ -119,9 +121,9 @@ function NavItemComponent({
           <Link
             href={destino || "#"}
             onClick={onNavigate}
-            className="flex h-11 w-full items-center justify-center rounded-2xl text-xs font-bold text-[var(--muted)] transition-all hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
+            className="flex h-11 w-full items-center justify-center rounded-2xl text-[var(--muted)] transition-all hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
           >
-            {itemInitials(item.label)}
+            <IconeMenu nome={item.icone} />
           </Link>
         </Tooltip>
       );
@@ -149,8 +151,9 @@ function NavItemComponent({
                   setIsOpen(true);
                   onNavigate?.();
                 }}
-                className="w-full px-4 py-3 text-sm font-bold text-inherit"
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold text-inherit"
               >
+                <IconeMenu nome={item.icone} />
                 {item.label}
               </Link>
             </Tooltip>
@@ -159,8 +162,9 @@ function NavItemComponent({
               <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-4 py-3 text-left text-sm font-bold text-inherit"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-inherit"
               >
+                <IconeMenu nome={item.icone} />
                 {item.label}
               </button>
             </Tooltip>
@@ -211,16 +215,17 @@ function NavItemComponent({
       href={item.href || "#"}
       onClick={onNavigate}
       className={clsx(
-        "block w-full rounded-2xl text-sm font-bold transition-all",
+        "flex w-full items-center rounded-2xl text-sm font-bold transition-all",
         collapsed
-          ? "flex h-11 items-center justify-center text-xs"
-          : "px-4 py-3",
+          ? "h-11 justify-center"
+          : "gap-3 px-4 py-3",
         isActive
           ? "neo-soft bg-[var(--surface)] text-[var(--primary-strong)]"
           : "text-[var(--muted)] hover:bg-[var(--surface-soft)] hover:text-[var(--primary-strong)]"
       )}
     >
-      {collapsed ? itemInitials(item.label) : item.label}
+      <IconeMenu nome={item.icone} />
+      {!collapsed && item.label}
     </Link>
     </Tooltip>
   );
