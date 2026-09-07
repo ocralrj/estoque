@@ -241,6 +241,8 @@ export interface NovoUsuario {
   retornoPrevisto?: string | null;
   /** Foto já tratada pela tela, como data URL. Opcional. */
   fotoBase64?: string | null;
+  /** Grupo principal, de onde vêm o nível e as permissões. */
+  grupoId?: string | null;
 }
 
 const TIPOS_DE_FOTO: Record<string, string> = {
@@ -358,6 +360,9 @@ export async function convidarUsuario(
       role: papel,
       departamento: entrada.departamento?.trim() || null,
       must_change_password: true,
+      // O grupo projeta o papel por gatilho, então vai junto: gravar o papel
+      // sem o grupo deixaria a conta com acesso e sem permissão fina nenhuma.
+      ...(entrada.grupoId ? { group_id: entrada.grupoId } : {}),
     };
 
     const { error: erroPerfil } = await admin

@@ -2,6 +2,7 @@ import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/labels";
+import { nomeDoNivel } from "@/lib/catalogo-permissoes";
 import { Card } from "@/components/ui";
 import type { UserGroup } from "@/types/modules/admin";
 
@@ -9,13 +10,20 @@ export default async function GruposPage() {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
   await exigirPermissao("admin", "groups", "read");
 
-  const { data: groups, error } = await supabase
-    .from("user_groups")
-    .select(`
-      *,
-      members:group_members(count)
-    `)
-    .order("name");
+  // A contagem vem de profiles.group_id, e não de group_members: é ali que a
+  // associação passou a viver, e a tabela antiga ficou vazia — todo grupo
+  // aparecia com "0 membros" por isso.
+  const [{ data: groups, error }, { data: pessoas }] = await Promise.all([
+    supabase.from("user_groups").select("*").order("nivel").order("name"),
+    supabase.from("profiles").select("group_id").eq("active", true),
+  ]);
+
+  const membrosPorGrupo = new Map<string, number>();
+  for (const p of pessoas ?? []) {
+    if (!p.group_id) continue;
+    const id = p.group_id as string;
+    membrosPorGrupo.set(id, (membrosPorGrupo.get(id) ?? 0) + 1);
+  }
 
   if (error) {
     console.error("Error fetching groups:", error);
@@ -42,7 +50,7 @@ export default async function GruposPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {groups?.map((group: UserGroup & { members: { count: number }[] }) => (
+        {groups?.map((group: UserGroup & { nivel?: number }) => (
           <Link
             key={group.id}
             href={`/dashboard/admin/grupos/${group.id}`}
@@ -50,11 +58,16 @@ export default async function GruposPage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-lg font-semibold text-[var(--text)]">
-                    {group.name}
-                  </h3>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-[var(--text)]">
+                      {group.name}
+                    </h3>
+                    <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary-strong)]">
+                      Nível {group.nivel ?? 40} · {nomeDoNivel(group.nivel ?? 40)}
+                    </p>
+                  </div>
                   <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--primary-strong)]">
-                    {group.members[0]?.count || 0} membros
+                    {membrosPorGrupo.get(group.id) ?? 0} membros
                   </span>
                 </div>
 

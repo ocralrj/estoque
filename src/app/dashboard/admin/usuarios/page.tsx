@@ -14,12 +14,22 @@ export default async function UsersPage() {
 
   const dep = await listarDepartamentos(true);
 
+  const { data: grupos } = await supabase
+    .from("user_groups")
+    .select("id, name, nivel")
+    .order("nivel");
+
   return (
     <UsersClient
       users={users ?? []}
       currentRole={profile?.role ?? ""}
       meuId={user.id}
       departamentos={dep.ok ? dep.data.map((d) => d.nome) : []}
+      grupos={(grupos ?? []).map((g) => ({
+        id: g.id as string,
+        nome: g.name as string,
+        nivel: (g.nivel as number) ?? 40,
+      }))}
     />
   );
 }

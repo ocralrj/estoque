@@ -41,7 +41,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[var(--neo-flat)] px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[var(--neo-flat)] px-4 py-8">
       <FundoAutenticacao />
 
       {/* A sombra é mais funda do que a dos cartões internos: aqui o cartão
@@ -115,6 +115,29 @@ function LoginForm() {
           </Link>
         </p>
       </div>
+
+        {/* Crédito de quem desenvolveu. Telefone como link tel: — no celular,
+            que é onde a maioria vê esta tela, tocar no número disca. */}
+        <footer className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-[var(--text-muted)]">
+          <span>
+            Desenvolvido por{" "}
+            <a
+              href="https://www.icardcase.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--primary)] hover:underline"
+            >
+              www.icardcase.com.br
+            </a>
+          </span>
+          <span aria-hidden className="text-[var(--neo-line)]">|</span>
+          <a
+            href="tel:+5521988785170"
+            className="font-semibold text-[var(--primary)] hover:underline"
+          >
+            (21) 98878-5170
+          </a>
+        </footer>
     </div>
   );
 }

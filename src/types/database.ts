@@ -16,6 +16,8 @@ export interface Profile {
   role: UserRole;
   /** Departamento a que pertence — define o que vê no GED. */
   departamento?: string | null;
+  /** Grupo principal: define o nível hierárquico e as permissões. */
+  group_id?: string | null;
   /** true enquanto a senha provisória não for trocada. */
   must_change_password?: boolean;
   /** Situação da conta. `active` é derivado daqui por gatilho no banco. */

@@ -9,6 +9,7 @@ import {
   convidarUsuario,
   definirDepartamento,
 } from "@/app/actions/users";
+import { definirGrupoDoUsuario } from "@/app/actions/groups";
 import {
   ROLE_LABELS,
   roleLabel,
@@ -39,11 +40,14 @@ export default function UsersClient({
   currentRole,
   meuId,
   departamentos,
+  grupos,
 }: {
   users: Profile[];
   currentRole: string;
   meuId: string;
   departamentos: string[];
+  /** Grupos disponíveis, do mais alto ao mais baixo na hierarquia. */
+  grupos: { id: string; nome: string; nivel: number }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -59,6 +63,7 @@ export default function UsersClient({
     departamento: "",
     status: "ativo" as StatusUsuario,
     retorno: "",
+    grupo: "",
   });
 
   // "Super Admin" não entra no seletor: conceder o papel máximo do sistema por
@@ -114,6 +119,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
         status: novo.status,
         retornoPrevisto: novo.retorno || null,
         fotoBase64: fotoNova ? await paraDataUrl(fotoNova.blob) : null,
+        grupoId: novo.grupo || null,
       });
       if (res.ok) {
         const email = novo.email.trim();
@@ -124,6 +130,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
           departamento: "",
           status: "ativo",
           retorno: "",
+          grupo: "",
         });
         setCriando(false);
         setFotoNova(null);
@@ -217,6 +224,24 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
               </select>
             </div>
             <div>
+              <label htmlFor="novo-grupo" className={rotulo}>
+                Grupo
+              </label>
+              <select
+                id="novo-grupo"
+                value={novo.grupo}
+                onChange={(e) => setNovo({ ...novo, grupo: e.target.value })}
+                className={campo}
+              >
+                <option value="">Definir depois</option>
+                {grupos.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nome} (nível {g.nivel})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label htmlFor="novo-status" className={rotulo}>
                 Situação
               </label>
@@ -299,6 +324,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
               <tr>
                 <th className="px-4 py-3 text-left">Nome / Email</th>
                 <th className="px-4 py-3 text-left">Função</th>
+                <th className="px-4 py-3 text-left">Grupo</th>
                 <th className="px-4 py-3 text-left">Departamento</th>
                 <th className="px-4 py-3 text-left">Situação</th>
                 <th className="px-4 py-3 text-left">Ações</th>
@@ -353,6 +379,29 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         }
                         aoEscolher={(valor) =>
                           run(u.id, () => updateUserRole(u.id, valor as UserRole))
+                        }
+                      />
+                    </td>
+                    <td data-rotulo="Grupo" className="px-4 py-3">
+                      <SeletorEmBotao
+                        rotulo={`Grupo de ${u.full_name || u.email}`}
+                        valor={u.group_id ?? ""}
+                        texto={
+                          grupos.find((g) => g.id === u.group_id)?.nome ??
+                          "Sem grupo"
+                        }
+                        opcoes={[
+                          { valor: "", texto: "Sem grupo" },
+                          ...grupos.map((g) => ({
+                            valor: g.id,
+                            texto: `${g.nome} (nível ${g.nivel})`,
+                          })),
+                        ]}
+                        editavel={editable}
+                        ocupado={busy}
+                        apagado={!u.group_id}
+                        aoEscolher={(valor) =>
+                          run(u.id, () => definirGrupoDoUsuario(u.id, valor || null))
                         }
                       />
                     </td>

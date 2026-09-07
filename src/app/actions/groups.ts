@@ -277,3 +277,75 @@ export async function definirNivelDoGrupo(
   revalidatePath(`/dashboard/admin/grupos/${groupId}`);
   return { ok: true };
 }
+
+
+/**
+ * Coloca (ou tira) uma pessoa do grupo.
+ *
+ * Substitui addGroupMember/removeGroupMember, que gravavam em group_members —
+ * a tabela de muitos-para-muitos que existia antes da hierarquia. Ela deixou de
+ * decidir qualquer coisa: as permissões e o nível vêm de profiles.group_id, um
+ * grupo por pessoa, porque "qual é o nível desta pessoa" precisa ter resposta
+ * única. Adicionar alguém pela tela antiga não concedia nada, e a contagem de
+ * membros aparecia sempre zerada.
+ */
+export async function definirGrupoDoUsuario(
+  userId: string,
+  groupId: string | null
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("admin", "users", "manage");
+  if (!permitido.ok) return permitido;
+
+  // Sair do próprio grupo é perder o próprio acesso — inclusive o de voltar
+  // atrás. A tela não oferece, mas um POST montado à mão chegaria aqui.
+  if (userId === user.id) {
+    return { ok: false, message: "Você não pode mudar o seu próprio grupo." };
+  }
+
+  const { data: alvo } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (alvo?.role === "super_admin") {
+    return {
+      ok: false,
+      message: "O grupo de um super admin só pode ser alterado por ele mesmo.",
+    };
+  }
+
+  if (groupId) {
+    const impedimento = await validarEscalada(groupId, []);
+    if (impedimento) return { ok: false, message: impedimento };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ group_id: groupId })
+    .eq("id", userId);
+
+  if (error) {
+    if (error.code === "42703" || error.code === "PGRST204") {
+      return {
+        ok: false,
+        message:
+          "Falta a coluna de grupo. Execute supabase/_manual_apply/014_grupos_hierarquia_permissoes.sql.",
+      };
+    }
+    return {
+      ok: false,
+      message: error.message.includes("acima do seu")
+        ? "Você não pode mover alguém para um grupo acima do seu."
+        : "Não foi possível alterar o grupo.",
+    };
+  }
+
+  revalidatePath("/dashboard/admin/grupos");
+  revalidatePath("/dashboard/admin/usuarios");
+  if (groupId) revalidatePath(`/dashboard/admin/grupos/${groupId}`);
+  return { ok: true };
+}

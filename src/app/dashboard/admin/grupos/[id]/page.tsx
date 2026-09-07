@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { Card, ConfirmSubmitButton } from "@/components/ui";
-import { addGroupMember, removeGroupMember, deleteGroup } from "@/app/actions/groups";
+import { deleteGroup } from "@/app/actions/groups";
 import { pode } from "@/lib/permissoes";
 import { nomeDoNivel } from "@/lib/catalogo-permissoes";
 import MatrizDePermissoes from "./MatrizDePermissoes";
 import NivelDoGrupo from "./NivelDoGrupo";
+import MembrosDoGrupo from "./MembrosDoGrupo";
 
 export default async function GrupoDetalhesPage({ params }: { params: { id: string } }) {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
@@ -16,16 +17,12 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
   const podeEditarGrupo = await pode("admin", "groups", "update");
   const podeConcederPermissoes = await pode("admin", "permissions", "manage");
   const podeExcluirGrupo = await pode("admin", "groups", "delete");
+  const podeGerenciarPessoas = await pode("admin", "users", "manage");
 
   const { data: group, error } = await supabase
     .from("user_groups")
     .select(`
       *,
-      members:group_members(
-        user_id,
-        added_at,
-        profile:profiles(id, email, full_name, role)
-      ),
       permissions:group_permissions(
         permission_id,
         granted_at,
@@ -39,11 +36,37 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
     redirect("/dashboard/admin/grupos");
   }
 
-  const { data: allUsers } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role")
-    .eq("active", true)
-    .order("email");
+  // A associação é profiles.group_id, e não group_members: um grupo por
+  // pessoa, porque "qual é o nível desta pessoa" precisa de resposta única.
+  const [{ data: todos }, { data: grupos }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, avatar_url, role, group_id")
+      .eq("active", true)
+      .order("full_name", { nullsFirst: false }),
+    supabase.from("user_groups").select("id, name"),
+  ]);
+
+  const nomePorGrupo = new Map(
+    (grupos ?? []).map((g) => [g.id as string, g.name as string])
+  );
+
+  const paraPessoa = (u: Record<string, unknown>) => ({
+    id: u.id as string,
+    full_name: (u.full_name as string | null) ?? null,
+    email: u.email as string,
+    avatar_url: (u.avatar_url as string | null) ?? null,
+    role: u.role as string,
+    grupoAtual: u.group_id ? nomePorGrupo.get(u.group_id as string) ?? null : null,
+  });
+
+  const membros = (todos ?? [])
+    .filter((u) => u.group_id === params.id)
+    .map(paraPessoa);
+
+  const candidatos = (todos ?? [])
+    .filter((u) => u.group_id !== params.id)
+    .map(paraPessoa);
 
   const { data: allPermissions } = await supabase
     .from("permissions")
@@ -52,10 +75,8 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
     .order("resource", { ascending: true })
     .order("action", { ascending: true });
 
-  const memberIds = new Set(group.members.map((m: any) => m.user_id));
   const permissionIds = new Set(group.permissions.map((p: any) => p.permission_id));
 
-  const availableUsers = allUsers?.filter((u) => !memberIds.has(u.id)) || [];
 
   const groupedPermissions = allPermissions?.reduce((acc: any, perm: any) => {
     if (!acc[perm.module]) acc[perm.module] = {};
@@ -102,64 +123,13 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Membros" subtitle={`${group.members.length} usuários neste grupo`}>
-          <div className="space-y-3">
-            {group.members.map((member: any) => (
-              <div key={member.user_id} className="flex items-center justify-between p-3 bg-[var(--neo-flat)] rounded-lg">
-                <div>
-                  <p className="font-medium text-[var(--text)]">{member.profile.full_name || member.profile.email}</p>
-                  <p className="text-sm text-[var(--text-muted)]">{member.profile.email}</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">
-                    Role: {member.profile.role}
-                  </p>
-                </div>
-                {podeEditarGrupo && (
-                  <form action={removeGroupMember.bind(null, params.id, member.user_id)}>
-                    <button
-                      type="submit"
-                      className="text-[var(--erro-solid)] hover:text-[var(--erro-fg)] text-sm"
-                    >
-                      Remover
-                    </button>
-                  </form>
-                )}
-              </div>
-            ))}
-
-            {podeEditarGrupo && availableUsers.length > 0 && (
-              <div className="pt-3 border-t border-[var(--neo-line)]">
-                <p className="text-sm font-medium text-[var(--text)] mb-2">Adicionar membro:</p>
-                <form action={async (formData: FormData) => {
-                  "use server";
-                  const userId = formData.get("userId") as string;
-                  await addGroupMember(params.id, userId);
-                }} className="flex gap-2">
-                  <select
-                    name="userId"
-                    className="flex-1 px-3 py-2 border border-[var(--neo-line)] rounded-lg text-sm"
-                    required
-                  >
-                    <option value="">Selecione um usuário</option>
-                    {availableUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.full_name || user.email}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 text-sm"
-                  >
-                    Adicionar
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </Card>
-
-      </div>
+      <MembrosDoGrupo
+        grupoId={params.id}
+        nomeDoGrupo={group.name as string}
+        membros={membros}
+        candidatos={candidatos}
+        podeEditar={podeGerenciarPessoas}
+      />
 
       <NivelDoGrupo
         grupoId={params.id}

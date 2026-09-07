@@ -74,9 +74,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
+        // A causa real vai para a tela. Esconder o motivo do Storage já custou
+        // várias rodadas de "não funciona" sem ninguém saber por quê, e esta é
+        // uma tela de uso interno, não uma página pública.
         error: configuracao
           ? "O armazenamento de fotos ainda não está configurado. Execute supabase/_manual_apply/015_bucket_avatares.sql."
-          : "Não foi possível enviar a imagem. Tente de novo em instantes.",
+          : `Não foi possível enviar a imagem: ${uploadError.message}`,
       },
       { status: 500 }
     );
