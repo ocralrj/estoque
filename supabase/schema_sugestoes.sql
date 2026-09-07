@@ -103,16 +103,16 @@ create trigger suggestions_updated_at
 -- ============================================================
 alter table public.improvement_suggestions enable row level security;
 
--- Helper role (SECURITY DEFINER evita recursão)
-create or replace function public.get_user_role()
-returns user_role
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select role from public.profiles where id = auth.uid();
-$$;
+-- A função public.get_user_role() NÃO é definida aqui.
+--
+-- Ela existe na migração _manual_apply/010_seguranca_admin.sql, que devolve
+-- NULL para conta inativa — é essa condição que impede um token já emitido de
+-- continuar acessando a API depois de a pessoa ser desativada.
+--
+-- Este arquivo tinha uma cópia antiga, sem essa condição. Como `create or
+-- replace` sobrescreve sem avisar, reaplicar este schema por qualquer motivo
+-- desfazia a correção em silêncio: nenhum erro, nenhum aviso, e o acesso de
+-- quem foi desativado voltava. A cópia foi removida por isso.
 
 drop policy if exists "Usuário vê suas sugestões" on public.improvement_suggestions;
 create policy "Usuário vê suas sugestões"

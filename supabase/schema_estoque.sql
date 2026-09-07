@@ -190,28 +190,16 @@ create trigger movement_update_quantity
   before insert on movements
   for each row execute function update_product_quantity();
 
--- ============================================================
--- RLS: habilitar em todas as tabelas
--- ============================================================
--- ============================================================
--- FUNÇÃO: papel do usuário atual, sem passar pelo RLS
+-- A função public.get_user_role() NÃO é definida aqui.
 --
--- Política de `profiles` que faz SELECT em `profiles` recursiona
--- infinitamente: a consulta ao perfil trava, o dashboard conclui que não há
--- perfil e manda para o login, o login vê a sessão e manda para o dashboard —
--- ERR_TOO_MANY_REDIRECTS. SECURITY DEFINER ignora o RLS e corta a recursão.
--- Toda política que precise do papel deve usar esta função, nunca um
--- `select ... from profiles` embutido.
--- ============================================================
-create or replace function public.get_user_role()
-returns user_role
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select role from public.profiles where id = auth.uid();
-$$;
+-- Ela existe na migração _manual_apply/010_seguranca_admin.sql, que devolve
+-- NULL para conta inativa — é essa condição que impede um token já emitido de
+-- continuar acessando a API depois de a pessoa ser desativada.
+--
+-- Este arquivo tinha uma cópia antiga, sem essa condição. Como `create or
+-- replace` sobrescreve sem avisar, reaplicar este schema por qualquer motivo
+-- desfazia a correção em silêncio: nenhum erro, nenhum aviso, e o acesso de
+-- quem foi desativado voltava. A cópia foi removida por isso.
 
 alter table profiles enable row level security;
 alter table categories enable row level security;
