@@ -43,7 +43,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-[var(--neo-line)]">
         <div className="mb-8 text-center">
-          <LogoOcral tamanho={64} className="justify-center" />
+          <LogoOcral tamanho={120} comNome={false} className="justify-center" />
           <p className="text-[var(--text-muted)] mt-1">Acesse sua conta</p>
         </div>
 

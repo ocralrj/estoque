@@ -58,7 +58,7 @@ export default function RegisterPage() {
       </div>
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
         <div className="mb-8 text-center">
-          <LogoOcral tamanho={64} className="justify-center" />
+          <LogoOcral tamanho={120} comNome={false} className="justify-center" />
           <p className="text-[var(--text-muted)] mt-1">Crie sua conta</p>
           <p className="mt-3 rounded-lg bg-[var(--info-bg)] px-3 py-2 text-xs text-[var(--info-fg)]">
             O acesso é por convite. Se a sua empresa já o cadastrou, procure o e-mail

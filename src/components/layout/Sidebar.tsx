@@ -262,21 +262,15 @@ export default function Sidebar({
             className="mx-auto"
           />
         ) : (
-          <div className="flex min-w-0 items-center gap-3">
-            <Image
-              src="/logo-ocral.png"
-              alt=""
-              width={40}
-              height={40}
-              className="shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
-                Ocral
-              </p>
-              <p className="text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
-            </div>
-          </div>
+          // A marca já carrega o nome; repeti-lo ao lado era redundância.
+          <Image
+            src="/logo-ocral.png"
+            alt="OCRAL"
+            width={132}
+            height={132}
+            className="mx-auto"
+            priority
+          />
         )}
 
       </div>

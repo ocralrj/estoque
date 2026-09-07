@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
       </div>
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
         <div className="mb-8 text-center">
-          <LogoOcral tamanho={64} className="justify-center" />
+          <LogoOcral tamanho={120} comNome={false} className="justify-center" />
           <p className="text-[var(--text-muted)] mt-1">Recuperar senha</p>
         </div>
 
