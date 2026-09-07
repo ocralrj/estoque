@@ -1,6 +1,12 @@
 import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { canManageStock, requireSession } from "@/lib/auth";
+import { pode } from "@/lib/permissoes";
+import {
+  CelulaCategoria,
+  CelulaCodigo,
+  CelulaLocalizacao,
+} from "./CamposEditaveis";
 
 export default async function ProductsPage() {
   const { supabase, profile } = await requireSession();
@@ -16,6 +22,27 @@ export default async function ProductsPage() {
     .order("name");
 
   const canManage = canManageStock(profile?.role);
+
+  // Editar na linha exige a permissão de alterar produto — a de movimentar não
+  // basta: quem dá baixa não decide o código nem onde a coisa fica guardada.
+  const podeEditar = await pode("estoque", "products", "update");
+
+  const { data: categorias } = await supabase
+    .from("categories")
+    .select("id, name")
+    .order("name");
+
+  // Quantos produtos há em cada local: é o número que permite corrigir o nome
+  // de uma prateleira em todos de uma vez, em vez de um a um.
+  const locaisUsados = Object.entries(
+    (products ?? []).reduce<Record<string, number>>((acc, p) => {
+      const local = (p.location as string | null)?.trim();
+      if (local) acc[local] = (acc[local] ?? 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([local, total]) => ({ local, total }))
+    .sort((a, b) => b.total - a.total);
 
   return (
     <div>
@@ -68,14 +95,24 @@ export default async function ProductsPage() {
               {products && products.length > 0 ? (
                 products.map((product) => (
                   <tr key={product.id} className="hover:bg-[var(--neo-flat)]">
-                    <td data-rotulo="Código" className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text)]">
-                      {product.code}
+                    <td data-rotulo="Código" className="px-6 py-4 text-sm">
+                      <CelulaCodigo
+                        produtoId={product.id}
+                        codigo={product.code}
+                        editavel={podeEditar}
+                      />
                     </td>
                     <td data-rotulo="Nome" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {product.name}
                     </td>
-                    <td data-rotulo="Categoria" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
-                      {product.category?.name || '-'}
+                    <td data-rotulo="Categoria" className="px-6 py-4 text-sm">
+                      <CelulaCategoria
+                        produtoId={product.id}
+                        categoriaId={product.category_id}
+                        nome={product.category?.name ?? null}
+                        categorias={categorias ?? []}
+                        editavel={podeEditar}
+                      />
                     </td>
                     <td data-rotulo="Quantidade" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {product.quantity_current} {product.unit}
@@ -83,8 +120,13 @@ export default async function ProductsPage() {
                     <td data-rotulo="Mínimo" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {product.quantity_minimum} {product.unit}
                     </td>
-                    <td data-rotulo="Localização" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
-                      {product.location || '-'}
+                    <td data-rotulo="Localização" className="px-6 py-4 text-sm">
+                      <CelulaLocalizacao
+                        produtoId={product.id}
+                        local={product.location ?? null}
+                        locaisUsados={locaisUsados}
+                        editavel={podeEditar}
+                      />
                     </td>
                     <td data-rotulo="Status" className="px-6 py-4 whitespace-nowrap">
                       {product.is_low_stock ? (
