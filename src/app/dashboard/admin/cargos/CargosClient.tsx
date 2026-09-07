@@ -1,5 +1,6 @@
 "use client";
 
+import SuggestWithAi from "@/components/ai/SuggestWithAi";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { atualizarCargo, criarCargo, excluirCargo } from "@/app/actions/cargos";
@@ -153,7 +154,21 @@ export default function CargosClient({
               />
             </div>
             <div>
-              <label className={rotulo}>Descrição</label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className={rotulo}>Descrição</label>
+                {/* A sugestão parte do nome do cargo: pedir à IA que descreva
+                    um cargo sem saber qual devolveria texto genérico. */}
+                <SuggestWithAi
+                  fieldType="descricao_cargo"
+                  whatToSuggest="descrições curtas de cargos, dizendo as responsabilidades principais de quem o ocupa"
+                  domain="ERP OCRAL - Administração de pessoas"
+                  currentValue={novo.descricao}
+                  disabled={!novo.nome.trim()}
+                  label={novo.nome.trim() ? "Sugira com IA" : "Escreva o nome primeiro"}
+                  context={{ cargo: novo.nome }}
+                  onAccept={(texto) => setNovo({ ...novo, descricao: texto })}
+                />
+              </div>
               <input
                 value={novo.descricao}
                 onChange={(e) => setNovo({ ...novo, descricao: e.target.value })}
@@ -189,7 +204,20 @@ export default function CargosClient({
                   />
                 </div>
                 <div>
-                  <label className={rotulo}>Descrição</label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className={rotulo}>Descrição</label>
+                    <SuggestWithAi
+                      fieldType="descricao_cargo"
+                      whatToSuggest="descrições curtas de cargos, dizendo as responsabilidades principais de quem o ocupa"
+                      domain="ERP OCRAL - Administração de pessoas"
+                      currentValue={rascunho.descricao}
+                      disabled={!rascunho.nome.trim()}
+                      context={{ cargo: rascunho.nome }}
+                      onAccept={(texto) =>
+                        setRascunho({ ...rascunho, descricao: texto })
+                      }
+                    />
+                  </div>
                   <input
                     value={rascunho.descricao}
                     onChange={(e) =>
