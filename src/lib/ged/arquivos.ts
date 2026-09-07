@@ -177,3 +177,37 @@ export const RESTRICOES_CAMERA: MediaStreamConstraints = {
   },
   audio: false,
 };
+
+/**
+ * Converte um texto em algo que o Storage aceite como nome de objeto.
+ *
+ * O Supabase Storage só aceita, no nome do objeto: letras de A a Z sem acento,
+ * dígitos, espaço e a pontuação `_ - . ' , ! * & $ @ = ; : + ? ( )`. Qualquer
+ * outro caractere faz o envio ser recusado.
+ *
+ * Em português isso derruba quase tudo. "RELATÓRIO ANUAL DE SEGURANÇA
+ * CIBERNÉTICA" tem quatro caracteres proibidos, e os próprios departamentos —
+ * "Contábil", "Jurídico" — quebravam o caminho antes mesmo do nome do arquivo.
+ * O envio falhava com uma mensagem genérica, e o acento nunca era suspeito.
+ *
+ * Os acentos são removidos preservando a letra (á vira a), em vez de virarem
+ * traço: o nome continua legível para quem for olhar o acervo por dentro. O
+ * nome que a pessoa vê na tela e no download não passa por aqui — ele fica no
+ * banco, intacto, com acentuação e tudo.
+ */
+export function chaveDeArmazenamento(texto: string): string {
+  const limpo = texto
+    // Separa a letra do acento e descarta o acento: "ç" -> "c", "ó" -> "o".
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9 _\-.'!*&$@=;:+?(),]/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^[-\s]+|[-\s]+$/g, "")
+    .slice(0, 120)
+    .trim();
+
+  // Um nome inteiro fora do alfabeto latino — ou só espaços — não sobra nada
+  // depois da limpeza. O UUID que prefixa o caminho já garante a unicidade;
+  // aqui falta apenas algo legível no lugar do vazio.
+  return limpo && /[A-Za-z0-9]/.test(limpo) ? limpo : "arquivo";
+}

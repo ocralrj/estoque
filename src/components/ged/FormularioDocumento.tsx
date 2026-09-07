@@ -9,7 +9,9 @@ import SeletorAcesso, {
   type Acesso,
   type Visibilidade,
 } from "@/components/ged/SeletorAcesso";
-import { prepararArquivo, formatarBytes } from "@/lib/ged/arquivos";
+import { prepararArquivo, formatarBytes,
+  chaveDeArmazenamento,
+} from "@/lib/ged/arquivos";
 import type { ArquivoPreparado } from "@/lib/ged/arquivos";
 import {
   criarDocumento,
@@ -251,17 +253,35 @@ export default function FormularioDocumento({
           return;
         }
 
-        const caminho = `${form.setor}/${new Date().getFullYear()}/${crypto.randomUUID()}-${arquivo.nome}`;
+        // O Storage recusa acento no nome do objeto, e em português isso derruba
+        // quase tudo: o próprio departamento ("Contábil", "Jurídico") já
+        // quebrava o caminho antes do nome do arquivo. O nome que a pessoa vê e
+        // baixa não passa por aqui — fica no banco, com acentuação e tudo.
+        const caminho = [
+          chaveDeArmazenamento(form.setor || "sem-departamento"),
+          new Date().getFullYear(),
+          `${crypto.randomUUID()}-${chaveDeArmazenamento(arquivo.nome)}`,
+        ].join("/");
         const { error } = await supabase.storage.from("ged").upload(caminho, arquivo.blob, {
           contentType: arquivo.compressao === "gzip" ? "application/gzip" : arquivo.mimeType,
           upsert: false,
         });
 
         if (error) {
+          // A mensagem genérica escondeu por muito tempo um erro que tinha
+          // causa certa e conserto simples. O motivo do Storage vai para o
+          // console, e a tela distingue o que a pessoa pode resolver.
+          console.error("Falha ao enviar documento ao GED:", error);
+          const motivo = error.message?.toLowerCase() ?? "";
+
           setErro(
-            error.message.includes("Bucket not found")
+            motivo.includes("bucket not found")
               ? "O armazenamento do GED não existe. Execute supabase/_manual_apply/005_ged_arquivos.sql."
-              : "Falha ao enviar o arquivo. Tente novamente."
+              : motivo.includes("exceeded") || motivo.includes("too large")
+                ? "O arquivo passa do limite de 25 MB do acervo."
+                : motivo.includes("row-level security") || motivo.includes("unauthorized")
+                  ? "Você não tem permissão para enviar arquivos ao acervo."
+                  : `Falha ao enviar o arquivo: ${error.message}`
           );
           setProgresso(null);
           return;
