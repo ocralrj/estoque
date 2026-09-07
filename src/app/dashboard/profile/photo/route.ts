@@ -61,8 +61,23 @@ export async function POST(request: Request) {
     });
 
   if (uploadError) {
+    // A mensagem genérica deixou o problema invisível por semanas: a foto era
+    // tratada, enviada e recusada, e a tela dizia apenas que não deu. O erro do
+    // Storage vai para o log do servidor, e a tela distingue o caso que a
+    // pessoa não tem como resolver sozinha — bucket ausente é configuração,
+    // não culpa de quem envia.
+    console.error("Falha ao enviar avatar:", uploadError);
+
+    const motivo = uploadError.message?.toLowerCase() ?? "";
+    const configuracao =
+      motivo.includes("bucket") || motivo.includes("not found");
+
     return NextResponse.json(
-      { error: "Não foi possível enviar a imagem." },
+      {
+        error: configuracao
+          ? "O armazenamento de fotos ainda não está configurado. Execute supabase/_manual_apply/015_bucket_avatares.sql."
+          : "Não foi possível enviar a imagem. Tente de novo em instantes.",
+      },
       { status: 500 }
     );
   }

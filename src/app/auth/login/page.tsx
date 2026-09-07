@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
 import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
+import Logo from "@/components/layout/Logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -46,9 +47,13 @@ function LoginForm() {
       {/* A sombra é mais funda do que a dos cartões internos: aqui o cartão
           precisa se descolar de uma foto, não de uma superfície lisa. */}
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
-          <p className="mt-1 text-[var(--text-muted)]">Acesse sua conta</p>
+        {/* A marca ocupa o lugar do título escrito, mas o título continua
+            existindo para leitor de tela e para os buscadores: uma imagem não
+            é lida por nenhum dos dois. */}
+        <h1 className="sr-only">OCRAL — acesse sua conta</h1>
+
+        <div className="mb-8 flex justify-center">
+          <Logo largura={150} prioridade />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

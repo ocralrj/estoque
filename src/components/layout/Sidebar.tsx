@@ -2,6 +2,7 @@
 
 import Tooltip from "@/components/ui/Tooltip";
 import IconeMenu from "./IconesMenu";
+import Logo from "./Logo";
 import { usePode } from "@/components/auth/Permissoes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -312,16 +313,12 @@ export default function Sidebar({
         !isDrawer && (isCollapsed ? "w-20 px-3" : "w-72 px-5")
       )}
     >
-      <div className={clsx("pb-6", isCollapsed ? "text-center" : "px-2")}>
-        {!isCollapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
-              Ocral
-            </p>
-            <p className="mt-1 text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
-          </div>
-        )}
-
+      {/* Recolhida, a marca encolhe em vez de sumir: é o que diz de que sistema
+          se trata quando os rótulos do menu não cabem. */}
+      <div className={clsx("flex pb-6", isCollapsed ? "justify-center" : "px-2")}>
+        <Link href="/dashboard" aria-label="Ir para o início" onClick={onNavigate}>
+          <Logo largura={isCollapsed ? 44 : 132} />
+        </Link>
       </div>
 
       {/* Sobre a linha que divide o menu do conteúdo, na altura da barra de

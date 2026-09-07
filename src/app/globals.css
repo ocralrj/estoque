@@ -218,14 +218,15 @@ html.dark .neo-raised {
   box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
 }
 
-/* Realce neon para a situação da conta (Ativo, Férias, Inativo).
-   Compõe com .neo-sit--ok/--aviso/--erro em vez de substituí-los: a cor e o
-   glifo continuam vindo do sistema de design, e o brilho entra só como reforço.
-   Usa filter em vez de box-shadow para não disputar com o relevo, que muda
-   dentro das zonas .neo-flat. */
-.neo-sit--neon-ok    { filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.75)); }
-.neo-sit--neon-aviso { filter: drop-shadow(0 0 5px rgba(255, 214, 0, 0.85)); }
-.neo-sit--neon-erro  { filter: drop-shadow(0 0 5px rgba(255, 45, 85, 0.7)); }
+/* Situação da conta (Ativo, Férias, Inativo).
+   O brilho neon saiu: numa coluna com uma pastilha por linha, seis halos
+   competiam entre si e com o resto da tela, e o realce que deveria destacar um
+   estado incomum acabava destacando todos. As classes continuam existindo,
+   agora sem efeito, para as telas não precisarem mudar — a cor e o glifo do
+   .neo-sit seguem distinguindo os três estados. */
+.neo-sit--neon-ok,
+.neo-sit--neon-aviso,
+.neo-sit--neon-erro { filter: none; }
 
 /* Avatares empilhados: cada um cobre um pedaço do anterior, e o de cima ganha
    destaque ao receber o ponteiro ou o foco do teclado. */
