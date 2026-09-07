@@ -85,10 +85,12 @@ on conflict (name) do update
       sistema = true,
       description = excluded.description;
 
--- Os grupos semeados na versão anterior tinham nome no plural antigo e nenhum
--- nível. Ficam como estão, mas alinhados à hierarquia, para não órfãos.
-update user_groups set nivel = 30 where name = 'Almoxarifes' and nivel = 40;
-update user_groups set nivel = 20 where name = 'Gestores'    and nivel = 40;
+-- A semeadura anterior criou "Almoxarifes" e "Requisitantes", que não fazem
+-- parte da hierarquia base mas podem já ter gente dentro. Ganham o nível
+-- equivalente em vez de virarem grupos órfãos no nível mais baixo.
+-- ("Gestores" já é tratado acima, pelo próprio insert.)
+update user_groups set nivel = 30 where name = 'Almoxarifes'   and not sistema;
+update user_groups set nivel = 40 where name = 'Requisitantes' and not sistema;
 
 -- ------------------------------------------------------------
 -- 4. Cada usuário pertence a um grupo
@@ -132,6 +134,17 @@ declare
   v_nivel integer;
 begin
   if new.group_id is null then
+    return new;
+  end if;
+
+  -- Projeta SÓ quando o grupo muda.
+  --
+  -- Projetar em toda atualização parece mais coerente, mas apagaria qualquer
+  -- mudança de papel feita por outro caminho: "Tornar super admin" grava o
+  -- papel direto, e o gatilho o sobrescreveria de volta ao nível do grupo — a
+  -- promoção não faria nada, sem erro nenhum na tela. Enquanto a aplicação não
+  -- passar a promover trocando o grupo, os dois caminhos precisam conviver.
+  if tg_op = 'UPDATE' and new.group_id is not distinct from old.group_id then
     return new;
   end if;
 
@@ -401,15 +414,50 @@ create policy "Vê o próprio grupo"
     or public.get_user_role()::text in ('super_admin', 'gestor')
   );
 
--- Grupo do sistema não se apaga: sem ele não há para onde projetar o papel.
-drop policy if exists "Grupo do sistema não é excluído" on user_groups;
-create policy "Grupo do sistema não é excluído"
-  on user_groups for delete
-  to authenticated
-  using (
-    sistema = false
-    and public.get_user_role()::text = 'super_admin'
-  );
+-- Grupo do sistema não se apaga: sem ele não há para onde projetar o papel, e
+-- quem estivesse nele ficaria sem nível.
+--
+-- Isto é um gatilho, e não uma política. Políticas permissivas se somam com OU:
+-- a política `user_groups_super_admin_all`, que já existe e vale FOR ALL,
+-- continuaria autorizando a exclusão por conta própria, e uma política restritiva
+-- ao lado dela não barraria nada. O gatilho barra.
+create or replace function public.user_groups_protege_sistema()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if old.sistema then
+    raise exception 'O grupo "%" sustenta a hierarquia e não pode ser excluído. Mova as pessoas para outro grupo em vez disso.', old.name;
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists user_groups_nao_apaga_sistema on user_groups;
+create trigger user_groups_nao_apaga_sistema
+  before delete on user_groups
+  for each row execute function public.user_groups_protege_sistema();
+
+-- O nível de um grupo do sistema também não muda: ele é o que ancora a
+-- projeção do papel.
+create or replace function public.user_groups_protege_nivel()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if old.sistema and new.nivel is distinct from old.nivel then
+    raise exception 'O nível do grupo "%" é fixo: ele ancora a projeção do papel.', old.name;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists user_groups_nivel_fixo on user_groups;
+create trigger user_groups_nivel_fixo
+  before update on user_groups
+  for each row execute function public.user_groups_protege_nivel();
 
 -- ------------------------------------------------------------
 -- 11. Conferência
