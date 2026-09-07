@@ -112,13 +112,16 @@ export default function MatrizDePermissoes({
         setAviso({ tipo: "erro", texto: res.message });
         return;
       }
-      setAviso({
-        tipo: "ok",
-        texto:
-          res.total === 0
-            ? "Grupo salvo sem nenhuma permissão. Quem estiver nele não verá as telas do sistema."
-            : `${res.total} permissão(ões) salvas. Quem está no grupo passa a ver isto no próximo carregamento.`,
-      });
+      // Salvar encerra o trabalho neste grupo: quem configura permissões
+      // costuma ir ajustar o próximo, e ficar na mesma tela obriga a voltar à
+      // mão. O aviso viaja junto pela URL, senão a confirmação sumiria com a
+      // navegação e a pessoa não saberia se deu certo.
+      const recado =
+        res.total === 0
+          ? "Grupo salvo sem nenhuma permissão. Quem estiver nele não verá as telas do sistema."
+          : `${res.total} permissão(ões) salvas. Quem está no grupo passa a ver isto no próximo carregamento.`;
+
+      router.push(`/dashboard/admin/grupos?salvo=${encodeURIComponent(recado)}`);
       router.refresh();
     });
   }

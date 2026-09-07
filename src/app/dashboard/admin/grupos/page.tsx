@@ -6,7 +6,11 @@ import { nomeDoNivel } from "@/lib/catalogo-permissoes";
 import { Card } from "@/components/ui";
 import type { UserGroup } from "@/types/modules/admin";
 
-export default async function GruposPage() {
+export default async function GruposPage({
+  searchParams,
+}: {
+  searchParams: { salvo?: string };
+}) {
   const { supabase, profile } = await requireSession(MANAGER_ROLES);
   await exigirPermissao("admin", "groups", "read");
 
@@ -32,6 +36,14 @@ export default async function GruposPage() {
 
   return (
     <div className="space-y-6">
+      {/* Confirmação vinda da tela de permissões: sem ela, salvar e ser levado
+          de volta pareceria que nada aconteceu. */}
+      {searchParams.salvo && (
+        <p className="rounded-2xl bg-[var(--ok-bg)] px-4 py-3 text-sm font-semibold text-[var(--ok-fg)]">
+          {searchParams.salvo}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Grupos de Usuários</h1>
