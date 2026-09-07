@@ -7,7 +7,9 @@ export type SuggestionStatus =
   | "concluida"
   | "recusada"
   /** A gestão escreveu de volta e devolveu a bola ao autor. */
-  | "reenviada";
+  | "reenviada"
+  /** O autor deu o assunto por resolvido. Só ele pode marcar. */
+  | "atendida";
 
 export type SuggestionPriority = "baixa" | "media" | "alta";
 
@@ -37,6 +39,10 @@ export interface ImprovementSuggestion {
   reviewed_at: string | null;
   /** Quantas vezes a gestão escreveu de volta. Alto = assunto que não fecha. */
   idas_e_vindas?: number;
+  /** Quando o autor encerrou. Conta os 30 dias até o descarte. */
+  atendida_em?: string | null;
+  /** O fio de conversa entre o autor e a equipe. */
+  mensagens?: MensagemDaSugestao[];
   created_at: string;
   updated_at: string;
   user?: {
@@ -84,6 +90,7 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
   concluida: "Concluída",
   recusada: "Recusada",
   reenviada: "Reenviada ao autor",
+  atendida: "Atendida",
 };
 
 export const SUGGESTION_PRIORITY_LABELS: Record<SuggestionPriority, string> = {
@@ -99,6 +106,24 @@ export const SUGGESTION_STATUS_COLORS: Record<SuggestionStatus, string> = {
   planejada: "bg-purple-100 text-purple-800",
   em_andamento: "bg-orange-100 text-orange-800",
   reenviada: "bg-amber-100 text-amber-800",
+  atendida: "bg-emerald-100 text-emerald-800",
   concluida: "bg-green-100 text-green-800",
   recusada: "bg-red-100 text-red-800",
 };
+
+
+/** Uma fala no fio de conversa da sugestão. */
+export interface MensagemDaSugestao {
+  id: string;
+  suggestion_id: string;
+  user_id: string;
+  texto: string;
+  /** true quando quem escreveu respondia pela gestão naquele momento. */
+  da_gestao: boolean;
+  created_at: string;
+  autor?: {
+    full_name: string | null;
+    email: string;
+    avatar_url?: string | null;
+  } | null;
+}

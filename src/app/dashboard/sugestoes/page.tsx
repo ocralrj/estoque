@@ -7,7 +7,9 @@ import {
   SUGGESTION_STATUS_COLORS,
   SUGGESTION_STATUS_LABELS,
   type ImprovementSuggestion,
+  type MensagemDaSugestao,
 } from "@/types/modules/suggestions";
+import DialogoSugestao from "@/components/suggestions/DialogoSugestao";
 
 export default async function MySuggestionsPage() {
   const { supabase, user } = await requireSession();
@@ -19,6 +21,23 @@ export default async function MySuggestionsPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .returns<ImprovementSuggestion[]>();
+
+  // O fio de conversa vem em uma consulta só, e não uma por sugestão. Se a
+  // tabela ainda não existir, a tela continua funcionando sem o diálogo em vez
+  // de quebrar inteira.
+  const { data: mensagens } = await supabase
+    .from("suggestion_messages")
+    .select("*, autor:profiles(full_name, email, avatar_url)")
+    .in("suggestion_id", (suggestions ?? []).map((s) => s.id))
+    .order("created_at")
+    .returns<MensagemDaSugestao[]>();
+
+  const fioPorSugestao = new Map<string, MensagemDaSugestao[]>();
+  for (const m of mensagens ?? []) {
+    const lista = fioPorSugestao.get(m.suggestion_id) ?? [];
+    lista.push(m);
+    fioPorSugestao.set(m.suggestion_id, lista);
+  }
 
   return (
     <div>
@@ -83,12 +102,22 @@ export default async function MySuggestionsPage() {
                   </span>
                   {s.module_hint && <span>Módulo: {s.module_hint}</span>}
                 </div>
-                {s.admin_notes && (
-                  <div className="mt-3 text-sm bg-[var(--aviso-bg)] border border-[var(--neo-line)] text-[var(--aviso-fg)] rounded-lg px-3 py-2">
+                {/* A última resposta continua em destaque para quem só quer
+                    bater o olho; o fio inteiro fica logo abaixo. */}
+                {s.admin_notes && (fioPorSugestao.get(s.id)?.length ?? 0) === 0 && (
+                  <div className="mt-3 rounded-lg border border-[var(--neo-line)] bg-[var(--aviso-bg)] px-3 py-2 text-sm text-[var(--aviso-fg)]">
                     <span className="font-medium">Resposta da equipe: </span>
                     {s.admin_notes}
                   </div>
                 )}
+
+                <DialogoSugestao
+                  sugestaoId={s.id}
+                  mensagens={fioPorSugestao.get(s.id) ?? []}
+                  souOAutor
+                  encerrada={s.status === "atendida"}
+                  atendidaEm={s.atendida_em}
+                />
               </div>
             ))}
           </div>

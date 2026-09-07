@@ -64,5 +64,22 @@ export async function GET(request: NextRequest) {
     notificacoesRemovidas = removidas;
   }
 
-  return NextResponse.json({ status: "ok", notificacoesRemovidas });
+  // Sugestão que o autor deu por atendida sai 30 dias depois: o que ficou
+  // resolvido não precisa ocupar a lista para sempre.
+  let sugestoesRemovidas: number | null = null;
+  const { data: sugestoes, error: erroSugestoes } = await supabase.rpc(
+    "limpar_sugestoes_atendidas"
+  );
+
+  if (erroSugestoes) {
+    console.error("Falha ao limpar sugestões:", erroSugestoes.message);
+  } else if (typeof sugestoes === "number") {
+    sugestoesRemovidas = sugestoes;
+  }
+
+  return NextResponse.json({
+    status: "ok",
+    notificacoesRemovidas,
+    sugestoesRemovidas,
+  });
 }

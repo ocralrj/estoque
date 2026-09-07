@@ -1,5 +1,6 @@
 "use client";
 
+import DialogoSugestao from "@/components/suggestions/DialogoSugestao";
 import { useMemo, useState } from "react";
 import { updateSuggestionStatus } from "@/app/actions/suggestions";
 import type {
@@ -62,6 +63,7 @@ export default function AdminSuggestionsClient({
 
   return (
     <div className="space-y-4">
+
       <div className="flex flex-wrap gap-2 items-center">
         <label className="text-sm text-[var(--text-muted)]">Status:</label>
         <select
@@ -220,6 +222,17 @@ export default function AdminSuggestionsClient({
                   </div>
                 </div>
               </div>
+
+              {/* O fio inteiro, para a gestão ver o que já foi dito antes de
+                  responder de novo — era isso que o campo único de nota
+                  apagava a cada resposta. */}
+              <DialogoSugestao
+                sugestaoId={s.id}
+                mensagens={s.mensagens ?? []}
+                souOAutor={false}
+                encerrada={s.status === "atendida"}
+                atendidaEm={s.atendida_em}
+              />
             </div>
           ))}
         </div>

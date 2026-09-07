@@ -176,3 +176,60 @@ export async function cancelMySuggestion(
   revalidatePath("/dashboard/sugestoes");
   return { ok: true, data: undefined };
 }
+
+
+/**
+ * Responde na sugestão — serve aos dois lados.
+ *
+ * Quem responde e o que isso faz com o status é decidido no banco, na função
+ * `responder_sugestao`: a gestão respondendo devolve a bola ao autor e conta a
+ * volta; o autor respondendo traz de volta para análise. Deixar essa regra num
+ * lugar só evita que as duas telas divirjam sobre o que é "responder".
+ */
+export async function responderSugestao(
+  sugestaoId: string,
+  texto: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const { error } = await supabase.rpc("responder_sugestao", {
+    p_sugestao: sugestaoId,
+    p_texto: texto,
+  });
+
+  if (error) {
+    if (error.message?.includes("PGRST202")) {
+      return {
+        ok: false,
+        message:
+          "O diálogo ainda não está no banco. Execute supabase/_manual_apply/025_dialogo_da_sugestao.sql.",
+      };
+    }
+    return { ok: false, message: error.message || "Não foi possível enviar." };
+  }
+
+  revalidatePath("/dashboard/sugestoes");
+  revalidatePath("/dashboard/admin/sugestoes");
+  return { ok: true };
+}
+
+/** Encerra a sugestão. Só o autor — dar por resolvido o pedido de outra pessoa é decidir por ela. */
+export async function marcarSugestaoAtendida(
+  sugestaoId: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const { error } = await supabase.rpc("marcar_sugestao_atendida", {
+    p_sugestao: sugestaoId,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message || "Não foi possível encerrar." };
+  }
+
+  revalidatePath("/dashboard/sugestoes");
+  revalidatePath("/dashboard/admin/sugestoes");
+  return { ok: true };
+}

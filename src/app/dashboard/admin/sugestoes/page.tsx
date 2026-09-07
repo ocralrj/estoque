@@ -1,7 +1,10 @@
 import { exigirPermissao } from "@/lib/permissoes";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import AdminSuggestionsClient from "./AdminSuggestionsClient";
-import type { ImprovementSuggestion } from "@/types/modules/suggestions";
+import type {
+  ImprovementSuggestion,
+  MensagemDaSugestao,
+} from "@/types/modules/suggestions";
 
 export default async function AdminSuggestionsPage() {
   const { supabase } = await requireSession(MANAGER_ROLES);
@@ -18,6 +21,17 @@ export default async function AdminSuggestionsPage() {
     .order("created_at", { ascending: false })
     .returns<ImprovementSuggestion[]>();
 
+  const { data: mensagens } = await supabase
+    .from("suggestion_messages")
+    .select("*, autor:profiles(full_name, email, avatar_url)")
+    .order("created_at")
+    .returns<MensagemDaSugestao[]>();
+
+  const comFio = (suggestions ?? []).map((s) => ({
+    ...s,
+    mensagens: (mensagens ?? []).filter((m) => m.suggestion_id === s.id),
+  }));
+
   return (
     <div>
       <div className="mb-6">
@@ -29,7 +43,7 @@ export default async function AdminSuggestionsPage() {
         </p>
       </div>
 
-      <AdminSuggestionsClient initial={suggestions || []} />
+      <AdminSuggestionsClient initial={comFio} />
     </div>
   );
 }
