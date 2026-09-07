@@ -8,8 +8,8 @@ export default async function CertificadosPage() {
   const [certificados, empresas, podeEnviar, podeExcluir] = await Promise.all([
     listarCertificados(),
     listarEmpresas(),
-    pode("certificados", "certificates", "upload"),
-    pode("certificados", "certificates", "delete"),
+    pode("certificados", "certificates", "manage"),
+    pode("certificados", "certificates", "manage"),
   ]);
 
   return (

@@ -80,7 +80,8 @@ export const EXPLICACAO_DA_ACAO: Record<string, string> = {
   export: "Baixar a listagem em planilha",
   print: "Gerar a versão para impressão",
   import: "Carregar registros em lote a partir de um arquivo",
-  manage: "Ações próprias do recurso: responder, encaminhar, configurar",
+  manage:
+    "Ações próprias do recurso: responder, encaminhar, configurar. Em Certificados, é o que dá acesso aos de TODAS as empresas",
 };
 
 export function nomeDoModulo(id: string): string {

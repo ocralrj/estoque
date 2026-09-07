@@ -70,7 +70,7 @@ export async function criarEmpresa(entrada: {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
-  const permitido = await exigir("certificados", "certificates", "create");
+  const permitido = await exigir("certificados", "certificates", "manage");
   if (!permitido.ok) return permitido;
 
   const razao = entrada.razaoSocial.trim();
@@ -112,7 +112,7 @@ export async function definirAcessosDaEmpresa(
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
-  const permitido = await exigir("certificados", "certificates", "update");
+  const permitido = await exigir("certificados", "certificates", "manage");
   if (!permitido.ok) return permitido;
 
   const manter = userIds.filter(Boolean);
@@ -213,7 +213,10 @@ export async function registrarCertificado(entrada: {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
-  const permitido = await exigir("certificados", "certificates", "upload");
+  // "manage" e não "upload": é o que a política do banco exige para gravar.
+  // Checagens diferentes nas duas camadas fariam a ação passar aqui e ser
+  // recusada lá, com o arquivo já no bucket.
+  const permitido = await exigir("certificados", "certificates", "manage");
   if (!permitido.ok) return permitido;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(entrada.validadeFim)) {
@@ -313,7 +316,7 @@ export async function excluirCertificado(id: string): Promise<Resultado> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
-  const permitido = await exigir("certificados", "certificates", "delete");
+  const permitido = await exigir("certificados", "certificates", "manage");
   if (!permitido.ok) return permitido;
 
   const { data: cert } = await supabase
