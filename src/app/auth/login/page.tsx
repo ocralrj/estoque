@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
+import LogoOcral from "@/components/ui/LogoOcral";
 
 function LoginForm() {
   const router = useRouter();
@@ -42,7 +43,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-[var(--neo-line)]">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
+          <LogoOcral tamanho={64} className="justify-center" />
           <p className="text-[var(--text-muted)] mt-1">Acesse sua conta</p>
         </div>
 

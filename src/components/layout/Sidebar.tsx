@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -235,12 +236,30 @@ export default function Sidebar({
       )}
     >
       <div className={clsx("pb-6", isCollapsed ? "text-center" : "px-2")}>
-        {!isCollapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
-              Ocral
-            </p>
-            <p className="mt-1 text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
+        {isCollapsed ? (
+          // Recolhida só cabe o símbolo — e ele sozinho já identifica.
+          <Image
+            src="/logo-ocral.png"
+            alt="OCRAL"
+            width={36}
+            height={36}
+            className="mx-auto"
+          />
+        ) : (
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src="/logo-ocral.png"
+              alt=""
+              width={40}
+              height={40}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-lg font-extrabold tracking-tight text-[var(--text)]">
+                Ocral
+              </p>
+              <p className="text-xs text-[var(--muted)]">Almoxarifado e gestão</p>
+            </div>
           </div>
         )}
 

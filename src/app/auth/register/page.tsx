@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/ui/PasswordInput";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import LogoOcral from "@/components/ui/LogoOcral";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function RegisterPage() {
       </div>
       <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
+          <LogoOcral tamanho={64} className="justify-center" />
           <p className="text-[var(--text-muted)] mt-1">Crie sua conta</p>
           <p className="mt-3 rounded-lg bg-[var(--info-bg)] px-3 py-2 text-xs text-[var(--info-fg)]">
             O acesso é por convite. Se a sua empresa já o cadastrou, procure o e-mail
