@@ -294,7 +294,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 
       <div className="overflow-hidden rounded-xl bg-[var(--neo-bg)] shadow-sm">
         <div className="neo-flat overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full sm:min-w-[760px] text-sm tabela-mobile">
             <thead className="bg-[var(--neo-flat)] text-xs uppercase text-[var(--text-muted)]">
               <tr>
                 <th className="px-4 py-3 text-left">Nome / Email</th>
@@ -319,7 +319,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
 
                 return (
                   <tr key={u.id} className="hover:bg-[var(--neo-flat)]">
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Nome / Email" className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar
                           nome={u.full_name}
@@ -335,7 +335,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Função" className="px-4 py-3">
                       {editable ? (
                         <select
                           value={u.role}
@@ -366,7 +366,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Departamento" className="px-4 py-3">
                       <select
                         value={u.departamento ?? ""}
                         disabled={busy}
@@ -386,7 +386,7 @@ Ele passa a poder excluir documentos, gerenciar todos os usuários e conceder o 
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Situação" className="px-4 py-3">
                       <CelulaSituacao
                         perfil={u}
                         situacao={situacao}

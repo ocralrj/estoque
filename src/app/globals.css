@@ -233,3 +233,75 @@ html.dark .neo-raised {
 .neo-pilha > * + * { margin-left: -0.55rem; }
 .neo-pilha > *:hover,
 .neo-pilha > *:focus-within { z-index: 5; }
+
+/* Tabelas que viram cartões no celular.
+   Uma tabela de oito colunas não cabe em 360 pixels: ou rola de lado, e a
+   pessoa perde a primeira coluna — justamente a que identifica a linha — ou
+   encolhe a ponto de não se ler. Aqui cada linha vira um cartão e cada célula
+   uma linha de "rótulo: valor", com o rótulo vindo do atributo data-rotulo.
+   A alternativa seria escrever a listagem duas vezes, uma em tabela e outra em
+   cartões, e mantê-las iguais para sempre. */
+@media (max-width: 639px) {
+  .tabela-mobile,
+  .tabela-mobile tbody,
+  .tabela-mobile tr,
+  .tabela-mobile td {
+    display: block;
+    width: 100%;
+  }
+
+  /* O cabeçalho some: o rótulo passa a viajar com cada célula. */
+  .tabela-mobile thead {
+    display: none;
+  }
+
+  .tabela-mobile tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--stroke, var(--neo-line));
+    border-radius: 1rem;
+    background: var(--surface, var(--neo-bg));
+    overflow: hidden;
+  }
+
+  .tabela-mobile td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.85rem;
+    text-align: right;
+    /* No cartão a célula tem a largura da tela, não a da coluna: manter o
+       nowrap da tabela empurraria nomes longos para fora da borda. */
+    white-space: normal;
+  }
+
+  .tabela-mobile td + td {
+    border-top: 1px solid var(--stroke, var(--neo-line));
+  }
+
+  .tabela-mobile td::before {
+    content: attr(data-rotulo);
+    flex-shrink: 0;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted, var(--text-muted));
+  }
+
+  /* Célula sem rótulo — normalmente a das ações — ocupa a linha inteira. */
+  .tabela-mobile td:not([data-rotulo])::before {
+    content: none;
+  }
+
+  /* A primeira célula identifica o cartão: vira título, sem rótulo à esquerda. */
+  .tabela-mobile td:first-child {
+    background: var(--surface-soft, var(--neo-flat));
+    text-align: left;
+    font-weight: 700;
+  }
+  .tabela-mobile td:first-child::before {
+    content: none;
+  }
+}

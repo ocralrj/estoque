@@ -31,7 +31,7 @@ export default async function MovementsPage() {
 
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
         <div className="neo-flat overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full tabela-mobile">
             <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
@@ -64,33 +64,33 @@ export default async function MovementsPage() {
               {movements && movements.length > 0 ? (
                 movements.map((mov) => (
                   <tr key={mov.id} className="hover:bg-[var(--neo-flat)]">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Data" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {formatDateTime(mov.created_at)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
+                    <td data-rotulo="Produto" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       <div>{mov.product?.name}</div>
                       <div className="text-xs text-[var(--text-muted)]">{mov.product?.code}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td data-rotulo="Tipo" className="px-6 py-4 whitespace-nowrap">
                       {mov.type === 'entrada' ? (
                         <span className="neo-sit neo-sit--ok">Entrada</span>
                       ) : (
                         <span className="neo-sit neo-sit--info">Saída</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text)]">
+                    <td data-rotulo="Quantidade" className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text)]">
                       {mov.type === 'entrada' ? '+' : '-'}{mov.quantity} {mov.product?.unit}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Estoque anterior" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {mov.previous_quantity}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
+                    <td data-rotulo="Estoque novo" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {mov.new_quantity}
                     </td>
-                    <td className="px-6 py-4 text-sm text-[var(--text-muted)] max-w-xs truncate">
+                    <td data-rotulo="Motivo" className="px-6 py-4 text-sm text-[var(--text-muted)] max-w-xs truncate">
                       {mov.reason}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Usuário" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {mov.user?.full_name || mov.user?.email}
                     </td>
                   </tr>

@@ -203,6 +203,13 @@ export default function MatrizDePermissoes({
                 )}
               </div>
 
+              {/* Recursos por ações é uma grade de duas dimensões: encolher
+                  em cartões perderia justamente o cruzamento que a torna útil.
+                  Aqui a rolagem lateral é a resposta certa — e é anunciada,
+                  porque rolagem que ninguém percebe esconde colunas. */}
+              <p className="mb-1 text-xs text-[var(--muted)] sm:hidden">
+                Deslize a tabela para o lado para ver todas as ações.
+              </p>
               <div className="overflow-x-auto rounded-2xl border border-[var(--stroke)]">
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>

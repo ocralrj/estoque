@@ -33,7 +33,7 @@ export default async function ProductsPage() {
 
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
         <div className="neo-flat overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full tabela-mobile">
             <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
@@ -68,25 +68,25 @@ export default async function ProductsPage() {
               {products && products.length > 0 ? (
                 products.map((product) => (
                   <tr key={product.id} className="hover:bg-[var(--neo-flat)]">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text)]">
+                    <td data-rotulo="Código" className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text)]">
                       {product.code}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
+                    <td data-rotulo="Nome" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {product.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Categoria" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {product.category?.name || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
+                    <td data-rotulo="Quantidade" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {product.quantity_current} {product.unit}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Mínimo" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {product.quantity_minimum} {product.unit}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Localização" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {product.location || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td data-rotulo="Status" className="px-6 py-4 whitespace-nowrap">
                       {product.is_low_stock ? (
                         <span className="neo-sit neo-sit--erro">Estoque baixo</span>
                       ) : (

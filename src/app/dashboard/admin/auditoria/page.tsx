@@ -184,7 +184,7 @@ export default async function AuditoriaPage({
       ) : registros && registros.length > 0 ? (
         <section className="neo-card overflow-hidden">
           <div className="neo-flat overflow-x-auto">
-            <table className="min-w-full text-left">
+            <table className="min-w-full text-left tabela-mobile">
               <thead className="bg-[var(--neo-flat-alt)] text-[var(--text-muted)]">
                 <tr>
                   <th className={cabecalho}>Quando</th>
@@ -196,13 +196,13 @@ export default async function AuditoriaPage({
               <tbody>
                 {registros.map((r) => (
                   <tr key={r.id} className="border-t border-[var(--neo-line)]">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Quando" className="whitespace-nowrap px-4 py-3 text-sm text-[var(--text-muted)]">
                       {formatDateTime(r.created_at)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text)]">
+                    <td data-rotulo="Quem" className="px-4 py-3 text-sm text-[var(--text)]">
                       {r.user?.full_name || r.user?.email || "Sistema"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text)]">
+                    <td data-rotulo="O que fez" className="px-4 py-3 text-sm text-[var(--text)]">
                       <span
                         className={
                           SENSIVEIS.has(r.action)
@@ -213,7 +213,7 @@ export default async function AuditoriaPage({
                         {descrever(r)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Módulo" className="px-4 py-3 text-sm text-[var(--text-muted)]">
                       {r.module}
                     </td>
                   </tr>

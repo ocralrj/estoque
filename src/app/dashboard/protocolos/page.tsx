@@ -49,7 +49,7 @@ export default async function ProtocolosPage() {
 
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
         <div className="neo-flat overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full sm:min-w-[900px] tabela-mobile">
             <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
@@ -82,27 +82,27 @@ export default async function ProtocolosPage() {
               {protocols && protocols.length > 0 ? (
                 protocols.map((protocol) => (
                   <tr key={protocol.id} className="hover:bg-[var(--neo-flat)]">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
+                    <td data-rotulo="NUP" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
                       {protocol.nup}
                     </td>
-                    <td className="px-6 py-4 text-sm text-[var(--text)]">{protocol.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td data-rotulo="Título" className="px-6 py-4 text-sm text-[var(--text)]">{protocol.title}</td>
+                    <td data-rotulo="Status" className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${protocolStatusClass(protocol.status)}`}>
                         {protocolStatusLabel(protocol.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td data-rotulo="Prioridade" className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${priorityClass(protocol.priority)}`}>
                         {priorityLabel(protocol.priority)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Solicitante" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {protocol.requester?.full_name || protocol.requester?.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Responsável" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {protocol.assigned_to?.full_name || protocol.assigned_to?.email || "—"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
+                    <td data-rotulo="Atualizado" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
                       {formatDate(protocol.updated_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

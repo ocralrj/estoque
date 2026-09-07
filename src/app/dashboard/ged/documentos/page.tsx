@@ -160,7 +160,7 @@ export default async function GedDocumentosPage({
 
       <section className="neo-card overflow-hidden">
         <div className="neo-flat overflow-x-auto">
-          <table className="min-w-full text-left">
+          <table className="min-w-full text-left tabela-mobile">
             <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
               <tr>
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em]">
@@ -193,32 +193,32 @@ export default async function GedDocumentosPage({
               {documents && documents.length > 0 ? (
                 documents.map((document) => (
                   <tr key={document.id} className="border-t border-[var(--stroke)]">
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Documento" className="px-4 py-3">
                       <p className="font-semibold text-[var(--text)]">{document.nome}</p>
                       <p className="text-xs text-[var(--muted)]">
                         {document.tipo} • v{document.versao}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text)]">
+                    <td data-rotulo="Cliente" className="px-4 py-3 text-sm text-[var(--text)]">
                       {document.cliente}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                    <td data-rotulo="Setor" className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.setor}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-rotulo="Status" className="px-4 py-3">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${gedStatusClass(document.status)}`}
                       >
                         {document.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                    <td data-rotulo="Período" className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.periodo ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                    <td data-rotulo="Validade" className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.validade ? formatDate(document.validade) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                    <td data-rotulo="Descarte" className="px-4 py-3 text-sm text-[var(--muted)]">
                       {document.data_descarte
                         ? formatDate(document.data_descarte)
                         : "permanente"}
