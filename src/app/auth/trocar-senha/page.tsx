@@ -1,5 +1,6 @@
 "use client";
 
+import SairEIrParaLogin from "@/components/layout/SairEIrParaLogin";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -132,6 +133,12 @@ export default function TrocarSenhaPage() {
             {salvando ? "Salvando…" : "Salvar e entrar"}
           </button>
         </form>
+
+        {/* Quem abriu esta tela por engano precisa de uma saída: sem encerrar a
+            sessão, ir para o login devolve para cá. */}
+        <div className="mt-6 text-center">
+          <SairEIrParaLogin rotulo="Sair sem trocar" />
+        </div>
       </div>
     </div>
   );

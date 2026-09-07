@@ -3,6 +3,7 @@ import { emFeriasBloqueadas, requireSession } from "@/lib/auth";
 import DashboardShell from "@/components/layout/DashboardShell";
 import { permissoesParaCliente } from "@/lib/permissoes";
 import { ProvedorDePermissoes } from "@/components/auth/Permissoes";
+import SairEIrParaLogin from "@/components/layout/SairEIrParaLogin";
 
 export default async function DashboardLayout({
   children,
@@ -40,14 +41,9 @@ export default async function DashboardLayout({
             Se precisar entrar antes disso, fale com quem cuida do seu
             departamento — só a gestão altera a situação de acesso.
           </p>
-          <form action="/auth/sair" method="post" className="mt-6">
-            <a
-              href="/auth/login"
-              className="inline-block rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)]"
-            >
-              Voltar ao início
-            </a>
-          </form>
+          <div className="mt-6">
+            <SairEIrParaLogin rotulo="Sair do sistema" />
+          </div>
         </div>
       </div>
     );
