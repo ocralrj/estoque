@@ -51,7 +51,13 @@ export const config = {
   // CRON_SECRET) e não têm cookie de navegador. Sem esta exclusão o middleware
   // redirecionava /api/internal/keep-alive para o login com 307, e a rotina
   // anti-pausa do Supabase nunca chegava a executar.
+  //
+  // Os arquivos estáticos também ficam de fora, e a lista precisa cobrir todos
+  // os que a tela de login usa: quem ainda não entrou é redirecionado por este
+  // middleware, então qualquer mídia esquecida aqui volta 307 justamente na
+  // única tela em que ninguém está autenticado. Foi o que aconteceu com o
+  // vídeo da marca, que só tinha imagens na lista.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp4|webm|ogg|mp3|woff|woff2|ttf|otf)$).*)",
   ],
 };
