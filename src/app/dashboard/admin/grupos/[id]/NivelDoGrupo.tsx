@@ -54,7 +54,7 @@ export default function NivelDoGrupo({
         <p className="mt-2 text-sm text-[var(--muted)]">
           Este é um dos grupos que sustentam a hierarquia, então o nível é fixo:{" "}
           <strong className="text-[var(--text)]">
-            {nomeDoNivel(nivelAtual)} ({nivelAtual})
+            {nomeDoNivel(nivelAtual)}
           </strong>
           . Para dar outro alcance a alguém, mova a pessoa para outro grupo.
         </p>
@@ -81,7 +81,7 @@ export default function NivelDoGrupo({
             >
               {NIVEIS.map((n) => (
                 <option key={n.nivel} value={n.nivel}>
-                  {n.nivel} — {n.nome}: {n.detalhe}
+                  {n.nome}: {n.detalhe}
                 </option>
               ))}
             </select>

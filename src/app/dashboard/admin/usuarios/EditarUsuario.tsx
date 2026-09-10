@@ -179,7 +179,7 @@ export default function EditarUsuario({
               <option value="">Sem grupo</option>
               {grupos.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.nome} (nível {g.nivel})
+                  {g.nome}
                 </option>
               ))}
             </select>

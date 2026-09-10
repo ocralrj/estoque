@@ -75,7 +75,7 @@ export default async function GruposPage({
                       {group.name}
                     </h3>
                     <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary-strong)]">
-                      Nível {group.nivel ?? 40} · {nomeDoNivel(group.nivel ?? 40)}
+                      {nomeDoNivel(group.nivel ?? 40)}
                     </p>
                   </div>
                   <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--primary-strong)]">

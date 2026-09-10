@@ -422,7 +422,7 @@ export default function UsersClient({
                           { valor: "", texto: "Sem grupo" },
                           ...grupos.map((g) => ({
                             valor: g.id,
-                            texto: `${g.nome} (nível ${g.nivel})`,
+                            texto: g.nome,
                           })),
                         ]}
                         editavel={editable}

@@ -94,7 +94,7 @@ export default async function GrupoDetalhesPage({ params }: { params: { id: stri
             <p className="text-sm text-[var(--text-muted)] mt-1">{group.description}</p>
           )}
           <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary-strong)]">
-            Nível {(group.nivel as number) ?? 40} · {nomeDoNivel((group.nivel as number) ?? 40)}
+            {nomeDoNivel((group.nivel as number) ?? 40)}
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-2">
