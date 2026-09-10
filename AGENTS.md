@@ -92,6 +92,8 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
   de um repositório público — qualquer um sabia qual conta atacar. Hoje todo
   cadastro entra como requisitante e a promoção é ação explícita de um super
   admin, registrada na auditoria.
+- **Somente `jadirconsult@gmail.com` pode alterar o papel de outro super admin.**
+  A restrição existe na Server Action, na interface e no RLS/trigger do banco.
 - **A auditoria é escrita só por gatilho.** `audit_logs` não tem política de
   INSERT, UPDATE ou DELETE: nem forjar evento nem apagar o próprio rastro é
   possível pela API. Cobre perfis (papel e status), grupos, membros, permissões,

@@ -27,6 +27,7 @@ import Avatar from "@/components/ui/Avatar";
 import SeletorDeFoto from "@/components/ui/SeletorDeFoto";
 import { paraDataUrl, type AvatarPreparado } from "@/lib/imagens/avatar";
 import type { Profile, StatusUsuario, UserRole } from "@/types";
+import { SUPER_ADMIN_PRINCIPAL_EMAIL } from "@/lib/admin";
 
 type Feedback = { kind: "ok" | "erro"; text: string } | null;
 
@@ -42,6 +43,7 @@ function amanha(): string {
 export default function UsersClient({
   users,
   currentRole,
+  currentEmail,
   meuId,
   departamentos,
   grupos,
@@ -49,6 +51,7 @@ export default function UsersClient({
 }: {
   users: Profile[];
   currentRole: string;
+  currentEmail: string;
   meuId: string;
   departamentos: string[];
   /** Grupos disponíveis, do mais alto ao mais baixo na hierarquia. */
@@ -352,7 +355,13 @@ export default function UsersClient({
             <tbody className="divide-y divide-[var(--neo-line)]">
               {users.map((u) => {
                 const ehSuperAdmin = u.role === "super_admin";
-                // Super admin é intocável por terceiros: nem papel, nem situação.
+                const ehSuperAdminPrincipal =
+                  currentEmail.trim().toLowerCase() === SUPER_ADMIN_PRINCIPAL_EMAIL;
+                const podeAlterarFuncao =
+                  u.id !== meuId &&
+                  (currentRole === "super_admin" &&
+                    (!ehSuperAdmin || ehSuperAdminPrincipal));
+                // Os demais campos de um super admin continuam protegidos.
                 const editable =
                   !ehSuperAdmin &&
                   u.id !== meuId &&
@@ -389,7 +398,7 @@ export default function UsersClient({
                           valor: r,
                           texto: ROLE_LABELS[r],
                         }))}
-                        editavel={editable}
+                        editavel={podeAlterarFuncao || editable}
                         ocupado={busy}
                         aparencia={
                           ehSuperAdmin

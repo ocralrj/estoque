@@ -27,6 +27,7 @@ export default async function UsersPage() {
     <UsersClient
       users={users ?? []}
       currentRole={profile?.role ?? ""}
+      currentEmail={user.email ?? profile?.email ?? ""}
       meuId={user.id}
       departamentos={dep.ok ? dep.data.map((d) => d.nome) : []}
       cargos={cargos.ok ? cargos.data : []}

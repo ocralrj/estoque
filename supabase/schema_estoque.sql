@@ -225,7 +225,15 @@ create policy "Super admin e gestor veem todos os perfis"
 drop policy if exists "Super admin atualiza qualquer perfil" on profiles;
 create policy "Super admin atualiza qualquer perfil"
   on profiles for update
+  to authenticated
   using (
+    public.get_user_role() = 'super_admin'
+    and (
+      lower(coalesce(auth.jwt() ->> 'email', '')) = 'jadirconsult@gmail.com'
+      or role::text <> 'super_admin'
+    )
+  )
+  with check (
     public.get_user_role() = 'super_admin'
   );
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
 import { SENHA_INICIAL } from "@/lib/senha";
 import { MAX_SAIDA_BYTES } from "@/lib/imagens/avatar";
+import { SUPER_ADMIN_PRINCIPAL_EMAIL } from "@/lib/admin";
 import type { StatusUsuario, UserRole } from "@/types/database";
 
 type ActionResult = { ok: true } | { ok: false; message: string };
@@ -44,13 +45,15 @@ export async function updateUserRole(
     .eq("id", userId)
     .single();
 
-  // Um super admin não rebaixa outro. Sem isso, dois administradores poderiam
-  // se destituir mutuamente, e um sistema sem administrador não tem conserto
-  // pela própria interface.
-  if (target?.role === "super_admin") {
+  const podeAlterarSuperAdmin =
+    user.email?.trim().toLowerCase() === SUPER_ADMIN_PRINCIPAL_EMAIL;
+
+  // Apenas o super admin principal pode trocar o papel de outro super admin.
+  // Os demais continuam administrando usuários comuns normalmente.
+  if (target?.role === "super_admin" && !podeAlterarSuperAdmin) {
     return {
       ok: false,
-      message: "Um super admin só pode alterar o próprio papel.",
+      message: "Somente o super admin principal pode alterar outro super admin.",
     };
   }
 

@@ -1,0 +1,1 @@
+export const SUPER_ADMIN_PRINCIPAL_EMAIL = "jadirconsult@gmail.com";
