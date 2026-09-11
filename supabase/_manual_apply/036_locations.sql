@@ -52,3 +52,28 @@ begin
       on delete set null;
   end if;
 end $$;
+
+-- ============================================================
+-- RLS e Permissões para locations
+-- ============================================================
+
+alter table locations enable row level security;
+
+drop policy if exists "locations_select" on locations;
+create policy "locations_select" on locations
+  for select to authenticated
+  using (true);
+
+drop policy if exists "locations_manage" on locations;
+create policy "locations_manage" on locations
+  for all to authenticated
+  using (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'))
+  with check (public.get_user_role()::text in ('super_admin', 'gestor', 'almoxarife'));
+
+-- Permissões no catálogo
+insert into permissions (module, resource, action, description) values
+  ('admin', 'locations', 'read', 'Ver localizações'),
+  ('admin', 'locations', 'create', 'Criar localizações'),
+  ('admin', 'locations', 'update', 'Editar localizações'),
+  ('admin', 'locations', 'delete', 'Excluir localizações')
+on conflict (module, resource, action) do nothing;

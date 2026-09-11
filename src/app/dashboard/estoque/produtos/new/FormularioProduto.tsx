@@ -28,12 +28,12 @@ export default function FormularioProduto() {
     async function carregar() {
       const supabase = createClient();
 
-      const [{ data: cats }, { data: produtos }] = await Promise.all([
+      const [{ data: cats }, { data: locaisDB }, { data: produtos }] = await Promise.all([
         supabase.from("categories").select("*").order("name"),
-        // As localizações já em uso, com o que guardam. Um almoxarifado real
-        // tem meia dúzia de lugares, e digitá-los de novo a cada produto gera
-        // "Sala do TI", "sala do ti" e "Sala TI" convivendo — três prateleiras
-        // no relatório, uma na vida real.
+        supabase
+          .from("locations")
+          .select("id, name")
+          .order("name"),
         supabase
           .from("products")
           .select("location, name")
@@ -43,13 +43,27 @@ export default function FormularioProduto() {
 
       setCategories(cats || []);
 
+      const listaLocais = (locaisDB as { id: string; name: string }[] | null) ?? [];
+      const mapaLocais = new Map<string, string>();
+      for (const l of listaLocais) {
+        mapaLocais.set(l.id, l.name);
+      }
+
       const mapa = new Map<string, string[]>();
+      // Inclui todos os locais cadastrados
+      for (const l of listaLocais) {
+        if (!mapa.has(l.name)) {
+          mapa.set(l.name, []);
+        }
+      }
+
       for (const p of produtos ?? []) {
-        const local = (p.location as string | null)?.trim();
-        if (!local) continue;
-        const lista = mapa.get(local) ?? [];
+        const raw = (p.location as string | null)?.trim();
+        if (!raw) continue;
+        const localNome = (mapaLocais.get(raw) || raw).trim();
+        const lista = mapa.get(localNome) ?? [];
         lista.push(p.name as string);
-        mapa.set(local, lista);
+        mapa.set(localNome, lista);
       }
 
       setLocaisUsados(
@@ -91,6 +105,34 @@ export default function FormularioProduto() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    const localInput = formData.location.trim();
+    let locationVal: string | null = localInput || null;
+
+    if (localInput) {
+      try {
+        const { data: locExistente } = await supabase
+          .from("locations")
+          .select("id, name")
+          .ilike("name", localInput)
+          .maybeSingle();
+
+        if (locExistente?.id) {
+          locationVal = locExistente.id;
+        } else {
+          const { data: novaLoc } = await supabase
+            .from("locations")
+            .insert({ name: localInput })
+            .select("id")
+            .maybeSingle();
+          if (novaLoc?.id) {
+            locationVal = novaLoc.id;
+          }
+        }
+      } catch {
+        locationVal = localInput;
+      }
+    }
+
     const payload = {
       code: formData.code,
       name: formData.name,
@@ -99,11 +141,17 @@ export default function FormularioProduto() {
       unit: formData.unit,
       quantity_current: formData.quantity_current,
       quantity_minimum: formData.quantity_minimum,
-      location: formData.location || null,
+      location: locationVal,
       created_by: user?.id,
     };
 
-    const { error } = await supabase.from("products").insert(payload);
+    let { error } = await supabase.from("products").insert(payload);
+
+    if (error && locationVal !== localInput) {
+      payload.location = localInput;
+      const retry = await supabase.from("products").insert(payload);
+      error = retry.error;
+    }
 
     if (error) {
       alert("Erro ao criar produto: " + error.message);
@@ -239,12 +287,12 @@ export default function FormularioProduto() {
 
           <div>
             <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Localização
+              Localização (Nome do local)
             </label>
             <input
               type="text"
               list="locais-em-uso"
-              placeholder="ex: Prateleira A3, Sala 2"
+              placeholder="ex: Almoxarifado Central, Depósito 1"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
@@ -262,8 +310,8 @@ export default function FormularioProduto() {
               <div className="mt-2 rounded-lg bg-[var(--neo-flat)] px-3 py-2">
                 <p className="text-xs font-semibold text-[var(--text-muted)]">
                   {formData.location.trim()
-                    ? "Locais parecidos já em uso — clique para reaproveitar"
-                    : "Locais já em uso"}
+                    ? "Locais parecidos cadastrados ou em uso — clique para reaproveitar"
+                    : "Locais cadastrados / em uso"}
                 </p>
                 <ul className="mt-1 space-y-1">
                   {locaisSemelhantes.map((l) => (

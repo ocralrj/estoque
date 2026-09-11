@@ -7,15 +7,26 @@ export default async function AlertsPage() {
   const { supabase } = await requireSession(STOCK_ROLES);
   await exigirPermissao("estoque", "alerts", "read");
 
-  const { data: lowStockProductsData } = await supabase
-    .from("products")
-    .select(`
-      *,
-      category:categories(name)
-    `)
-    .eq("is_low_stock", true)
-    .eq("active", true)
-    .order("quantity_current");
+  const [{ data: lowStockProductsData }, { data: locaisData }] = await Promise.all([
+    supabase
+      .from("products")
+      .select(`
+        *,
+        category:categories(name)
+      `)
+      .eq("is_low_stock", true)
+      .eq("active", true)
+      .order("quantity_current"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .order("name"),
+  ]);
+
+  const locaisMap = new Map<string, string>();
+  for (const l of ((locaisData as { id: string; name: string }[] | null) ?? [])) {
+    locaisMap.set(l.id, l.name);
+  }
 
   const lowStockProducts = lowStockProductsData as Product[] | null;
 
@@ -69,7 +80,10 @@ export default async function AlertsPage() {
 
                   {product.location && (
                     <p className="text-sm text-[var(--text-muted)] mt-3">
-                      Localização: <span className="font-medium">{product.location}</span>
+                      Localização:{" "}
+                      <span className="font-medium">
+                        {locaisMap.get(product.location) || product.location}
+                      </span>
                     </p>
                   )}
                 </div>

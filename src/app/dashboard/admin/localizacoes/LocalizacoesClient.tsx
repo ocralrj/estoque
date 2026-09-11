@@ -3,10 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { criarLocalizacao, atualizarLocalizacao, excluirLocalizacao } from "@/app/actions/localizacoes";
-import { Tooltip } from "@/components/ui/Tooltip";
+import Tooltip from "@/components/ui/Tooltip";
 import { usePode } from "@/components/auth/Permissoes";
 import { formatDate } from "@/lib/labels";
 import { IconeEditar, IconeExcluir } from "@/components/ui/IconesAcao";
+import { clsx } from "clsx";
 
 type Localizacao = {
   id: string;
@@ -117,11 +118,12 @@ export default function LocalizacoesClient() {
     <>
       {feedback && (
         <div
-          className={feedback.kind === "ok"
-            ? "bg-[var(--ok-bg)] text-[var(--ok-fg)]"
-            : "bg-[var(--erro-bg)] text-[var(--erro-fg)]"
-          }
-          className="px-4 py-3 rounded mb-4"
+          className={clsx(
+            "px-4 py-3 rounded mb-4",
+            feedback.kind === "ok"
+              ? "bg-[var(--ok-bg)] text-[var(--ok-fg)]"
+              : "bg-[var(--erro-bg)] text-[var(--erro-fg)]"
+          )}
         >
           {feedback.text}
         </div>
@@ -130,7 +132,7 @@ export default function LocalizacoesClient() {
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-[var(--text)]">Localizações</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Gerencie as localizações de produtos
+          Gerencie os locais de armazenamento dos produtos (ex: Almoxarifado Central, Depósito 1)
         </p>
       </div>
 
@@ -148,12 +150,13 @@ export default function LocalizacoesClient() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Nome
+              Nome do local
             </label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="ex: Almoxarifado Central, Depósito 1"
               className="w-full px-3 py-2 border border-[var(--stroke)] bg-[var(--surface)] rounded text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
               required
             />
@@ -180,7 +183,7 @@ export default function LocalizacoesClient() {
           </button>
           <button
             type="button"
-            onClick={editandoLocalizacao ? atualizar : criar}
+            onClick={editandoLocalizacao ? () => atualizar(editandoLocalizacao.id) : criar}
             disabled={pending}
             className={clsx(
               "px-4 py-2 text-sm font-medium text-[var(--on-accent)] bg-[var(--primary)] rounded hover:bg-[var(--primary-strong)] disabled:opacity-50",

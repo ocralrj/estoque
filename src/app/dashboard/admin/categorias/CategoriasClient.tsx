@@ -3,10 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { criarCategoria, atualizarCategoria, excluirCategoria } from "@/app/actions/categorias";
-import { Tooltip } from "@/components/ui/Tooltip";
+import Tooltip from "@/components/ui/Tooltip";
 import { usePode } from "@/components/auth/Permissoes";
 import { formatDate } from "@/lib/labels";
 import { IconeEditar, IconeExcluir } from "@/components/ui/IconesAcao";
+import { clsx } from "clsx";
 
 type Categoria = {
   id: string;
@@ -117,11 +118,12 @@ export default function CategoriasClient() {
     <>
       {feedback && (
         <div
-          className={feedback.kind === "ok"
-            ? "bg-[var(--ok-bg)] text-[var(--ok-fg)]"
-            : "bg-[var(--erro-bg)] text-[var(--erro-fg)]"
-          }
-          className="px-4 py-3 rounded mb-4"
+          className={clsx(
+            "px-4 py-3 rounded mb-4",
+            feedback.kind === "ok"
+              ? "bg-[var(--ok-bg)] text-[var(--ok-fg)]"
+              : "bg-[var(--erro-bg)] text-[var(--erro-fg)]"
+          )}
         >
           {feedback.text}
         </div>
@@ -180,7 +182,7 @@ export default function CategoriasClient() {
           </button>
           <button
             type="button"
-            onClick={editandoCategoria ? atualizar : criar}
+            onClick={editandoCategoria ? () => atualizar(editandoCategoria.id) : criar}
             disabled={pending}
             className={clsx(
               "px-4 py-2 text-sm font-medium text-[var(--on-accent)] bg-[var(--primary)] rounded hover:bg-[var(--primary-strong)] disabled:opacity-50",

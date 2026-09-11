@@ -58,6 +58,40 @@ export async function definirLocalizacao(
   if (!permitido.ok) return permitido;
 
   const novo = local?.trim().slice(0, 200) || null;
+  let valorParaSalvar: string | null = novo;
+
+  if (novo) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        novo
+      );
+    try {
+      if (isUuid) {
+        valorParaSalvar = novo;
+      } else {
+        const { data: locExistente } = await supabase
+          .from("locations")
+          .select("id, name")
+          .ilike("name", novo)
+          .maybeSingle();
+
+        if (locExistente?.id) {
+          valorParaSalvar = locExistente.id;
+        } else {
+          const { data: novaLoc } = await supabase
+            .from("locations")
+            .insert({ name: novo })
+            .select("id")
+            .maybeSingle();
+          if (novaLoc?.id) {
+            valorParaSalvar = novaLoc.id;
+          }
+        }
+      }
+    } catch {
+      valorParaSalvar = novo;
+    }
+  }
 
   if (emTodos) {
     const { data: atual } = await supabase
@@ -69,31 +103,53 @@ export async function definirLocalizacao(
     const antigo = (atual?.location as string | null)?.trim();
 
     if (antigo) {
-      const { data, error } = await supabase
+      let resUpdate = await supabase
         .from("products")
-        .update({ location: novo })
+        .update({ location: valorParaSalvar })
         .eq("location", antigo)
         .eq("active", true)
         .select("id");
 
-      if (error) {
-        console.error("Falha ao renomear localização:", error);
-        return { ok: false, message: `Não foi possível salvar: ${error.message}` };
+      if (resUpdate.error && valorParaSalvar !== novo) {
+        resUpdate = await supabase
+          .from("products")
+          .update({ location: novo })
+          .eq("location", antigo)
+          .eq("active", true)
+          .select("id");
+      }
+
+      if (resUpdate.error) {
+        console.error("Falha ao renomear localização:", resUpdate.error);
+        return {
+          ok: false,
+          message: `Não foi possível salvar: ${resUpdate.error.message}`,
+        };
       }
 
       revalidar();
-      return { ok: true, data: { afetados: data?.length ?? 0 } };
+      return { ok: true, data: { afetados: resUpdate.data?.length ?? 0 } };
     }
   }
 
-  const { error } = await supabase
+  let resSingle = await supabase
     .from("products")
-    .update({ location: novo })
+    .update({ location: valorParaSalvar })
     .eq("id", produtoId);
 
-  if (error) {
-    console.error("Falha ao definir localização:", error);
-    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
+  if (resSingle.error && valorParaSalvar !== novo) {
+    resSingle = await supabase
+      .from("products")
+      .update({ location: novo })
+      .eq("id", produtoId);
+  }
+
+  if (resSingle.error) {
+    console.error("Falha ao definir localização:", resSingle.error);
+    return {
+      ok: false,
+      message: `Não foi possível salvar: ${resSingle.error.message}`,
+    };
   }
 
   revalidar();

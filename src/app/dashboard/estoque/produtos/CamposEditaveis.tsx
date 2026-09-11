@@ -113,11 +113,14 @@ export function CelulaCategoria({
 export function CelulaLocalizacao({
   produtoId,
   local,
+  locaisDisponiveis = [],
   locaisUsados,
   editavel,
 }: {
   produtoId: string;
   local: string | null;
+  /** Locais cadastrados no sistema (tabela locations). */
+  locaisDisponiveis?: { id: string; name: string }[];
   /** Locais em uso e quantos produtos há em cada um. */
   locaisUsados: { local: string; total: number }[];
   editavel: boolean;
@@ -130,6 +133,13 @@ export function CelulaLocalizacao({
 
   const quantosDividem =
     locaisUsados.find((l) => l.local === local)?.total ?? 0;
+
+  const todosLocaisNomes = Array.from(
+    new Set([
+      ...locaisDisponiveis.map((l) => l.name),
+      ...locaisUsados.map((l) => l.local),
+    ])
+  );
 
   const semelhantes = valor.trim()
     ? locaisUsados
@@ -197,12 +207,12 @@ export function CelulaLocalizacao({
         value={valor}
         list="locais-produtos"
         onChange={(e) => setValor(e.target.value)}
-        placeholder="ex: Armário na sala do TI"
+        placeholder="ex: Almoxarifado Central, Depósito 1"
         className="w-full rounded-[1rem] border border-[var(--neo-line)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]"
       />
       <datalist id="locais-produtos">
-        {locaisUsados.map((l) => (
-          <option key={l.local} value={l.local} />
+        {todosLocaisNomes.map((nome) => (
+          <option key={nome} value={nome} />
         ))}
       </datalist>
 

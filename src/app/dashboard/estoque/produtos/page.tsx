@@ -12,14 +12,24 @@ export default async function ProductsPage() {
   const { supabase, profile } = await requireSession();
   await exigirPermissao("estoque", "products", "read");
 
-  const { data: products } = await supabase
-    .from("products")
-    .select(`
-      *,
-      category:categories(name)
-    `)
-    .eq("active", true)
-    .order("name");
+  const [{ data: products }, { data: categorias }, { data: locaisData }] = await Promise.all([
+    supabase
+      .from("products")
+      .select(`
+        *,
+        category:categories(name)
+      `)
+      .eq("active", true)
+      .order("name"),
+    supabase
+      .from("categories")
+      .select("id, name")
+      .order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .order("name"),
+  ]);
 
   const canManage = canManageStock(profile?.role);
 
@@ -27,17 +37,20 @@ export default async function ProductsPage() {
   // basta: quem dá baixa não decide o código nem onde a coisa fica guardada.
   const podeEditar = await pode("estoque", "products", "update");
 
-  const { data: categorias } = await supabase
-    .from("categories")
-    .select("id, name")
-    .order("name");
+  const locaisLista = ((locaisData as { id: string; name: string }[] | null) ?? []);
+  const locaisMap = new Map<string, string>();
+  for (const l of locaisLista) {
+    locaisMap.set(l.id, l.name);
+  }
 
-  // Quantos produtos há em cada local: é o número que permite corrigir o nome
-  // de uma prateleira em todos de uma vez, em vez de um a um.
+  // Quantos produtos há em cada local: agrupados pelo NOME do local,
+  // e nunca por UUID ou coordenadas.
   const locaisUsados = Object.entries(
     (products ?? []).reduce<Record<string, number>>((acc, p) => {
-      const local = (p.location as string | null)?.trim();
-      if (local) acc[local] = (acc[local] ?? 0) + 1;
+      const raw = (p.location as string | null)?.trim();
+      if (!raw) return acc;
+      const nome = (locaisMap.get(raw) || raw).trim();
+      if (nome) acc[nome] = (acc[nome] ?? 0) + 1;
       return acc;
     }, {})
   )
@@ -123,7 +136,12 @@ export default async function ProductsPage() {
                     <td data-rotulo="Localização" className="px-6 py-4 text-sm">
                       <CelulaLocalizacao
                         produtoId={product.id}
-                        local={product.location ?? null}
+                        local={
+                          product.location
+                            ? (locaisMap.get(product.location) || product.location)
+                            : null
+                        }
+                        locaisDisponiveis={locaisLista}
                         locaisUsados={locaisUsados}
                         editavel={podeEditar}
                       />
