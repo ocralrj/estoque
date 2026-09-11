@@ -357,7 +357,10 @@ export default function Sidebar({
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
           aria-expanded={!isCollapsed}
-          className="neo-alca absolute -right-4 top-[68px] z-20 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          className={clsx(
+            "neo-alca fixed z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition-left duration-200 top-[68px]",
+            collapsed ? "left-[64px]" : "left-[304px]"
+          )}
         >
           <svg
             className={clsx("h-4 w-4 transition-transform", isCollapsed && "rotate-180")}
