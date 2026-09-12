@@ -117,6 +117,9 @@ export async function consultarEmpresaPorCnpj(
     const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${numero}`, {
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
+      // O firewall da BrasilAPI responde 403 ao User-Agent padrão do Node
+      // ("node") e 429 a quem não manda nenhum. Identificar o sistema resolve.
+      headers: { "User-Agent": "OCRAL/1.0 (+https://ocral.vercel.app)" },
     });
 
     if (resposta.status === 404) return { ok: true, data: null };
