@@ -105,7 +105,7 @@ export default function UserMenu({ profile }: { profile: Profile }) {
               type="button"
               onClick={handleLogout}
               role="menuitem"
-              className="block w-full rounded-2xl px-4 py-2.5 text-left text-sm font-bold text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--danger)]"
+              className="block w-full rounded-2xl px-4 py-2.5 text-left text-sm font-bold text-[var(--erro-solid)] transition-colors hover:bg-[var(--erro-bg)] hover:text-[var(--erro-fg)]"
             >
               Sair do sistema
             </button>
