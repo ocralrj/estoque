@@ -56,7 +56,7 @@ async function nomeEmUso(
   const { data, error } = await supabase.from(CADASTROS[tipo].tabela).select("id, name");
 
   if (error) {
-    console.error(`Falha ao conferir nome de ${CADASTROS[tipo].singular}:`, error);
+    console.error("Falha ao conferir nome de %s:", CADASTROS[tipo].singular, error);
     return { ok: false, message: `Não foi possível conferir o nome: ${error.message}` };
   }
 
@@ -83,7 +83,7 @@ export async function listar(
 
   const { data, error } = await consulta;
   if (error) {
-    console.error(`Falha ao listar ${CADASTROS[tipo].plural}:`, error);
+    console.error("Falha ao listar %s:", CADASTROS[tipo].plural, error);
     if (faltaMigracao(error.code)) return { ok: false, message: AVISO_MIGRACAO };
     return { ok: false, message: `Não foi possível carregar: ${error.message}` };
   }
@@ -106,7 +106,7 @@ export async function listarComUso(
     .order("name");
 
   if (error) {
-    console.error(`Falha ao contar produtos por ${cfg.singular}:`, error);
+    console.error("Falha ao contar produtos por %s:", cfg.singular, error);
     return { ok: false, message: `Não foi possível carregar os produtos vinculados: ${error.message}` };
   }
 
@@ -156,7 +156,7 @@ export async function criar(
     .single();
 
   if (error) {
-    console.error(`Falha ao criar ${cfg.singular}:`, error);
+    console.error("Falha ao criar %s:", cfg.singular, error);
     if (error.code === "23505") {
       return { ok: false, message: `Já existe uma ${cfg.singular} com esse nome.` };
     }
@@ -201,7 +201,7 @@ export async function atualizar(
     .select("id");
 
   if (error) {
-    console.error(`Falha ao atualizar ${cfg.singular}:`, error);
+    console.error("Falha ao atualizar %s:", cfg.singular, error);
     if (error.code === "23505") {
       return { ok: false, message: `Já existe uma ${cfg.singular} com esse nome.` };
     }
@@ -241,7 +241,7 @@ export async function definirStatus(
     .select("id");
 
   if (error) {
-    console.error(`Falha ao mudar status de ${cfg.singular}:`, error);
+    console.error("Falha ao mudar status de %s:", cfg.singular, error);
     if (faltaMigracao(error.code)) return { ok: false, message: AVISO_MIGRACAO };
     return { ok: false, message: `Não foi possível salvar: ${error.message}` };
   }
@@ -278,7 +278,7 @@ export async function excluir(tipo: TipoDeCadastro, id: string): Promise<Resulta
     .eq(cfg.colunaNoProduto, id);
 
   if (erroContagem) {
-    console.error(`Falha ao conferir uso de ${cfg.singular}:`, erroContagem);
+    console.error("Falha ao conferir uso de %s:", cfg.singular, erroContagem);
     return { ok: false, message: `Não foi possível conferir o uso: ${erroContagem.message}` };
   }
 
@@ -290,7 +290,7 @@ export async function excluir(tipo: TipoDeCadastro, id: string): Promise<Resulta
 
   if (error) {
     if (error.code === "23503") return { ok: false, message: emUso };
-    console.error(`Falha ao excluir ${cfg.singular}:`, error);
+    console.error("Falha ao excluir %s:", cfg.singular, error);
     return { ok: false, message: `Não foi possível excluir: ${error.message}` };
   }
   if (!data || data.length === 0) {

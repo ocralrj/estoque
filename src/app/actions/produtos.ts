@@ -41,7 +41,7 @@ async function recusaDeCadastro(
     .maybeSingle();
 
   if (error) {
-    console.error(`Falha ao conferir ${nome}:`, error);
+    console.error("Falha ao conferir %s:", nome, error);
     return `Não foi possível conferir a ${nome}: ${error.message}`;
   }
   if (!data) return `A ${nome} escolhida não existe mais.`;
