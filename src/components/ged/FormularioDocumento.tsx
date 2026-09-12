@@ -19,6 +19,8 @@ import {
   lerDocumentoComIa,
   listarAcessosDoDocumento,
 } from "@/app/actions/ged";
+import { consultarEmpresaPorCnpj } from "@/app/actions/certificados";
+import { cnpjValido, formatarCnpj, normalizarCnpj } from "@/lib/cnpj";
 import {
   type GedDocument,
   type GedFolder,
@@ -26,6 +28,10 @@ import {
   type GedSetor,
   type GedStatus,
 } from "@/types/modules/ged";
+
+type ConsultaCnpj =
+  | { estado: "consultando" }
+  | { estado: "encontrado" | "falha"; mensagem: string };
 
 const STATUS: GedStatus[] = ["Rascunho", "Ativo", "Assinado", "Arquivado", "Eliminado"];
 
@@ -109,6 +115,75 @@ export default function FormularioDocumento({
     });
   }, [documento]);
 
+  // Consulta do CNPJ. Só dispara quando o CNPJ muda — abrir um documento
+  // para edição não reescreve o cliente que já estava gravado.
+  const [consultaCnpj, setConsultaCnpj] = useState<ConsultaCnpj | null>(null);
+  const [saiuDoCnpj, setSaiuDoCnpj] = useState(false);
+  const cnpjAlterado = useRef(false);
+  /** O cliente que a consulta escreveu, para não apagar o que foi digitado. */
+  const clienteAutomatico = useRef<string | null>(null);
+
+  const cnpjDigitado = normalizarCnpj(form.cnpj ?? "");
+  const cnpjOk = cnpjValido(cnpjDigitado);
+  // Enquanto digita, número incompleto ainda não é erro.
+  const cnpjInvalido =
+    cnpjDigitado.length > 0 && !cnpjOk && (cnpjDigitado.length === 14 || saiuDoCnpj);
+  const consultandoCnpj = consultaCnpj?.estado === "consultando";
+
+  useEffect(() => {
+    if (!cnpjAlterado.current) return;
+    if (!cnpjValido(cnpjDigitado)) {
+      setConsultaCnpj(null);
+      return;
+    }
+
+    // Uma resposta que chega depois de o CNPJ mudar é descartada.
+    let cancelado = false;
+    const espera = setTimeout(async () => {
+      setConsultaCnpj({ estado: "consultando" });
+      const res = await consultarEmpresaPorCnpj(cnpjDigitado).catch(() => null);
+      if (cancelado) return;
+
+      if (!res || !res.ok) {
+        setConsultaCnpj({
+          estado: "falha",
+          mensagem: res?.message ?? "Não foi possível consultar o CNPJ agora. Preencha o cliente manualmente.",
+        });
+        return;
+      }
+
+      if (!res.data) {
+        // O cliente vindo do CNPJ anterior não pertence a este.
+        const anterior = clienteAutomatico.current;
+        clienteAutomatico.current = null;
+        if (anterior) setForm((f) => (f.cliente === anterior ? { ...f, cliente: "" } : f));
+        setConsultaCnpj({
+          estado: "falha",
+          mensagem: "CNPJ não encontrado. Verifique o número informado.",
+        });
+        return;
+      }
+
+      const { nome, razaoSocial } = res.data;
+      clienteAutomatico.current = nome;
+      setForm((f) => ({ ...f, cliente: nome }));
+      setConsultaCnpj({ estado: "encontrado", mensagem: `Empresa encontrada: ${razaoSocial}.` });
+    }, 400);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(espera);
+    };
+  }, [cnpjDigitado]);
+
+  const situacaoCnpj = cnpjInvalido
+    ? { texto: "CNPJ inválido. Verifique o número informado.", erro: true }
+    : consultaCnpj?.estado === "consultando"
+      ? { texto: "Consultando CNPJ…", erro: false }
+      : consultaCnpj
+        ? { texto: consultaCnpj.mensagem, erro: consultaCnpj.estado === "falha" }
+        : null;
+
   function set<K extends keyof typeof form>(campo: K, valor: (typeof form)[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
   }
@@ -140,11 +215,13 @@ export default function FormularioDocumento({
     periodo: string | null;
     setor: string | null;
   }) {
+    // O CNPJ lido também passa pela consulta, que confirma o cliente.
+    if (dados.cnpj) cnpjAlterado.current = true;
     setForm((f) => ({
       ...f,
       nome: f.nome || dados.nome || "",
       cliente: f.cliente || dados.cliente || "",
-      cnpj: f.cnpj || dados.cnpj || "",
+      cnpj: f.cnpj || formatarCnpj(dados.cnpj ?? ""),
       tipo: f.tipo || dados.tipo || "",
       resumo: f.resumo || dados.resumo || "",
       data_documento: f.data_documento || dados.data_documento || "",
@@ -235,6 +312,12 @@ export default function FormularioDocumento({
 
     if (!editando && !arquivo) {
       setErro("Anexe um arquivo ou tire uma foto do documento.");
+      return;
+    }
+
+    if (cnpjDigitado && !cnpjOk) {
+      setSaiuDoCnpj(true);
+      setErro("CNPJ inválido. Verifique o número informado.");
       return;
     }
 
@@ -414,20 +497,49 @@ export default function FormularioDocumento({
                   />
                 </Campo>
 
+                <Campo label="CNPJ">
+                  <input
+                    value={form.cnpj ?? ""}
+                    onChange={(e) => {
+                      cnpjAlterado.current = true;
+                      setSaiuDoCnpj(false);
+                      set("cnpj", formatarCnpj(e.target.value));
+                    }}
+                    onBlur={() => setSaiuDoCnpj(true)}
+                    placeholder="00.000.000/0001-00"
+                    maxLength={18}
+                    aria-invalid={cnpjInvalido}
+                    aria-describedby="cnpj-situacao"
+                    className={entrada}
+                  />
+                  <p
+                    id="cnpj-situacao"
+                    aria-live="polite"
+                    className={
+                      situacaoCnpj
+                        ? `mt-1 flex items-center gap-1.5 text-xs ${
+                            situacaoCnpj.erro
+                              ? "font-semibold text-[var(--erro-solid)]"
+                              : "text-[var(--muted)]"
+                          }`
+                        : undefined
+                    }
+                  >
+                    {consultandoCnpj && !cnpjInvalido && (
+                      <span
+                        aria-hidden
+                        className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--stroke)] border-t-[var(--primary)]"
+                      />
+                    )}
+                    {situacaoCnpj?.texto}
+                  </p>
+                </Campo>
+
                 <Campo label="Cliente *">
                   <input
                     required
                     value={form.cliente}
                     onChange={(e) => set("cliente", e.target.value)}
-                    className={entrada}
-                  />
-                </Campo>
-
-                <Campo label="CNPJ">
-                  <input
-                    value={form.cnpj ?? ""}
-                    onChange={(e) => set("cnpj", e.target.value)}
-                    placeholder="00.000.000/0001-00"
                     className={entrada}
                   />
                 </Campo>
@@ -591,7 +703,7 @@ export default function FormularioDocumento({
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"
-                disabled={pendente || preparando || lendo}
+                disabled={pendente || preparando || lendo || consultandoCnpj}
                 className="rounded-full bg-[var(--primary)] px-6 py-3 text-sm font-bold text-[var(--on-accent)] shadow-[10px_10px_18px_rgba(122,109,216,0.28)] disabled:opacity-60"
               >
                 {progresso ?? (editando ? "Salvar alterações" : "Cadastrar documento")}

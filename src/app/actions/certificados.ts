@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { exigir } from "@/lib/permissoes";
+import { cnpjValido, normalizarCnpj } from "@/lib/cnpj";
 
 type Resultado<T = void> =
   | { ok: true; data: T }
@@ -60,6 +61,83 @@ export async function listarEmpresas(): Promise<Resultado<Empresa[]>> {
     return { ok: false, message: "Não foi possível carregar as empresas." };
   }
   return { ok: true, data: (data ?? []) as Empresa[] };
+}
+
+export interface EmpresaConsultada {
+  /** Nome fantasia; a razão social quando a empresa não tem um. */
+  nome: string;
+  razaoSocial: string;
+  origem: "cadastro" | "receita";
+}
+
+/**
+ * Descobre a empresa de um CNPJ.
+ *
+ * Procura primeiro no cadastro de empresas do sistema. O que não estiver lá é
+ * consultado na BrasilAPI, que espelha a base pública da Receita e não pede
+ * chave. A chamada sai do servidor, então o navegador nunca fala com o
+ * serviço externo.
+ *
+ * `data: null` quer dizer que o CNPJ não existe. Falha de rede ou do serviço
+ * volta como erro, para a tela não afirmar "não encontrado" sem saber.
+ */
+export async function consultarEmpresaPorCnpj(
+  cnpj: string
+): Promise<Resultado<EmpresaConsultada | null>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const numero = normalizarCnpj(cnpj);
+  if (!cnpjValido(numero)) {
+    return { ok: false, message: "CNPJ inválido. Verifique o número informado." };
+  }
+
+  const { data: interna, error } = await supabase
+    .from("empresas")
+    .select("razao_social, nome_fantasia")
+    .eq("cnpj", numero)
+    .maybeSingle();
+
+  // Sem a tabela, ou com falha nela, a consulta externa ainda responde.
+  if (error && !faltaMigracao(error.code)) {
+    console.error("Falha ao consultar empresa pelo CNPJ no cadastro:", error);
+  }
+  if (interna) {
+    return {
+      ok: true,
+      data: {
+        nome: interna.nome_fantasia?.trim() || interna.razao_social,
+        razaoSocial: interna.razao_social,
+        origem: "cadastro",
+      },
+    };
+  }
+
+  try {
+    const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${numero}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (resposta.status === 404) return { ok: true, data: null };
+    if (!resposta.ok) {
+      console.error("BrasilAPI recusou a consulta de CNPJ:", resposta.status);
+      return { ok: false, message: "Não foi possível consultar o CNPJ agora. Preencha o cliente manualmente." };
+    }
+
+    const corpo = (await resposta.json()) as {
+      razao_social?: string | null;
+      nome_fantasia?: string | null;
+    };
+    const razaoSocial = corpo.razao_social?.trim() ?? "";
+    const nome = corpo.nome_fantasia?.trim() || razaoSocial;
+    if (!nome) return { ok: true, data: null };
+
+    return { ok: true, data: { nome, razaoSocial, origem: "receita" } };
+  } catch (e) {
+    console.error("Falha ao consultar CNPJ na BrasilAPI:", e);
+    return { ok: false, message: "Não foi possível consultar o CNPJ agora. Preencha o cliente manualmente." };
+  }
 }
 
 export async function criarEmpresa(entrada: {
