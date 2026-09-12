@@ -375,7 +375,17 @@ export default function Sidebar({
         </Tooltip>
       )}
 
-      <nav className="flex-1 space-y-1 overflow-y-auto py-2">
+      {/* O overflow que deixa o menu rolar também recorta a sombra do item
+          ativo, que passa 20px da caixa — o "Início", primeiro da lista, saía
+          com a sombra cortada reta em cima e dos lados. A margem negativa com
+          padding igual dá essa folga sem mover nenhum item; na lateral ela
+          vai até a borda da aside, e não além. */}
+      <nav
+        className={clsx(
+          "flex-1 space-y-1 overflow-y-auto -mt-5 pt-7 pb-2",
+          isDrawer ? "-mx-4 px-4" : isCollapsed ? "-mx-3 px-3" : "-mx-5 px-5"
+        )}
+      >
         {itens.map((item) => (
           <NavItemComponent
             key={item.href || item.label}
