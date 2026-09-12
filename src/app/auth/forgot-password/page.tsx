@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import ThemeToggle from "@/components/theme/ThemeToggle";
+import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
+import Logo from "@/components/layout/Logo";
+import RodapeAutenticacao from "@/components/layout/RodapeAutenticacao";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -44,14 +46,15 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--neo-flat)] px-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle compact />
-      </div>
-      <div className="w-full max-w-md bg-[var(--neo-bg)] rounded-xl shadow-md p-8 border border-transparent">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-[var(--text)]">OCRAL</h1>
-          <p className="text-[var(--text-muted)] mt-1">Recuperar senha</p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[var(--neo-flat)] px-4 py-8">
+      <FundoAutenticacao />
+
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
+        <h1 className="sr-only">OCRAL — recuperar senha</h1>
+
+        <div className="mb-8 flex flex-col items-center">
+          <Logo largura={150} prioridade />
+          <p className="mt-4 text-[var(--text-muted)]">Recuperar senha</p>
         </div>
 
         {success ? (
@@ -119,6 +122,8 @@ export default function ForgotPasswordPage() {
           </form>
         )}
       </div>
+
+      <RodapeAutenticacao />
     </div>
   );
 }
