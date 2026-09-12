@@ -313,59 +313,59 @@ export default async function ProductsPage({
               {formatar(total)} {total === 1 ? "produto" : "produtos"}
             </p>
 
-            {totalPaginas > 1 && (
-              <nav aria-label="Paginação de produtos" className="flex flex-wrap items-center gap-1">
-                {pagina > 1 ? (
+            {/* Sempre visível, mesmo com uma página: mostra onde se está e que
+                a lista é paginada; Anterior/Próxima ficam desativados. */}
+            <nav aria-label="Paginação de produtos" className="flex flex-wrap items-center gap-1">
+              {pagina > 1 ? (
+                <Link
+                  href={urlDaLista(ordem, direcao, pagina - 1)}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
+                >
+                  ‹ Anterior
+                </Link>
+              ) : (
+                <span className="rounded-full px-3 py-1.5 text-xs font-bold opacity-50" aria-disabled="true">
+                  ‹ Anterior
+                </span>
+              )}
+
+              {paginasVisiveis(pagina, totalPaginas).map((p, i) =>
+                p === "…" ? (
+                  <span key={`reticencias-${i}`} className="px-2 text-xs">
+                    …
+                  </span>
+                ) : p === pagina ? (
+                  <span
+                    key={p}
+                    aria-current="page"
+                    className="rounded-full bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-[var(--on-accent)]"
+                  >
+                    {p}
+                  </span>
+                ) : (
                   <Link
-                    href={urlDaLista(ordem, direcao, pagina - 1)}
+                    key={p}
+                    href={urlDaLista(ordem, direcao, p)}
                     className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
                   >
-                    ‹ Anterior
+                    {p}
                   </Link>
-                ) : (
-                  <span className="rounded-full px-3 py-1.5 text-xs font-bold opacity-50" aria-disabled="true">
-                    ‹ Anterior
-                  </span>
-                )}
+                )
+              )}
 
-                {paginasVisiveis(pagina, totalPaginas).map((p, i) =>
-                  p === "…" ? (
-                    <span key={`reticencias-${i}`} className="px-2 text-xs">
-                      …
-                    </span>
-                  ) : p === pagina ? (
-                    <span
-                      key={p}
-                      aria-current="page"
-                      className="rounded-full bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-[var(--on-accent)]"
-                    >
-                      {p}
-                    </span>
-                  ) : (
-                    <Link
-                      key={p}
-                      href={urlDaLista(ordem, direcao, p)}
-                      className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
-                    >
-                      {p}
-                    </Link>
-                  )
-                )}
-
-                {pagina < totalPaginas ? (
-                  <Link
-                    href={urlDaLista(ordem, direcao, pagina + 1)}
-                    className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
-                  >
-                    Próxima ›
-                  </Link>
-                ) : (
-                  <span className="rounded-full px-3 py-1.5 text-xs font-bold opacity-50" aria-disabled="true">
-                    Próxima ›
-                  </span>
-                )}
-              </nav>
-            )}
+              {pagina < totalPaginas ? (
+                <Link
+                  href={urlDaLista(ordem, direcao, pagina + 1)}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
+                >
+                  Próxima ›
+                </Link>
+              ) : (
+                <span className="rounded-full px-3 py-1.5 text-xs font-bold opacity-50" aria-disabled="true">
+                  Próxima ›
+                </span>
+              )}
+            </nav>
           </div>
         )}
       </div>
