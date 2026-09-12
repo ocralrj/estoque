@@ -2,74 +2,21 @@ import { exigirPermissao } from "@/lib/permissoes";
 import Link from "next/link";
 import { MANAGER_ROLES, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/labels";
-
-interface Registro {
-  id: string;
-  user_id: string | null;
-  module: string;
-  action: string;
-  resource_type: string;
-  resource_id: string | null;
-  details: Record<string, unknown> | null;
-  created_at: string;
-  user?: { full_name: string | null; email: string } | null;
-}
+import {
+  ACOES,
+  MODULOS,
+  SENSIVEIS,
+  descrever,
+  idsParaResolver,
+  rotuloDePermissao,
+  type Registro,
+} from "./descricao";
 
 interface SearchParams {
   modulo?: string;
   acao?: string;
   usuario?: string;
   desde?: string;
-}
-
-/** Rótulos legíveis para o que os gatilhos gravam em inglês/código. */
-const ACOES: Record<string, string> = {
-  criar: "Criou",
-  alterar: "Alterou",
-  excluir: "Excluiu",
-  alterar_papel: "Alterou o papel",
-  ativar: "Ativou",
-  desativar: "Desativou",
-  conceder_permissao: "Concedeu permissão",
-  revogar_permissao: "Revogou permissão",
-  INSERT: "Criou",
-  UPDATE: "Alterou",
-  DELETE: "Excluiu",
-};
-
-const RECURSOS: Record<string, string> = {
-  profile: "usuário",
-  profiles: "usuário",
-  user_groups: "grupo",
-  group_members: "membro de grupo",
-  group_permissions: "permissão de grupo",
-  departamentos: "departamento",
-  products: "produto",
-  movements: "movimentação",
-};
-
-/** Ações que mudam quem pode o quê merecem destaque na varredura. */
-const SENSIVEIS = new Set([
-  "alterar_papel",
-  "conceder_permissao",
-  "revogar_permissao",
-  "desativar",
-  "excluir",
-]);
-
-function descrever(r: Registro): string {
-  const acao = ACOES[r.action] ?? r.action;
-  const recurso = RECURSOS[r.resource_type] ?? r.resource_type;
-  const d = r.details ?? {};
-
-  if (r.action === "alterar_papel") {
-    return `${acao} de ${d.email ?? "usuário"}: ${d.de} → ${d.para}`;
-  }
-  if (r.action === "ativar" || r.action === "desativar") {
-    return `${acao} ${d.email ?? "usuário"}`;
-  }
-  const nome = d.nome ?? d.name ?? d.email ?? d.codigo ?? r.resource_id;
-  return `${acao} ${recurso}${nome ? `: ${nome}` : ""}`;
 }
 
 export default async function AuditoriaPage({
@@ -93,10 +40,41 @@ export default async function AuditoriaPage({
 
   const { data: registros, error } = await query.returns<Registro[]>();
 
-  const [{ data: usuarios }, { data: facetas }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email").order("full_name"),
-    supabase.from("audit_logs").select("module, action").limit(1000),
-  ]);
+  // A trilha guarda produto, grupo e permissão pelo id. Os nomes vêm numa
+  // consulta por tabela, e não uma por linha: são até 200 registros por tela.
+  const ids = idsParaResolver(registros ?? []);
+  const vazio = Promise.resolve({ data: [] as never[] });
+
+  const [{ data: usuarios }, { data: facetas }, { data: produtos }, { data: grupos }, { data: permissoes }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name, email").order("full_name"),
+      supabase.from("audit_logs").select("module, action").limit(1000),
+      ids.produtos.length
+        ? supabase.from("products").select("id, name, code").in("id", ids.produtos)
+        : vazio,
+      ids.grupos.length
+        ? supabase.from("user_groups").select("id, name").in("id", ids.grupos)
+        : vazio,
+      ids.permissoes.length
+        ? supabase.from("permissions").select("id, module, resource, action, description").in("id", ids.permissoes)
+        : vazio,
+    ]);
+
+  const referencias = {
+    produtos: new Map(
+      (produtos ?? []).map((p) => [p.id as string, p.code ? `${p.name} (código ${p.code})` : (p.name as string)])
+    ),
+    grupos: new Map((grupos ?? []).map((g) => [g.id as string, g.name as string])),
+    permissoes: new Map(
+      (permissoes ?? []).map((p) => [
+        p.id as string,
+        rotuloDePermissao(p as { module: string; resource: string; action: string; description: string | null }),
+      ])
+    ),
+    pessoas: new Map(
+      (usuarios ?? []).map((u) => [u.id as string, ((u.full_name as string) || (u.email as string))])
+    ),
+  };
 
   const modulos = Array.from(new Set((facetas ?? []).map((f) => f.module))).sort();
   const acoes = Array.from(new Set((facetas ?? []).map((f) => f.action))).sort();
@@ -121,7 +99,13 @@ export default async function AuditoriaPage({
 
       <section className="neo-card p-5">
         <form method="get" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <Filtro id="modulo" label="Módulo" valor={searchParams.modulo} opcoes={modulos} />
+          <Filtro
+            id="modulo"
+            label="Módulo"
+            valor={searchParams.modulo}
+            opcoes={modulos}
+            rotulos={MODULOS}
+          />
           <Filtro
             id="acao"
             label="Ação"
@@ -210,11 +194,11 @@ export default async function AuditoriaPage({
                             : "neo-sit neo-sit--info"
                         }
                       >
-                        {descrever(r)}
+                        {descrever(r, referencias)}
                       </span>
                     </td>
                     <td data-rotulo="Módulo" className="px-4 py-3 text-sm text-[var(--text-muted)]">
-                      {r.module}
+                      {MODULOS[r.module] ?? r.module}
                     </td>
                   </tr>
                 ))}
