@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   aprovarPedido,
+  excluirPedidoRecusado,
   recusarPedido,
   type PedidoDeAcesso,
 } from "@/app/actions/acessos";
@@ -17,8 +18,17 @@ import { formatDateTime } from "@/lib/labels";
  * Aprovar cria a conta e devolve a senha provisória aqui, na tela — o sistema
  * não tem provedor de e-mail, então quem aprova repassa. A senha vale uma vez:
  * a conta nasce obrigada a trocá-la no primeiro acesso.
+ *
+ * `podeExcluirRecusados` só esconde o botão; quem barra a exclusão de fato é a
+ * Server Action e a política de DELETE da migração 041.
  */
-export default function PedidosClient({ inicial }: { inicial: PedidoDeAcesso[] }) {
+export default function PedidosClient({
+  inicial,
+  podeExcluirRecusados = false,
+}: {
+  inicial: PedidoDeAcesso[];
+  podeExcluirRecusados?: boolean;
+}) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const { confirmar, Dialogo } = useConfirmacao();
@@ -28,6 +38,32 @@ export default function PedidosClient({ inicial }: { inicial: PedidoDeAcesso[] }
 
   const pendentes = inicial.filter((p) => p.status === "pendente");
   const decididos = inicial.filter((p) => p.status !== "pendente");
+
+  async function excluir(p: PedidoDeAcesso) {
+    const ok = await confirmar({
+      titulo: "Excluir solicitação recusada?",
+      mensagem:
+        "Esta ação removerá o cadastro recusado e permitirá que esta pessoa faça uma nova solicitação utilizando o mesmo e-mail.",
+      rotuloConfirmar: "Excluir",
+      rotuloCancelar: "Cancelar",
+      perigo: true,
+    });
+    if (!ok) return;
+
+    setAviso(null);
+    iniciar(async () => {
+      const res = await excluirPedidoRecusado(p.id);
+      if (!res.ok) {
+        setAviso({ tipo: "erro", texto: res.message });
+        return;
+      }
+      setAviso({
+        tipo: "ok",
+        texto: `Solicitação recusada de ${p.nome} excluída. ${p.email} já pode pedir acesso novamente.`,
+      });
+      router.refresh();
+    });
+  }
 
   function aprovar(p: PedidoDeAcesso) {
     setAviso(null);
@@ -193,14 +229,26 @@ export default function PedidosClient({ inicial }: { inicial: PedidoDeAcesso[] }
                   {p.nome}{" "}
                   <span className="text-[var(--muted)]">· {p.departamento}</span>
                 </span>
-                <span
-                  className={
-                    p.status === "aprovado"
-                      ? "neo-sit neo-sit--ok"
-                      : "neo-sit neo-sit--erro"
-                  }
-                >
-                  {p.status === "aprovado" ? "Aprovado" : "Recusado"}
+                <span className="flex items-center gap-3">
+                  <span
+                    className={
+                      p.status === "aprovado"
+                        ? "neo-sit neo-sit--ok"
+                        : "neo-sit neo-sit--erro"
+                    }
+                  >
+                    {p.status === "aprovado" ? "Aprovado" : "Recusado"}
+                  </span>
+                  {podeExcluirRecusados && p.status === "recusado" && (
+                    <button
+                      type="button"
+                      disabled={pendente}
+                      onClick={() => excluir(p)}
+                      className="text-xs font-bold text-[var(--danger)] hover:underline disabled:opacity-50"
+                    >
+                      Excluir
+                    </button>
+                  )}
                 </span>
                 {p.motivo_recusa && (
                   <span className="w-full text-xs text-[var(--muted)]">

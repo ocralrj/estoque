@@ -231,3 +231,63 @@ export async function recusarPedido(
   revalidatePath("/dashboard/admin/acessos");
   return { ok: true, data: undefined };
 }
+
+/**
+ * Exclui um pedido RECUSADO, para a pessoa poder pedir de novo do zero.
+ *
+ * Só o super admin, e só pedido recusado — aprovado e pendente ficam. A mesma
+ * regra está na política de DELETE da migração 041: aqui ela existe para a
+ * mensagem sair em português, e lá para barrar quem chamar a API direto.
+ *
+ * Recusar não cria conta, então não há nada em auth.users nem em profiles para
+ * limpar: a linha do pedido é tudo. O novo pedido entra como linha nova, com id
+ * e data próprios, e começa pendente.
+ */
+export async function excluirPedidoRecusado(id: string): Promise<Resultado> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("admin", "users", "create");
+  if (!permitido.ok) return permitido;
+
+  if (profile?.role !== "super_admin") {
+    return { ok: false, message: "Apenas o super admin exclui pedidos recusados." };
+  }
+
+  const { data: pedido } = await supabase
+    .from("access_requests")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if (!pedido) return { ok: false, message: "Pedido não encontrado." };
+  if (pedido.status !== "recusado") {
+    return { ok: false, message: "Só pedidos recusados podem ser excluídos." };
+  }
+
+  // O status vai na condição, e não só na checagem acima: se alguém mudar o
+  // pedido entre a leitura e a exclusão, nada é apagado.
+  const { data: apagados, error } = await supabase
+    .from("access_requests")
+    .delete()
+    .eq("id", id)
+    .eq("status", "recusado")
+    .select("id");
+
+  if (error) {
+    console.error("Falha ao excluir pedido recusado:", error);
+    return { ok: false, message: "Não foi possível excluir o pedido." };
+  }
+
+  // Sem a política da 041 o RLS não dá erro: apenas não apaga nada.
+  if (!apagados || apagados.length === 0) {
+    return {
+      ok: false,
+      message:
+        "O pedido não foi excluído. Execute supabase/_manual_apply/041_excluir_pedido_recusado.sql.",
+    };
+  }
+
+  revalidatePath("/dashboard/admin/acessos");
+  return { ok: true, data: undefined };
+}

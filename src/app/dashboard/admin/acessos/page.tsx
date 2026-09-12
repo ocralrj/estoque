@@ -1,10 +1,12 @@
 import { exigirPermissao } from "@/lib/permissoes";
+import { getSession } from "@/lib/auth";
 import { listarPedidos } from "@/app/actions/acessos";
 import PedidosClient from "./PedidosClient";
 
 export default async function PedidosDeAcessoPage() {
   await exigirPermissao("admin", "users", "create");
   const res = await listarPedidos();
+  const { profile } = await getSession();
 
   return (
     <div className="space-y-6">
@@ -17,7 +19,10 @@ export default async function PedidosDeAcessoPage() {
       </div>
 
       {res.ok ? (
-        <PedidosClient inicial={res.data} />
+        <PedidosClient
+          inicial={res.data}
+          podeExcluirRecusados={profile?.role === "super_admin"}
+        />
       ) : (
         <p className="neo-card p-8 text-center text-sm text-[var(--danger)]">
           {res.message}
