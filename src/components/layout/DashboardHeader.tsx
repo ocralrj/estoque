@@ -194,7 +194,7 @@ export default function DashboardHeader({
             <button
               type="button"
               onClick={() => setNotificationsOpen((value) => !value)}
-              className="neo-button relative inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
+              className={`neo-button relative inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--text)] transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/30${unreadCount > 0 ? " sino-alerta" : ""}`}
               aria-label={
                 unreadCount > 0
                   ? `Notificações: ${unreadCount} não lida(s)`

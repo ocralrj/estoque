@@ -325,21 +325,41 @@ html.dark .neo-raised {
   animation: sino-balanca 2.6s ease-in-out infinite;
 }
 
-/* Quem pede menos movimento no sistema recebe um balanço curto e suave, em vez
-   de nenhum. Desligar os "efeitos de animação" do Windows é comum e nem sempre
-   uma escolha consciente — sem animação alguma, o sino parecia não avisar. */
-@keyframes sino-balanca-suave {
-  0%, 30%, 100% { transform: rotate(0deg); }
-  10% { transform: rotate(6deg); }
-  20% { transform: rotate(-6deg); }
+/* Anel vermelho pulsando em volta do botão enquanto houver aviso não lido. O
+   balanço sozinho, num ícone de 20px, passava despercebido: o anel é o que se
+   vê de canto de olho. Fica num ::after para não disputar a sombra do
+   neo-button. */
+@keyframes sino-halo {
+  0%   { transform: scale(1);    opacity: 0.85; }
+  70%  { transform: scale(1.45); opacity: 0; }
+  100% { transform: scale(1.45); opacity: 0; }
 }
 
-/* O `!important` é para vencer a regra geral de neo.css, que corta toda
-   animação de quem pede menos movimento. */
+.sino-alerta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--erro-solid);
+  pointer-events: none;
+  animation: sino-halo 1.6s ease-out infinite;
+}
+
+/* Aviso não lido é exceção à regra geral de neo.css, que corta toda animação
+   de quem pede menos movimento: pedido do usuário em 12/09/2026. O Windows dele
+   tem os efeitos de animação desligados, e o balanço suave de antes (6°, a
+   cada 4s) não chamava atenção. Aqui o sino faz o mesmo balanço de sempre e o
+   anel pulsa igual. O `!important` é o que vence a regra de neo.css. */
 @media (prefers-reduced-motion: reduce) {
   .sino-balanca {
-    animation-name: sino-balanca-suave !important;
-    animation-duration: 4s !important;
+    animation-name: sino-balanca !important;
+    animation-duration: 2.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .sino-alerta::after {
+    animation-name: sino-halo !important;
+    animation-duration: 1.6s !important;
     animation-iteration-count: infinite !important;
   }
 }
