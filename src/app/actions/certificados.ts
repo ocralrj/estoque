@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { exigir } from "@/lib/permissoes";
 import { cnpjValido, normalizarCnpj } from "@/lib/cnpj";
+import { formatarTelefone, nomeComparavel, soDigitos } from "@/lib/empresas";
 
 type Resultado<T = void> =
   | { ok: true; data: T }
@@ -21,12 +22,32 @@ function revalidar() {
   revalidatePath("/dashboard/certificados/empresas");
 }
 
+const AVISO_MIGRACAO_044 =
+  "O cadastro completo de empresas ainda não está no banco. Execute supabase/_manual_apply/044_empresas_cadastro_completo.sql.";
+
+const COLUNAS_EMPRESA =
+  "id, razao_social, nome_fantasia, cnpj, ativo, e_cliente, e_fornecedor, cep, logradouro, numero, complemento, bairro, municipio, uf, email, telefone, situacao_cadastral, atividade_principal, observacao";
+
 export interface Empresa {
   id: string;
   razao_social: string;
   nome_fantasia: string | null;
   cnpj: string | null;
   ativo: boolean;
+  e_cliente: boolean;
+  e_fornecedor: boolean;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  municipio: string | null;
+  uf: string | null;
+  email: string | null;
+  telefone: string | null;
+  situacao_cadastral: string | null;
+  atividade_principal: string | null;
+  observacao: string | null;
 }
 
 export interface Certificado {
@@ -53,14 +74,33 @@ export async function listarEmpresas(): Promise<Resultado<Empresa[]>> {
 
   const { data, error } = await supabase
     .from("empresas")
-    .select("id, razao_social, nome_fantasia, cnpj, ativo")
+    .select(COLUNAS_EMPRESA)
     .order("razao_social");
 
   if (error) {
+    if (error.code === "42703") return { ok: false, message: AVISO_MIGRACAO_044 };
     if (faltaMigracao(error.code)) return { ok: false, message: AVISO_MIGRACAO };
+    console.error("Falha ao listar empresas:", error);
     return { ok: false, message: "Não foi possível carregar as empresas." };
   }
   return { ok: true, data: (data ?? []) as Empresa[] };
+}
+
+/** O que a consulta encontrou, já no formato dos campos do cadastro. */
+export interface DadosDaEmpresa {
+  razaoSocial: string;
+  nomeFantasia: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  uf: string;
+  email: string;
+  telefone: string;
+  situacaoCadastral: string;
+  atividadePrincipal: string;
 }
 
 export interface EmpresaConsultada {
@@ -68,7 +108,12 @@ export interface EmpresaConsultada {
   nome: string;
   razaoSocial: string;
   origem: "cadastro" | "receita";
+  /** Id da empresa quando o CNPJ já está no cadastro. */
+  empresaId: string | null;
+  dados: DadosDaEmpresa;
 }
+
+const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 /**
  * Descobre a empresa de um CNPJ.
@@ -94,7 +139,7 @@ export async function consultarEmpresaPorCnpj(
 
   const { data: interna, error } = await supabase
     .from("empresas")
-    .select("razao_social, nome_fantasia")
+    .select(COLUNAS_EMPRESA)
     .eq("cnpj", numero)
     .maybeSingle();
 
@@ -103,12 +148,29 @@ export async function consultarEmpresaPorCnpj(
     console.error("Falha ao consultar empresa pelo CNPJ no cadastro:", error);
   }
   if (interna) {
+    const e = interna as Empresa;
     return {
       ok: true,
       data: {
-        nome: interna.nome_fantasia?.trim() || interna.razao_social,
-        razaoSocial: interna.razao_social,
+        nome: e.nome_fantasia?.trim() || e.razao_social,
+        razaoSocial: e.razao_social,
         origem: "cadastro",
+        empresaId: e.id,
+        dados: {
+          razaoSocial: e.razao_social,
+          nomeFantasia: e.nome_fantasia ?? "",
+          cep: e.cep ?? "",
+          logradouro: e.logradouro ?? "",
+          numero: e.numero ?? "",
+          complemento: e.complemento ?? "",
+          bairro: e.bairro ?? "",
+          municipio: e.municipio ?? "",
+          uf: e.uf ?? "",
+          email: e.email ?? "",
+          telefone: e.telefone ?? "",
+          situacaoCadastral: e.situacao_cadastral ?? "",
+          atividadePrincipal: e.atividade_principal ?? "",
+        },
       },
     };
   }
@@ -128,58 +190,310 @@ export async function consultarEmpresaPorCnpj(
       return { ok: false, message: "Não foi possível consultar o CNPJ agora. Preencha o cliente manualmente." };
     }
 
-    const corpo = (await resposta.json()) as {
-      razao_social?: string | null;
-      nome_fantasia?: string | null;
-    };
-    const razaoSocial = corpo.razao_social?.trim() ?? "";
-    const nome = corpo.nome_fantasia?.trim() || razaoSocial;
+    const c = (await resposta.json()) as Record<string, unknown>;
+    const razaoSocial = texto(c.razao_social);
+    const nomeFantasia = texto(c.nome_fantasia);
+    const nome = nomeFantasia || razaoSocial;
     if (!nome) return { ok: true, data: null };
 
-    return { ok: true, data: { nome, razaoSocial, origem: "receita" } };
+    // A Receita separa o tipo ("RUA") do nome ("BAHIA"); no cadastro é um campo só.
+    const logradouro = [texto(c.descricao_tipo_de_logradouro), texto(c.logradouro)]
+      .filter(Boolean)
+      .join(" ");
+    const cnae = texto(c.cnae_fiscal_descricao);
+
+    return {
+      ok: true,
+      data: {
+        nome,
+        razaoSocial,
+        origem: "receita",
+        empresaId: null,
+        dados: {
+          razaoSocial,
+          nomeFantasia,
+          cep: soDigitos(texto(c.cep), 8),
+          logradouro,
+          numero: texto(c.numero),
+          complemento: texto(c.complemento),
+          bairro: texto(c.bairro),
+          municipio: texto(c.municipio),
+          uf: texto(c.uf).toUpperCase(),
+          email: texto(c.email).toLowerCase(),
+          telefone: formatarTelefone(texto(c.ddd_telefone_1)),
+          situacaoCadastral: texto(c.descricao_situacao_cadastral),
+          atividadePrincipal: cnae,
+        },
+      },
+    };
   } catch (e) {
     console.error("Falha ao consultar CNPJ na BrasilAPI:", e);
     return { ok: false, message: "Não foi possível consultar o CNPJ agora. Preencha o cliente manualmente." };
   }
 }
 
-export async function criarEmpresa(entrada: {
+/** O que a tela manda para gravar. Campos vazios viram nulo. */
+export interface EmpresaEntrada {
   razaoSocial: string;
   nomeFantasia?: string;
   cnpj?: string;
-}): Promise<Resultado<Empresa>> {
+  /** Sem os dois, a empresa entra como cliente — é o caso do envio de certificado. */
+  eCliente?: boolean;
+  eFornecedor?: boolean;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  municipio?: string;
+  uf?: string;
+  email?: string;
+  telefone?: string;
+  situacaoCadastral?: string;
+  atividadePrincipal?: string;
+  observacao?: string;
+}
+
+export interface EmpresaParecida {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  motivo: string;
+}
+
+type ResultadoGravacao =
+  | { ok: true; data: Empresa }
+  | { ok: false; message: string; parecidas?: EmpresaParecida[] };
+
+const opcional = (v: string | undefined, limite: number) => v?.trim().slice(0, limite) || null;
+
+/** Valida e monta a linha. As mesmas regras estão no banco (044). */
+function montarEmpresa(
+  entrada: EmpresaEntrada
+): { erro: string } | { linha: Record<string, string | boolean | null> } {
+  const razao = entrada.razaoSocial?.trim() ?? "";
+  if (razao.length < 2) return { erro: "Informe a razão social ou o nome da empresa." };
+
+  const cnpj = normalizarCnpj(entrada.cnpj ?? "") || null;
+  if (cnpj && !cnpjValido(cnpj)) {
+    return { erro: "CNPJ inválido. Verifique o número informado." };
+  }
+
+  const semClassificacao = entrada.eCliente === undefined && entrada.eFornecedor === undefined;
+  const eCliente = semClassificacao ? true : Boolean(entrada.eCliente);
+  const eFornecedor = Boolean(entrada.eFornecedor);
+  if (!eCliente && !eFornecedor) {
+    return { erro: "Marque se a empresa é cliente, fornecedora ou as duas coisas." };
+  }
+
+  const cep = soDigitos(entrada.cep ?? "", 9) || null;
+  if (cep && cep.length !== 8) return { erro: "O CEP deve ter 8 dígitos." };
+
+  const uf = entrada.uf?.trim().toUpperCase() || null;
+  if (uf && !/^[A-Z]{2}$/.test(uf)) return { erro: "Informe a UF com duas letras." };
+
+  const email = entrada.email?.trim().toLowerCase() || null;
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { erro: "E-mail inválido." };
+  }
+
+  return {
+    linha: {
+      razao_social: razao.slice(0, 200),
+      nome_fantasia: opcional(entrada.nomeFantasia, 200),
+      cnpj,
+      e_cliente: eCliente,
+      e_fornecedor: eFornecedor,
+      cep,
+      logradouro: opcional(entrada.logradouro, 200),
+      numero: opcional(entrada.numero, 20),
+      complemento: opcional(entrada.complemento, 120),
+      bairro: opcional(entrada.bairro, 120),
+      municipio: opcional(entrada.municipio, 120),
+      uf,
+      email: email?.slice(0, 200) ?? null,
+      telefone: opcional(entrada.telefone, 30),
+      situacao_cadastral: opcional(entrada.situacaoCadastral, 60),
+      atividade_principal: opcional(entrada.atividadePrincipal, 300),
+      observacao: opcional(entrada.observacao, 1000),
+    },
+  };
+}
+
+type ClienteSupabase = Awaited<ReturnType<typeof getSession>>["supabase"];
+
+/** Outra empresa com o mesmo CNPJ — o banco também recusa, mas assim o aviso diz qual. */
+async function donoDoCnpj(
+  supabase: ClienteSupabase,
+  cnpj: string,
+  ignorarId?: string
+): Promise<{ id: string; nome: string } | null> {
+  let consulta = supabase.from("empresas").select("id, razao_social, nome_fantasia").eq("cnpj", cnpj);
+  if (ignorarId) consulta = consulta.neq("id", ignorarId);
+  const { data, error } = await consulta.maybeSingle();
+  if (error) {
+    console.error("Falha ao conferir CNPJ repetido:", error);
+    return null;
+  }
+  return data
+    ? { id: data.id as string, nome: (data.nome_fantasia as string | null) || (data.razao_social as string) }
+    : null;
+}
+
+/**
+ * Empresas que podem ser a mesma: nome igual depois de tirar acento, pontuação
+ * e sufixo jurídico, ou o mesmo e-mail ou telefone. Duas empresas com CNPJs
+ * diferentes nunca são a mesma — filiais têm o mesmo nome.
+ */
+async function procurarParecidas(
+  supabase: ClienteSupabase,
+  linha: Record<string, string | boolean | null>,
+  ignorarId?: string
+): Promise<EmpresaParecida[]> {
+  const { data, error } = await supabase
+    .from("empresas")
+    .select("id, razao_social, nome_fantasia, cnpj, email, telefone");
+  if (error) {
+    console.error("Falha ao procurar empresas parecidas:", error);
+    return [];
+  }
+
+  const nomes = new Set(
+    [nomeComparavel(linha.razao_social as string), nomeComparavel(linha.nome_fantasia as string | null)].filter(
+      Boolean
+    )
+  );
+  const email = linha.email as string | null;
+  const telefone = soDigitos((linha.telefone as string | null) ?? "", 11);
+
+  const parecidas: EmpresaParecida[] = [];
+  for (const e of data ?? []) {
+    if (e.id === ignorarId) continue;
+    if (linha.cnpj && e.cnpj) continue;
+
+    const motivos: string[] = [];
+    const nomesDela = [nomeComparavel(e.razao_social), nomeComparavel(e.nome_fantasia)].filter(Boolean);
+    if (nomesDela.some((n) => nomes.has(n))) motivos.push("mesmo nome");
+    if (email && e.email === email) motivos.push("mesmo e-mail");
+    if (telefone.length >= 10 && soDigitos(e.telefone ?? "", 11) === telefone) motivos.push("mesmo telefone");
+
+    if (motivos.length > 0) {
+      parecidas.push({
+        id: e.id as string,
+        razao_social: e.razao_social as string,
+        nome_fantasia: (e.nome_fantasia as string | null) ?? null,
+        cnpj: (e.cnpj as string | null) ?? null,
+        motivo: motivos.join(", "),
+      });
+    }
+  }
+  return parecidas.slice(0, 5);
+}
+
+function erroDeGravacao(error: { code?: string; message?: string }, acao: string): string {
+  if (error.code === "23505") return "Já existe uma empresa com este CNPJ.";
+  if (error.code === "42703") return AVISO_MIGRACAO_044;
+  if (faltaMigracao(error.code)) return AVISO_MIGRACAO;
+  if (error.code === "23514") {
+    return error.message?.includes("empresas_cnpj_valido")
+      ? "CNPJ inválido. Verifique o número informado."
+      : "Algum campo está fora do formato aceito. Confira CEP, UF e e-mail.";
+  }
+  return `Não foi possível ${acao} a empresa.`;
+}
+
+/**
+ * Cadastra a empresa. Com `alertarParecidas`, uma empresa que pode ser a mesma
+ * interrompe a gravação e volta na resposta, para a pessoa decidir; o envio de
+ * certificado não pede esse alerta e continua criando direto.
+ */
+export async function criarEmpresa(
+  entrada: EmpresaEntrada,
+  opcoes: { alertarParecidas?: boolean } = {}
+): Promise<ResultadoGravacao> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
   const permitido = await exigir("certificados", "certificates", "manage");
   if (!permitido.ok) return permitido;
 
-  const razao = entrada.razaoSocial.trim();
-  if (razao.length < 2) return { ok: false, message: "Informe a razão social." };
+  const montada = montarEmpresa(entrada);
+  if ("erro" in montada) return { ok: false, message: montada.erro };
+  const { linha } = montada;
 
-  const cnpj = entrada.cnpj?.replace(/\D/g, "") || null;
-  if (cnpj && cnpj.length !== 14) {
-    return { ok: false, message: "O CNPJ deve ter 14 dígitos." };
+  if (linha.cnpj) {
+    const dono = await donoDoCnpj(supabase, linha.cnpj as string);
+    if (dono) {
+      return { ok: false, message: `Este CNPJ já está cadastrado: ${dono.nome}.` };
+    }
+  }
+
+  if (opcoes.alertarParecidas) {
+    const parecidas = await procurarParecidas(supabase, linha);
+    if (parecidas.length > 0) {
+      return { ok: false, message: "Pode ser uma empresa já cadastrada.", parecidas };
+    }
   }
 
   const { data, error } = await supabase
     .from("empresas")
-    .insert({
-      razao_social: razao.slice(0, 200),
-      nome_fantasia: entrada.nomeFantasia?.trim().slice(0, 200) || null,
-      cnpj,
-      created_by: user.id,
-    })
-    .select("id, razao_social, nome_fantasia, cnpj, ativo")
+    .insert({ ...linha, created_by: user.id })
+    .select(COLUNAS_EMPRESA)
     .single();
 
   if (error) {
-    if (error.code === "23505") {
-      return { ok: false, message: "Já existe uma empresa com este CNPJ." };
-    }
-    if (faltaMigracao(error.code)) return { ok: false, message: AVISO_MIGRACAO };
-    return { ok: false, message: "Não foi possível criar a empresa." };
+    console.error("Falha ao criar empresa:", error);
+    return { ok: false, message: erroDeGravacao(error, "criar") };
   }
+
+  revalidar();
+  return { ok: true, data: data as Empresa };
+}
+
+/** Atualiza os dados da empresa — inclusive o CNPJ que faltava no cadastro. */
+export async function atualizarEmpresa(
+  id: string,
+  entrada: EmpresaEntrada,
+  opcoes: { alertarParecidas?: boolean } = {}
+): Promise<ResultadoGravacao> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("certificados", "certificates", "manage");
+  if (!permitido.ok) return permitido;
+
+  const montada = montarEmpresa(entrada);
+  if ("erro" in montada) return { ok: false, message: montada.erro };
+  const { linha } = montada;
+
+  if (linha.cnpj) {
+    const dono = await donoDoCnpj(supabase, linha.cnpj as string, id);
+    if (dono) {
+      return { ok: false, message: `Este CNPJ já pertence a outra empresa: ${dono.nome}.` };
+    }
+  }
+
+  if (opcoes.alertarParecidas) {
+    const parecidas = await procurarParecidas(supabase, linha, id);
+    if (parecidas.length > 0) {
+      return { ok: false, message: "Pode ser uma empresa já cadastrada.", parecidas };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("empresas")
+    .update(linha)
+    .eq("id", id)
+    .select(COLUNAS_EMPRESA)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Falha ao atualizar empresa:", error);
+    return { ok: false, message: erroDeGravacao(error, "atualizar") };
+  }
+  // A política do banco devolve zero linhas, e não erro, a quem não pode editar.
+  if (!data) return { ok: false, message: "Empresa não encontrada ou sem permissão para editar." };
 
   revalidar();
   return { ok: true, data: data as Empresa };

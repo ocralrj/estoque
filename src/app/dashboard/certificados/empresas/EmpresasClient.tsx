@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  criarEmpresa,
   definirAcessosDaEmpresa,
   type Empresa,
 } from "@/app/actions/certificados";
 import Avatar from "@/components/ui/Avatar";
-import { formatDate } from "@/lib/labels";
+import { formatarCnpj } from "@/lib/cnpj";
+import FormularioEmpresa from "./FormularioEmpresa";
 
 export interface PessoaSimples {
   id: string;
@@ -19,6 +19,8 @@ export interface PessoaSimples {
   /** true quando a pessoa alcança TODAS as empresas por permissão de grupo. */
   vetodas: boolean;
 }
+
+type Formulario = { modo: "novo" } | { modo: "editar"; empresa: Empresa } | null;
 
 /**
  * Empresas e quem cuida de cada uma.
@@ -46,8 +48,9 @@ export default function EmpresasClient({
   const [pendente, iniciar] = useTransition();
   const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
-  const [criando, setCriando] = useState(false);
-  const [nova, setNova] = useState({ razaoSocial: "", nomeFantasia: "", cnpj: "" });
+  const [formulario, setFormulario] = useState<Formulario>(null);
+  const secaoDoFormulario = useRef<HTMLElement>(null);
+  const [destaque, setDestaque] = useState<string | null>(null);
 
   const [editando, setEditando] = useState<string | null>(null);
   const [marcados, setMarcados] = useState<string[]>([]);
@@ -55,28 +58,34 @@ export default function EmpresasClient({
   const semRestricao = pessoas.filter((p) => p.vetodas);
   const restritas = pessoas.filter((p) => !p.vetodas);
 
-  const podeCriar =
-    nova.razaoSocial.trim().length >= 2 &&
-    (nova.cnpj.replace(/\D/g, "").length === 0 ||
-      nova.cnpj.replace(/\D/g, "").length === 14);
-
-  function salvarNova() {
+  function abrirEdicao(empresa: Empresa) {
     setAviso(null);
-    iniciar(async () => {
-      const res = await criarEmpresa({
-        razaoSocial: nova.razaoSocial,
-        nomeFantasia: nova.nomeFantasia,
-        cnpj: nova.cnpj,
-      });
-      if (!res.ok) {
-        setAviso({ tipo: "erro", texto: res.message });
-        return;
-      }
-      setNova({ razaoSocial: "", nomeFantasia: "", cnpj: "" });
-      setCriando(false);
-      setAviso({ tipo: "ok", texto: `Empresa "${res.data.razao_social}" cadastrada.` });
-      router.refresh();
+    setFormulario({ modo: "editar", empresa });
+    requestAnimationFrame(() =>
+      secaoDoFormulario.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  }
+
+  /** Fecha o formulário e leva até a empresa já cadastrada. */
+  function verEmpresa(id: string) {
+    setFormulario(null);
+    setDestaque(id);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`empresa-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+    );
+  }
+
+  function aoSalvar(empresa: Empresa) {
+    const editada = formulario?.modo === "editar";
+    setFormulario(null);
+    setDestaque(empresa.id);
+    setAviso({
+      tipo: "ok",
+      texto: `Empresa "${empresa.razao_social}" ${editada ? "atualizada" : "cadastrada"}.`,
     });
+    router.refresh();
   }
 
   function salvarAcessos(empresaId: string) {
@@ -137,72 +146,42 @@ export default function EmpresasClient({
       )}
 
       {podeAdministrar && (
-        <section className="neo-card p-5">
+        <section ref={secaoDoFormulario} className="neo-card scroll-mt-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-[var(--text)]">
-                {empresas.length} empresa(s)
+                {formulario?.modo === "editar"
+                  ? `Editando ${formulario.empresa.razao_social}`
+                  : `${empresas.length} empresa(s)`}
               </h2>
               <p className="text-sm text-[var(--muted)]">
-                Cada uma com quem cuida dela. É essa lista que abre o certificado.
+                {formulario?.modo === "editar"
+                  ? "Informar o CNPJ aqui consulta a Receita e completa o cadastro."
+                  : "Clientes e fornecedores, com ou sem CNPJ. Quem cuida de cada uma abre o certificado."}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setCriando((c) => !c)}
+              onClick={() => {
+                setAviso(null);
+                setFormulario((f) => (f ? null : { modo: "novo" }));
+              }}
               className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)]"
             >
-              {criando ? "Cancelar" : "Nova empresa"}
+              {formulario ? "Cancelar" : "Nova empresa"}
             </button>
           </div>
 
-          {criando && (
-            <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-4 sm:grid-cols-3">
-              <div className="sm:col-span-2">
-                <label className={rotulo}>Razão social *</label>
-                <input
-                  value={nova.razaoSocial}
-                  onChange={(e) => setNova({ ...nova, razaoSocial: e.target.value })}
-                  placeholder="Como consta no CNPJ"
-                  className={campo}
-                />
-              </div>
-              <div>
-                <label className={rotulo}>CNPJ</label>
-                <input
-                  value={nova.cnpj}
-                  onChange={(e) => setNova({ ...nova, cnpj: e.target.value })}
-                  placeholder="Só números"
-                  className={campo}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={rotulo}>Nome fantasia</label>
-                <input
-                  value={nova.nomeFantasia}
-                  onChange={(e) => setNova({ ...nova, nomeFantasia: e.target.value })}
-                  className={campo}
-                />
-              </div>
-              <div className="flex items-end">
-                {podeCriar ? (
-                  <button
-                    type="button"
-                    onClick={salvarNova}
-                    disabled={pendente}
-                    className="w-full rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
-                  >
-                    {pendente ? "Salvando…" : "Cadastrar"}
-                  </button>
-                ) : (
-                  <p className="w-full rounded-full bg-[var(--neo-bg)] px-4 py-2.5 text-center text-xs text-[var(--muted)]">
-                    {nova.razaoSocial.trim().length < 2
-                      ? "Informe a razão social"
-                      : "O CNPJ deve ter 14 dígitos"}
-                  </p>
-                )}
-              </div>
-            </div>
+          {formulario && (
+            <FormularioEmpresa
+              // A chave recria o formulário ao trocar de empresa: sem ela, os
+              // campos da anterior ficariam na tela.
+              key={formulario.modo === "editar" ? formulario.empresa.id : "nova"}
+              empresa={formulario.modo === "editar" ? formulario.empresa : undefined}
+              onSalva={aoSalvar}
+              onCancelar={() => setFormulario(null)}
+              onVerEmpresa={verEmpresa}
+            />
           )}
         </section>
       )}
@@ -210,8 +189,16 @@ export default function EmpresasClient({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {empresas.map((e) => {
           const cuidam = acessosPorEmpresa[e.id] ?? [];
+          const local = [e.municipio, e.uf].filter(Boolean).join("/");
+          const contato = [e.telefone, e.email].filter(Boolean).join(" · ");
           return (
-            <div key={e.id} className="neo-card p-5">
+            <div
+              key={e.id}
+              id={`empresa-${e.id}`}
+              className={`neo-card scroll-mt-4 p-5 ${
+                destaque === e.id ? "ring-2 ring-[var(--primary)]" : ""
+              }`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="truncate text-lg font-bold text-[var(--text)]">
@@ -223,12 +210,29 @@ export default function EmpresasClient({
                     </p>
                   )}
                   {e.cnpj && (
-                    <p className="font-mono text-xs text-[var(--muted)]">{e.cnpj}</p>
+                    <p className="font-mono text-xs text-[var(--muted)]">{formatarCnpj(e.cnpj)}</p>
+                  )}
+                  {local && <p className="text-xs text-[var(--muted)]">{local}</p>}
+                  {contato && <p className="truncate text-xs text-[var(--muted)]">{contato}</p>}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {e.e_cliente && <span className={etiqueta}>Cliente</span>}
+                    {e.e_fornecedor && <span className={etiqueta}>Fornecedor</span>}
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--primary-strong)]">
+                    {certificadosPorEmpresa[e.id] ?? 0} certificado(s)
+                  </span>
+                  {podeAdministrar && (
+                    <button
+                      type="button"
+                      onClick={() => abrirEdicao(e)}
+                      className="neo-button rounded-full px-4 py-2 text-xs font-bold text-[var(--text)]"
+                    >
+                      Editar dados
+                    </button>
                   )}
                 </div>
-                <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-bold text-[var(--primary-strong)]">
-                  {certificadosPorEmpresa[e.id] ?? 0} certificado(s)
-                </span>
               </div>
 
               <div className="mt-3 border-t border-[var(--stroke)] pt-3">
@@ -353,7 +357,5 @@ export default function EmpresasClient({
   );
 }
 
-const campo =
-  "mt-1 w-full rounded-[1rem] border border-[var(--stroke)] bg-[var(--neo-bg)] px-3 py-2 text-sm text-[var(--text)]";
-const rotulo =
-  "block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]";
+const etiqueta =
+  "rounded-full border border-[var(--stroke)] bg-[var(--surface)] px-2.5 py-0.5 text-xs font-semibold text-[var(--text)]";
