@@ -4,7 +4,17 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { exigir } from "@/lib/permissoes";
 import { cnpjValido, normalizarCnpj } from "@/lib/cnpj";
-import { formatarTelefone, nomeComparavel, soDigitos } from "@/lib/empresas";
+import {
+  formatarTelefone,
+  nomeComparavel,
+  normalizarCor,
+  normalizarSite,
+  siteValido,
+  soDigitos,
+} from "@/lib/empresas";
+import { lerIdentidade, procurarSite, type IdentidadeVisual } from "@/lib/identidade-visual";
+
+export type { IdentidadeVisual };
 
 type Resultado<T = void> =
   | { ok: true; data: T }
@@ -25,8 +35,12 @@ function revalidar() {
 const AVISO_MIGRACAO_044 =
   "O cadastro completo de empresas ainda não está no banco. Execute supabase/_manual_apply/044_empresas_cadastro_completo.sql.";
 
-const COLUNAS_EMPRESA =
+const AVISO_MIGRACAO_046 =
+  "Site, logo e cores de empresa ainda não estão no banco. Execute supabase/_manual_apply/046_empresas_site_e_identidade.sql.";
+
+const COLUNAS_EMPRESA_044 =
   "id, razao_social, nome_fantasia, cnpj, ativo, e_cliente, e_fornecedor, cep, logradouro, numero, complemento, bairro, municipio, uf, email, telefone, situacao_cadastral, atividade_principal, observacao";
+const COLUNAS_EMPRESA = `${COLUNAS_EMPRESA_044}, site, logo_url, cor_primaria, cor_secundaria`;
 
 export interface Empresa {
   id: string;
@@ -48,6 +62,10 @@ export interface Empresa {
   situacao_cadastral: string | null;
   atividade_principal: string | null;
   observacao: string | null;
+  site: string | null;
+  logo_url: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
 }
 
 export interface Certificado {
@@ -72,10 +90,18 @@ export async function listarEmpresas(): Promise<Resultado<Empresa[]>> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
 
-  const { data, error } = await supabase
+  const completa = await supabase
     .from("empresas")
     .select(COLUNAS_EMPRESA)
     .order("razao_social");
+
+  // Sem a 046 a lista continua abrindo, só sem site, logo e cores.
+  let resposta: { data: unknown[] | null; error: typeof completa.error } = completa;
+  if (completa.error?.code === "42703") {
+    console.error("Empresas sem as colunas de identidade visual:", AVISO_MIGRACAO_046);
+    resposta = await supabase.from("empresas").select(COLUNAS_EMPRESA_044).order("razao_social");
+  }
+  const { data, error } = resposta;
 
   if (error) {
     if (error.code === "42703") return { ok: false, message: AVISO_MIGRACAO_044 };
@@ -139,7 +165,9 @@ export async function consultarEmpresaPorCnpj(
 
   const { data: interna, error } = await supabase
     .from("empresas")
-    .select(COLUNAS_EMPRESA)
+    // Só as colunas que a consulta usa: sem depender da 046, a conferência de
+    // CNPJ repetido não some num banco que ainda não a tem.
+    .select(COLUNAS_EMPRESA_044)
     .eq("cnpj", numero)
     .maybeSingle();
 
@@ -252,6 +280,11 @@ export interface EmpresaEntrada {
   situacaoCadastral?: string;
   atividadePrincipal?: string;
   observacao?: string;
+  /** Sem `site` na entrada, site, logo e cores ficam como estão. */
+  site?: string;
+  logoUrl?: string | null;
+  corPrimaria?: string;
+  corSecundaria?: string;
 }
 
 export interface EmpresaParecida {
@@ -298,6 +331,25 @@ function montarEmpresa(
     return { erro: "E-mail inválido." };
   }
 
+  // Só entra na linha quando a tela manda: o envio de certificado cria empresa
+  // sem site, e uma edição sem esses campos não apaga a identidade gravada.
+  const identidade: Record<string, string | null> = {};
+  if (entrada.site !== undefined) {
+    const site = normalizarSite(entrada.site) || null;
+    if (entrada.site.trim() && (!site || !siteValido(site))) {
+      return { erro: "Site inválido. Informe o domínio, como empresa.com.br." };
+    }
+    // A logo vem do site: sem site, não há de onde ela ter vindo.
+    const logo = site ? entrada.logoUrl?.trim() || null : null;
+    if (logo && (!/^https:\/\/[^\s"'<>]+$/.test(logo) || logo.length > 1000)) {
+      return { erro: "Endereço da logo inválido." };
+    }
+    identidade.site = site;
+    identidade.logo_url = logo;
+    identidade.cor_primaria = normalizarCor(entrada.corPrimaria) || null;
+    identidade.cor_secundaria = normalizarCor(entrada.corSecundaria) || null;
+  }
+
   return {
     linha: {
       razao_social: razao.slice(0, 200),
@@ -317,6 +369,7 @@ function montarEmpresa(
       situacao_cadastral: opcional(entrada.situacaoCadastral, 60),
       atividade_principal: opcional(entrada.atividadePrincipal, 300),
       observacao: opcional(entrada.observacao, 1000),
+      ...identidade,
     },
   };
 }
@@ -393,12 +446,18 @@ async function procurarParecidas(
 
 function erroDeGravacao(error: { code?: string; message?: string }, acao: string): string {
   if (error.code === "23505") return "Já existe uma empresa com este CNPJ.";
-  if (error.code === "42703") return AVISO_MIGRACAO_044;
+  if (error.code === "42703") {
+    return /site|logo_url|cor_/.test(error.message ?? "") ? AVISO_MIGRACAO_046 : AVISO_MIGRACAO_044;
+  }
   if (faltaMigracao(error.code)) return AVISO_MIGRACAO;
   if (error.code === "23514") {
-    return error.message?.includes("empresas_cnpj_valido")
-      ? "CNPJ inválido. Verifique o número informado."
-      : "Algum campo está fora do formato aceito. Confira CEP, UF e e-mail.";
+    const m = error.message ?? "";
+    if (m.includes("empresas_cnpj_valido")) return "CNPJ inválido. Verifique o número informado.";
+    if (m.includes("empresas_site_formato")) return "Site inválido. Informe o domínio, como empresa.com.br.";
+    if (m.includes("empresas_logo_https") || m.includes("empresas_cores_formato")) {
+      return "Logo ou cores fora do formato aceito. Leia o site de novo.";
+    }
+    return "Algum campo está fora do formato aceito. Confira CEP, UF e e-mail.";
   }
   return `Não foi possível ${acao} a empresa.`;
 }
@@ -497,6 +556,115 @@ export async function atualizarEmpresa(
 
   revalidar();
   return { ok: true, data: data as Empresa };
+}
+
+/**
+ * Exclui a empresa. Recusa enquanto houver certificado: a chave estrangeira
+ * apagaria os certificados em cascata e deixaria os arquivos .pfx órfãos no
+ * bucket — perder um certificado por engano é o que não pode acontecer.
+ * Quem cuida da empresa sai junto (empresa_acessos, em cascata).
+ */
+export async function excluirEmpresa(id: string): Promise<Resultado> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("certificados", "certificates", "manage");
+  if (!permitido.ok) return permitido;
+
+  const { count, error: erroContagem } = await supabase
+    .from("certificados")
+    .select("id", { count: "exact", head: true })
+    .eq("empresa_id", id);
+
+  if (erroContagem) {
+    console.error("Falha ao contar certificados da empresa:", erroContagem);
+    return { ok: false, message: "Não foi possível conferir os certificados da empresa." };
+  }
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      message: `Esta empresa tem ${count} certificado(s). Remova-os antes de excluir a empresa.`,
+    };
+  }
+
+  const { data, error } = await supabase.from("empresas").delete().eq("id", id).select("id");
+
+  if (error) {
+    console.error("Falha ao excluir empresa:", error);
+    return { ok: false, message: "Não foi possível excluir a empresa." };
+  }
+  // Como na edição: sem permissão no banco, zero linhas e nenhum erro.
+  if (!data?.length) return { ok: false, message: "Empresa não encontrada ou sem permissão para excluir." };
+
+  revalidar();
+  return { ok: true, data: undefined };
+}
+
+export interface SiteDaEmpresa {
+  site: string;
+  /** Por que o site foi aceito ("o site cita o CNPJ da empresa"). */
+  motivo: string;
+  identidade: IdentidadeVisual;
+}
+
+const texto200 = (v: unknown) => (typeof v === "string" ? v.slice(0, 200) : "");
+
+/**
+ * Procura o site da empresa pelo domínio do e-mail e pelo nome, e já lê dele a
+ * logo e as cores. Só aceita página que cite o CNPJ ou o nome da empresa.
+ * `data: null` quando nenhum candidato serve.
+ */
+export async function procurarSiteDaEmpresa(dados: {
+  razaoSocial: string;
+  nomeFantasia: string;
+  email: string;
+  cnpj: string;
+}): Promise<Resultado<SiteDaEmpresa | null>> {
+  const { user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("certificados", "certificates", "manage");
+  if (!permitido.ok) return permitido;
+
+  try {
+    const achado = await procurarSite({
+      razaoSocial: texto200(dados.razaoSocial),
+      nomeFantasia: texto200(dados.nomeFantasia),
+      email: texto200(dados.email),
+      cnpj: normalizarCnpj(texto200(dados.cnpj)),
+    });
+    if (!achado) return { ok: true, data: null };
+
+    const identidade = (await lerIdentidade(achado.site, achado.pagina)) ?? {
+      site: achado.site,
+      logoUrl: null,
+      corPrimaria: null,
+      corSecundaria: null,
+    };
+    return { ok: true, data: { site: achado.site, motivo: achado.motivo, identidade } };
+  } catch (e) {
+    console.error("Falha ao procurar o site da empresa:", e);
+    return { ok: false, message: "Não foi possível procurar o site agora." };
+  }
+}
+
+/** Logo e cores de um site informado. `data: null` quando ele não responde. */
+export async function lerIdentidadeDoSite(site: string): Promise<Resultado<IdentidadeVisual | null>> {
+  const { user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("certificados", "certificates", "manage");
+  if (!permitido.ok) return permitido;
+
+  const dominio = normalizarSite(texto200(site));
+  if (!siteValido(dominio)) return { ok: false, message: "Site inválido. Informe o domínio, como empresa.com.br." };
+
+  try {
+    return { ok: true, data: await lerIdentidade(dominio) };
+  } catch (e) {
+    console.error("Falha ao ler a identidade visual do site:", e);
+    return { ok: false, message: "Não foi possível ler o site agora." };
+  }
 }
 
 /** Quem cuida da empresa — é esta lista que abre o certificado. */

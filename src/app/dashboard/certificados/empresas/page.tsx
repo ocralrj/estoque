@@ -4,6 +4,10 @@ import { getSession } from "@/lib/auth";
 import { listarEmpresas } from "@/app/actions/certificados";
 import EmpresasClient, { type PessoaSimples } from "./EmpresasClient";
 
+// A procura do site e a leitura de logo e cores buscam várias páginas de
+// terceiros; o padrão de 10 segundos da Vercel não basta no pior caso.
+export const maxDuration = 30;
+
 export default async function EmpresasPage() {
   await exigirPermissao("certificados", "certificates", "read");
 

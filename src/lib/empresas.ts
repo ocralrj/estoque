@@ -24,6 +24,46 @@ export function formatarTelefone(valor: string): string {
   return `${ddd}${resto.slice(0, corte)}-${resto.slice(corte)}`;
 }
 
+/**
+ * Domínio do site, do jeito que é gravado: sem protocolo, "www.", caminho nem
+ * porta, em minúsculas e com acento convertido (punycode). "https://www.Icard
+ * Case.com.br/contato" vira "icardcase.com.br". Devolve "" quando não dá para
+ * extrair um domínio.
+ */
+export function normalizarSite(valor: string): string {
+  const bruto = valor.trim().toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, "").split(/[/?#\s]/)[0];
+  if (!bruto) return "";
+  try {
+    return new URL(`https://${bruto}`).hostname.replace(/^www\./, "").replace(/\.$/, "");
+  } catch {
+    return "";
+  }
+}
+
+/** Mesma regra da restrição empresas_site_formato (046). */
+export function siteValido(site: string): boolean {
+  return /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+([a-z]{2,24}|xn--[a-z0-9-]{1,59})$/.test(site);
+}
+
+/** #rrggbb em minúsculas, ou "" quando o valor não é uma cor nesse formato. */
+export function normalizarCor(valor: string | null | undefined): string {
+  const v = valor?.trim().toLowerCase() ?? "";
+  return /^#[0-9a-f]{6}$/.test(v) ? v : "";
+}
+
+/**
+ * Cor de texto legível sobre um fundo: preto ou branco, pelo contraste da
+ * WCAG. Serve às iniciais pintadas com a cor da empresa.
+ */
+export function textoSobre(cor: string): "#000000" | "#ffffff" {
+  const canal = (i: number) => {
+    const c = parseInt(cor.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5);
+  return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? "#000000" : "#ffffff";
+}
+
 // Sufixos jurídicos não distinguem uma empresa de outra: "ABC Máquinas" e
 // "ABC MAQUINAS LTDA - ME" são, para quem cadastra, a mesma.
 const SUFIXOS = new Set([

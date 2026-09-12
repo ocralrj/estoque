@@ -5,13 +5,17 @@ import {
   atualizarEmpresa,
   consultarEmpresaPorCnpj,
   criarEmpresa,
+  lerIdentidadeDoSite,
+  procurarSiteDaEmpresa,
   type DadosDaEmpresa,
   type Empresa,
   type EmpresaParecida,
+  type IdentidadeVisual,
 } from "@/app/actions/certificados";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { cnpjValido, formatarCnpj, normalizarCnpj } from "@/lib/cnpj";
-import { formatarCep, formatarTelefone } from "@/lib/empresas";
+import { formatarCep, formatarTelefone, normalizarSite, siteValido } from "@/lib/empresas";
+import LogoDaEmpresa from "./LogoDaEmpresa";
 
 interface Campos {
   cnpj: string;
@@ -31,6 +35,10 @@ interface Campos {
   situacaoCadastral: string;
   atividadePrincipal: string;
   observacao: string;
+  site: string;
+  logoUrl: string;
+  corPrimaria: string;
+  corSecundaria: string;
 }
 
 type CampoDeTexto = Exclude<keyof Campos, "eCliente" | "eFornecedor">;
@@ -59,6 +67,8 @@ type Situacao =
   | { tipo: "consultando" }
   | { tipo: "info" | "erro"; texto: string; outraEmpresa?: string };
 
+type SituacaoDoSite = { tipo: "procurando" | "lendo" } | { tipo: "info" | "erro"; texto: string };
+
 function camposIniciais(e?: Empresa): Campos {
   return {
     cnpj: formatarCnpj(e?.cnpj ?? ""),
@@ -79,7 +89,25 @@ function camposIniciais(e?: Empresa): Campos {
     situacaoCadastral: e?.situacao_cadastral ?? "",
     atividadePrincipal: e?.atividade_principal ?? "",
     observacao: e?.observacao ?? "",
+    site: e?.site ?? "",
+    logoUrl: e?.logo_url ?? "",
+    corPrimaria: e?.cor_primaria ?? "",
+    corSecundaria: e?.cor_secundaria ?? "",
   };
+}
+
+/** O que a busca do site usa; igual à anterior, não há por que buscar de novo. */
+function chaveDaBusca(c: Campos): string {
+  return [c.razaoSocial, c.nomeFantasia, c.email, normalizarCnpj(c.cnpj)]
+    .map((v) => v.trim().toUpperCase())
+    .join("|");
+}
+
+function resumoDaIdentidade(i: IdentidadeVisual): string {
+  const partes = [i.logoUrl ? "logo" : null, i.corPrimaria ? "cores" : null].filter(Boolean);
+  return partes.length
+    ? `${partes.join(" e ")} lidas do site`.replace(/^./, (c) => c.toUpperCase())
+    : "O site não tem logo nem cores reconhecíveis; ajuste as cores, se quiser";
 }
 
 /**
@@ -92,6 +120,10 @@ function camposIniciais(e?: Empresa): Campos {
  * A consulta nunca passa por cima do que alguém digitou: campo vazio, ou
  * preenchido por ela mesma, é atualizado direto; campo com outro valor só muda
  * se a pessoa confirmar.
+ *
+ * O site é procurado sozinho quando o nome, o e-mail ou o CNPJ mudam e ele
+ * ainda está vazio; dele saem a logo e as cores do cartão. Abrir a edição não
+ * procura nada.
  */
 export default function FormularioEmpresa({
   empresa,
@@ -115,6 +147,8 @@ export default function FormularioEmpresa({
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [parecidas, setParecidas] = useState<EmpresaParecida[]>([]);
+  const [situacaoDoSite, setSituacaoDoSite] = useState<SituacaoDoSite | null>(null);
+  const [pedidoDeBusca, setPedidoDeBusca] = useState({ vez: 0, manual: false });
 
   // A resposta da consulta chega depois; ela precisa comparar com o que está
   // na tela naquele momento, e não com o que estava quando saiu.
@@ -127,6 +161,9 @@ export default function FormularioEmpresa({
   const cnpjAlterado = useRef(false);
   /** Valores que a consulta escreveu, campo a campo. */
   const automaticos = useRef<Partial<Record<CampoDeTexto, string>>>({});
+  /** O site foi digitado — e não preenchido pela busca, que já traz a identidade. */
+  const siteDigitadoAgora = useRef(false);
+  const ultimaBusca = useRef(chaveDaBusca(campos));
 
   const cnpjDigitado = normalizarCnpj(campos.cnpj);
   const cnpjOk = cnpjValido(cnpjDigitado);
@@ -135,8 +172,27 @@ export default function FormularioEmpresa({
   const consultando = situacao?.tipo === "consultando";
   const cnpjDeOutraEmpresa = situacao?.tipo === "erro" ? situacao.outraEmpresa : undefined;
 
+  const siteNormalizado = normalizarSite(campos.site);
+  const siteInvalido = campos.site.trim().length > 0 && !siteValido(siteNormalizado);
+  const trabalhandoNoSite =
+    situacaoDoSite?.tipo === "procurando" || situacaoDoSite?.tipo === "lendo";
+
   function set<K extends keyof Campos>(campo: K, valor: Campos[K]) {
     setCampos((c) => ({ ...c, [campo]: valor }));
+  }
+
+  function pedirBuscaDoSite(manual: boolean) {
+    setPedidoDeBusca((p) => ({ vez: p.vez + 1, manual }));
+  }
+
+  function aplicarIdentidade(i: IdentidadeVisual) {
+    setCampos((c) => ({
+      ...c,
+      site: i.site,
+      logoUrl: i.logoUrl ?? "",
+      corPrimaria: i.corPrimaria ?? "",
+      corSecundaria: i.corSecundaria ?? "",
+    }));
   }
 
   useEffect(() => {
@@ -224,6 +280,8 @@ export default function FormularioEmpresa({
 
       await aplicar(achada.dados);
       if (cancelado) return;
+      // Com nome e e-mail da Receita na tela, o site pode ser procurado.
+      pedirBuscaDoSite(false);
 
       const s = achada.dados.situacaoCadastral;
       setSituacao(
@@ -239,8 +297,102 @@ export default function FormularioEmpresa({
     };
   }, [cnpjDigitado, idDaEmpresa, confirmar]);
 
+  // Procura do site: automática com o site vazio e dados novos; pelo botão, sempre.
+  useEffect(() => {
+    if (pedidoDeBusca.vez === 0) return;
+    const c = camposAtuais.current;
+    const chave = chaveDaBusca(c);
+
+    if (!pedidoDeBusca.manual && (c.site.trim() || chave === ultimaBusca.current)) return;
+    if (!c.razaoSocial.trim() && !c.nomeFantasia.trim() && !c.email.includes("@")) {
+      if (pedidoDeBusca.manual) {
+        setSituacaoDoSite({ tipo: "erro", texto: "Informe o nome ou o e-mail da empresa para procurar o site." });
+      }
+      return;
+    }
+    ultimaBusca.current = chave;
+
+    let cancelado = false;
+    (async () => {
+      setSituacaoDoSite({ tipo: "procurando" });
+      const res = await procurarSiteDaEmpresa({
+        razaoSocial: c.razaoSocial,
+        nomeFantasia: c.nomeFantasia,
+        email: c.email,
+        cnpj: normalizarCnpj(c.cnpj),
+      }).catch(() => null);
+      if (cancelado) return;
+
+      if (!res || !res.ok) {
+        setSituacaoDoSite({ tipo: "erro", texto: res?.message ?? "Não foi possível procurar o site agora." });
+        return;
+      }
+      if (!res.data) {
+        setSituacaoDoSite({
+          tipo: "info",
+          texto: "Nenhum site encontrado pelo nome, e-mail ou CNPJ. Se a empresa tiver um, informe o endereço.",
+        });
+        return;
+      }
+      // Alguém digitou um site enquanto a busca automática corria: vale o dele.
+      if (!pedidoDeBusca.manual && camposAtuais.current.site.trim()) {
+        setSituacaoDoSite(null);
+        return;
+      }
+
+      siteDigitadoAgora.current = false;
+      aplicarIdentidade(res.data.identidade);
+      setSituacaoDoSite({
+        tipo: "info",
+        texto: `Site encontrado: ${res.data.motivo}. ${resumoDaIdentidade(res.data.identidade)}. Confira antes de salvar.`,
+      });
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [pedidoDeBusca]);
+
+  // Site digitado: lê logo e cores dele, com uma pausa para não buscar a cada tecla.
+  useEffect(() => {
+    if (!siteDigitadoAgora.current) return;
+    if (!siteValido(siteNormalizado)) {
+      setSituacaoDoSite(null);
+      return;
+    }
+
+    let cancelado = false;
+    const espera = setTimeout(async () => {
+      setSituacaoDoSite({ tipo: "lendo" });
+      const res = await lerIdentidadeDoSite(siteNormalizado).catch(() => null);
+      if (cancelado) return;
+
+      if (!res || !res.ok) {
+        setSituacaoDoSite({ tipo: "erro", texto: res?.message ?? "Não foi possível ler o site agora." });
+        return;
+      }
+      if (!res.data) {
+        setSituacaoDoSite({ tipo: "erro", texto: "O site não respondeu. Confira o endereço." });
+        return;
+      }
+      siteDigitadoAgora.current = false;
+      aplicarIdentidade(res.data);
+      setSituacaoDoSite({ tipo: "info", texto: `${resumoDaIdentidade(res.data)}.` });
+    }, 800);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(espera);
+    };
+  }, [siteNormalizado]);
+
   async function gravar(alertarParecidas: boolean) {
-    const entrada = { ...campos, cnpj: cnpjDigitado };
+    const entrada = {
+      ...campos,
+      cnpj: cnpjDigitado,
+      site: siteNormalizado,
+      logoUrl: campos.logoUrl || null,
+    };
     return empresa
       ? atualizarEmpresa(empresa.id, entrada, { alertarParecidas })
       : criarEmpresa(entrada, { alertarParecidas });
@@ -265,6 +417,10 @@ export default function FormularioEmpresa({
     }
     if (!campos.eCliente && !campos.eFornecedor) {
       setErro("Marque se a empresa é cliente, fornecedora ou as duas coisas.");
+      return;
+    }
+    if (siteInvalido) {
+      setErro("Site inválido. Informe o domínio, como empresa.com.br.");
       return;
     }
 
@@ -313,6 +469,18 @@ export default function FormularioEmpresa({
         ? { texto: situacao.texto, erro: situacao.tipo === "erro" }
         : null;
 
+  const siteNaTela = siteInvalido
+    ? { texto: "Informe só o domínio, como empresa.com.br.", erro: true }
+    : situacaoDoSite?.tipo === "procurando"
+      ? { texto: "Procurando o site da empresa…", erro: false }
+      : situacaoDoSite?.tipo === "lendo"
+        ? { texto: "Lendo logo e cores do site…", erro: false }
+        : situacaoDoSite && "texto" in situacaoDoSite
+          ? { texto: situacaoDoSite.texto, erro: situacaoDoSite.tipo === "erro" }
+          : null;
+
+  const procurarAoSair = () => pedirBuscaDoSite(false);
+
   return (
     <div className="mt-4 space-y-5 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] p-4">
       {/* Identificação */}
@@ -346,12 +514,7 @@ export default function FormularioEmpresa({
                 : undefined
             }
           >
-            {consultando && !cnpjInvalido && (
-              <span
-                aria-hidden
-                className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--stroke)] border-t-[var(--primary)]"
-              />
-            )}
+            {consultando && !cnpjInvalido && <Girando />}
             {situacaoNaTela?.texto}
             {cnpjDeOutraEmpresa && !cnpjInvalido && (
               <button
@@ -370,6 +533,7 @@ export default function FormularioEmpresa({
             id="empresa-razao"
             value={campos.razaoSocial}
             onChange={(e) => set("razaoSocial", e.target.value)}
+            onBlur={procurarAoSair}
             placeholder="Como consta no CNPJ, ou o nome pelo qual a empresa é conhecida"
             className={campo}
           />
@@ -380,6 +544,7 @@ export default function FormularioEmpresa({
             id="empresa-fantasia"
             value={campos.nomeFantasia}
             onChange={(e) => set("nomeFantasia", e.target.value)}
+            onBlur={procurarAoSair}
             className={campo}
           />
         </div>
@@ -498,6 +663,7 @@ export default function FormularioEmpresa({
             type="email"
             value={campos.email}
             onChange={(e) => set("email", e.target.value)}
+            onBlur={procurarAoSair}
             className={campo}
           />
         </div>
@@ -512,6 +678,104 @@ export default function FormularioEmpresa({
             className={campo}
           />
         </div>
+        <div className="sm:col-span-6">
+          <label htmlFor="empresa-site" className={rotulo}>Site</label>
+          <div className="flex items-start gap-2">
+            <input
+              id="empresa-site"
+              value={campos.site}
+              onChange={(e) => {
+                siteDigitadoAgora.current = true;
+                set("site", e.target.value);
+              }}
+              inputMode="url"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="empresa.com.br"
+              aria-invalid={siteInvalido}
+              aria-describedby="empresa-site-situacao"
+              className={`${campo} min-w-0 flex-1`}
+            />
+            <button
+              type="button"
+              onClick={() => pedirBuscaDoSite(true)}
+              disabled={trabalhandoNoSite}
+              className="neo-button mt-1 shrink-0 rounded-full px-4 py-2 text-xs font-bold text-[var(--text)] disabled:opacity-60"
+            >
+              Procurar site
+            </button>
+          </div>
+          <p
+            id="empresa-site-situacao"
+            aria-live="polite"
+            className={
+              siteNaTela
+                ? `mt-1 flex flex-wrap items-center gap-1.5 text-xs ${
+                    siteNaTela.erro ? "font-semibold text-[var(--erro-solid)]" : "text-[var(--muted)]"
+                  }`
+                : undefined
+            }
+          >
+            {trabalhandoNoSite && !siteInvalido && <Girando />}
+            {siteNaTela?.texto}
+          </p>
+        </div>
+      </fieldset>
+
+      {/* Identidade visual */}
+      <fieldset>
+        <legend className={grupo}>Identidade visual</legend>
+        <div className="flex flex-wrap items-center gap-4">
+          <LogoDaEmpresa
+            nome={campos.nomeFantasia || campos.razaoSocial || "?"}
+            logoUrl={campos.logoUrl || null}
+            cor={campos.corPrimaria}
+            tamanho={64}
+          />
+          {(
+            [
+              ["corPrimaria", "Cor principal"],
+              ["corSecundaria", "Segunda cor"],
+            ] as const
+          ).map(([chave, nome]) => (
+            <label key={chave} className="flex cursor-pointer items-center gap-2">
+              <input
+                type="color"
+                value={campos[chave] || "#ffffff"}
+                onChange={(e) => set(chave, e.target.value)}
+                className="h-10 w-12 cursor-pointer rounded-lg border border-[var(--stroke)] bg-[var(--neo-bg)] p-0.5"
+              />
+              <span>
+                <span className={rotulo}>{nome}</span>
+                <span className="block font-mono text-xs text-[var(--text)]">{campos[chave] || "—"}</span>
+              </span>
+            </label>
+          ))}
+          <div className="flex flex-wrap gap-3">
+            {campos.logoUrl && (
+              <button
+                type="button"
+                onClick={() => set("logoUrl", "")}
+                className="text-xs font-semibold text-[var(--muted)] hover:underline"
+              >
+                Remover logo
+              </button>
+            )}
+            {(campos.corPrimaria || campos.corSecundaria) && (
+              <button
+                type="button"
+                onClick={() => setCampos((c) => ({ ...c, corPrimaria: "", corSecundaria: "" }))}
+                className="text-xs font-semibold text-[var(--muted)] hover:underline"
+              >
+                Remover cores
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          Logo e cores vêm do site e caracterizam o cartão da empresa. Ajuste as cores se não forem as da
+          marca; sem logo, o cartão mostra as iniciais.
+        </p>
       </fieldset>
 
       {/* Demais informações */}
@@ -580,10 +844,16 @@ export default function FormularioEmpresa({
         <button
           type="button"
           onClick={salvar}
-          disabled={salvando || consultando}
+          disabled={salvando || consultando || trabalhandoNoSite}
           className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
         >
-          {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Cadastrar"}
+          {salvando
+            ? "Salvando…"
+            : trabalhandoNoSite
+              ? "Lendo o site…"
+              : editando
+                ? "Salvar alterações"
+                : "Cadastrar"}
         </button>
         <button
           type="button"
@@ -596,6 +866,15 @@ export default function FormularioEmpresa({
 
       <Dialogo />
     </div>
+  );
+}
+
+function Girando() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--stroke)] border-t-[var(--primary)]"
+    />
   );
 }
 

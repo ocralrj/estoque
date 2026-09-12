@@ -102,6 +102,26 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
   possível pela API. Cobre perfis (papel e status), grupos, membros, permissões,
   departamentos, produtos e movimentações. A tela é `/dashboard/admin/auditoria`.
 
+## Empresas — site, logo e cores
+
+- **O site é procurado, não adivinhado.** `src/lib/identidade-visual.ts` tenta o
+  domínio do e-mail e o nome (fantasia; razão social só se tiver até 3 palavras)
+  em .com.br/.com, e só aceita a página que cita o CNPJ ou traz o nome como
+  palavras inteiras. Nem o domínio do e-mail passa sem isso: na Receita ele
+  costuma ser o do contador. `joliver.com.br` (J. Oliveira Imóveis) é o exemplo
+  do falso positivo que a regra evita.
+- **Toda busca passa por `baixar()`**, que resolve o DNS e recusa IP interno a
+  cada redirecionamento: o domínio vem de quem cadastra (SSRF). Não chamar
+  `fetch` direto nesse arquivo.
+- Guarda-se o **endereço** da logo (só https), não a imagem; `LogoDaEmpresa`
+  volta às iniciais na cor da marca se ela falhar. As cores da marca pintam só a
+  faixa, o quadro da logo e o sublinhado do site — texto continua nos tokens do
+  NEO, então o verificador da seção 8 vai apontar essas cores de propósito.
+- A página de Empresas exporta `maxDuration = 30`: procurar o site e ler a
+  identidade tem prazo total de 7 s + 8 s.
+- Empresa com certificado não é excluída (`excluirEmpresa`): a FK apagaria os
+  certificados em cascata e deixaria os .pfx órfãos no bucket.
+
 ## GED — arquivos eletrônicos
 
 - Binários ficam no bucket privado `ged` (Supabase Storage). Não há URL fixa: o
