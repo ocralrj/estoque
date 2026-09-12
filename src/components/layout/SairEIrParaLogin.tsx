@@ -13,8 +13,10 @@ import { createClient } from "@/lib/supabase/client";
  */
 export default function SairEIrParaLogin({
   rotulo = "Sair do sistema",
+  className = "rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60",
 }: {
   rotulo?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [saindo, setSaindo] = useState(false);
@@ -32,7 +34,7 @@ export default function SairEIrParaLogin({
       type="button"
       onClick={sair}
       disabled={saindo}
-      className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)] disabled:opacity-60"
+      className={className}
     >
       {saindo ? "Saindo…" : rotulo}
     </button>

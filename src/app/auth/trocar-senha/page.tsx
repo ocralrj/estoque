@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { concluirTrocaDeSenha } from "@/app/actions/users";
 import PasswordInput from "@/components/ui/PasswordInput";
+import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
+import Logo from "@/components/layout/Logo";
+import RodapeAutenticacao from "@/components/layout/RodapeAutenticacao";
 import { avaliarSenha, REGRAS_SENHA } from "@/lib/senha";
 
 /**
@@ -63,24 +66,32 @@ export default function TrocarSenhaPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--neo-flat)] px-4">
-      <div className="w-full max-w-md rounded-xl bg-[var(--neo-bg)] p-8 shadow-md">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-[var(--text)]">
-            Defina sua senha
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Você entrou com uma senha provisória, criada por quem cadastrou seu
-            acesso. Escolha uma senha só sua para continuar.
-          </p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[var(--neo-flat)] px-4 py-8">
+      <FundoAutenticacao />
+
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--neo-line)] bg-[var(--neo-bg)] p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.35)]">
+        <h1 className="sr-only">OCRAL — defina sua senha</h1>
+
+        <div className="mb-6 flex flex-col items-center">
+          <Logo largura={150} prioridade />
+          <p className="mt-4 text-[var(--text-muted)]">Defina sua senha</p>
         </div>
 
         <form onSubmit={enviar} className="space-y-4">
+          <p className="rounded-lg bg-[var(--info-bg)] px-3 py-2 text-center text-sm text-[var(--info-fg)]">
+            Você entrou com uma senha provisória, criada por quem cadastrou seu
+            acesso. Escolha uma senha só sua para continuar.
+          </p>
+
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--text)]">
+            <label
+              htmlFor="nova-senha"
+              className="mb-1 block text-sm font-medium text-[var(--text)]"
+            >
               Nova senha
             </label>
             <PasswordInput
+              id="nova-senha"
               required
               autoComplete="new-password"
               value={senha}
@@ -107,10 +118,14 @@ export default function TrocarSenhaPage() {
           </ul>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--text)]">
+            <label
+              htmlFor="confirma-senha"
+              className="mb-1 block text-sm font-medium text-[var(--text)]"
+            >
               Confirme a nova senha
             </label>
             <PasswordInput
+              id="confirma-senha"
               required
               autoComplete="new-password"
               value={confirma}
@@ -120,7 +135,7 @@ export default function TrocarSenhaPage() {
           </div>
 
           {erro && (
-            <p className="rounded-lg bg-[var(--erro-bg)] px-3 py-2 text-sm text-[var(--erro-fg)]">
+            <p className="rounded-lg bg-[var(--erro-bg)] px-3 py-2 text-sm text-[var(--erro-solid)]">
               {erro}
             </p>
           )}
@@ -136,10 +151,15 @@ export default function TrocarSenhaPage() {
 
         {/* Quem abriu esta tela por engano precisa de uma saída: sem encerrar a
             sessão, ir para o login devolve para cá. */}
-        <div className="mt-6 text-center">
-          <SairEIrParaLogin rotulo="Sair sem trocar" />
-        </div>
+        <p className="mt-6 text-center text-sm">
+          <SairEIrParaLogin
+            rotulo="Sair sem trocar"
+            className="font-medium text-[var(--primary)] hover:underline disabled:opacity-60"
+          />
+        </p>
       </div>
+
+      <RodapeAutenticacao />
     </div>
   );
 }
