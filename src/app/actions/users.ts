@@ -3,7 +3,7 @@
 import { exigir } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession, isManager } from "@/lib/auth";
-import { SENHA_INICIAL } from "@/lib/senha";
+import { SENHA_INICIAL, avaliarSenha } from "@/lib/senha";
 import { MAX_SAIDA_BYTES } from "@/lib/imagens/avatar";
 import { SUPER_ADMIN_PRINCIPAL_EMAIL } from "@/lib/admin";
 import { bloqueioDeEdicao } from "@/lib/hierarquia-servidor";
@@ -508,10 +508,41 @@ export async function definirDepartamento(
   return { ok: true };
 }
 
-/** Registra que a senha inicial foi trocada, liberando o acesso ao sistema. */
-export async function concluirTrocaDeSenha(): Promise<ActionResult> {
+/**
+ * Troca a senha provisória e libera o acesso ao sistema.
+ *
+ * Antes a tela trocava a senha pelo navegador e depois chamava uma action que
+ * só baixava `must_change_password` — nada impedia chamá-la direto e seguir
+ * com a senha provisória. Agora as duas coisas acontecem aqui, e a senha nova
+ * é conferida antes de valer.
+ */
+export async function trocarSenhaInicial(senha: string): Promise<ActionResult> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
+
+  if (typeof senha !== "string" || !avaliarSenha(senha).valida) {
+    return { ok: false, message: "A senha ainda não atende aos requisitos." };
+  }
+
+  // A provisória é a mesma para todo pré-cadastro: ficar com ela é deixar a
+  // conta aberta a quem cadastrou e a qualquer outro convidado.
+  if (senha === SENHA_INICIAL) {
+    return { ok: false, message: "A nova senha não pode ser a senha provisória." };
+  }
+
+  const { error: erroSenha } = await supabase.auth.updateUser({ password: senha });
+  if (erroSenha) {
+    // O Auth recusa a senha que a conta já tem — cobre quem recebeu uma
+    // provisória diferente da padrão.
+    if (erroSenha.code === "same_password") {
+      return { ok: false, message: "A nova senha não pode ser a senha provisória." };
+    }
+    if (erroSenha.code === "weak_password") {
+      return { ok: false, message: "A senha foi recusada por ser fraca. Escolha outra." };
+    }
+    console.error("[trocarSenhaInicial] falha ao alterar a senha:", erroSenha.message);
+    return { ok: false, message: "Não foi possível alterar a senha." };
+  }
 
   const { error } = await supabase
     .from("profiles")

@@ -3,13 +3,12 @@
 import SairEIrParaLogin from "@/components/layout/SairEIrParaLogin";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { concluirTrocaDeSenha } from "@/app/actions/users";
+import { trocarSenhaInicial } from "@/app/actions/users";
 import PasswordInput from "@/components/ui/PasswordInput";
 import FundoAutenticacao from "@/components/layout/FundoAutenticacao";
 import Logo from "@/components/layout/Logo";
 import RodapeAutenticacao from "@/components/layout/RodapeAutenticacao";
-import { avaliarSenha, REGRAS_SENHA } from "@/lib/senha";
+import { avaliarSenha, REGRAS_SENHA, SENHA_INICIAL } from "@/lib/senha";
 
 /**
  * Troca obrigatória da senha inicial.
@@ -26,6 +25,9 @@ export default function TrocarSenhaPage() {
   const [salvando, setSalvando] = useState(false);
 
   const avaliacao = avaliarSenha(senha);
+  // Conferido aqui só para avisar enquanto a pessoa digita; quem garante é a
+  // Server Action.
+  const repeteProvisoria = senha === SENHA_INICIAL;
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -35,26 +37,17 @@ export default function TrocarSenhaPage() {
       setErro("A senha ainda não atende aos requisitos abaixo.");
       return;
     }
+    if (repeteProvisoria) {
+      setErro("A nova senha não pode ser a senha provisória.");
+      return;
+    }
     if (senha !== confirma) {
       setErro("As senhas não coincidem.");
       return;
     }
 
     setSalvando(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: senha });
-
-    if (error) {
-      setErro(
-        error.message.toLowerCase().includes("same")
-          ? "Escolha uma senha diferente da atual."
-          : "Não foi possível alterar a senha."
-      );
-      setSalvando(false);
-      return;
-    }
-
-    const res = await concluirTrocaDeSenha();
+    const res = await trocarSenhaInicial(senha);
     if (!res.ok) {
       setErro(res.message);
       setSalvando(false);
@@ -115,6 +108,18 @@ export default function TrocarSenhaPage() {
                 </li>
               );
             })}
+            <li
+              className={`flex items-center gap-2 text-xs ${
+                repeteProvisoria
+                  ? "font-semibold text-[var(--erro-solid)]"
+                  : senha
+                    ? "text-[var(--ok-fg)]"
+                    : "text-[var(--text-muted)]"
+              }`}
+            >
+              <span aria-hidden>{repeteProvisoria ? "✗" : senha ? "✓" : "○"}</span>
+              Diferente da senha provisória
+            </li>
           </ul>
 
           <div>
@@ -142,7 +147,7 @@ export default function TrocarSenhaPage() {
 
           <button
             type="submit"
-            disabled={salvando || !avaliacao.valida}
+            disabled={salvando || !avaliacao.valida || repeteProvisoria}
             className="w-full rounded-lg bg-[var(--primary)] py-2 text-sm font-medium text-[var(--on-accent)] transition-colors hover:brightness-110 disabled:opacity-50"
           >
             {salvando ? "Salvando…" : "Salvar e entrar"}
