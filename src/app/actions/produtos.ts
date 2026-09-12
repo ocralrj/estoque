@@ -13,6 +13,44 @@ function revalidar() {
   revalidatePath("/dashboard/estoque/alertas");
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Cliente = Awaited<ReturnType<typeof getSession>>["supabase"];
+
+/**
+ * A categoria ou localização existe e está ativa?
+ *
+ * Devolve a mensagem de recusa, ou null. O gatilho `products_cadastro_ativo`
+ * (migração 043) recusa do mesmo jeito; conferir antes dá uma mensagem que
+ * diz o que fazer, em vez do erro cru do banco.
+ */
+async function recusaDeCadastro(
+  supabase: Cliente,
+  tabela: "categories" | "locations",
+  id: string
+): Promise<string | null> {
+  const nome = tabela === "categories" ? "categoria" : "localização";
+  const tela = tabela === "categories" ? "Categorias" : "Localizações";
+
+  if (!UUID.test(id)) return `Escolha uma ${nome} da lista.`;
+
+  const { data, error } = await supabase
+    .from(tabela)
+    .select("active")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Falha ao conferir ${nome}:`, error);
+    return `Não foi possível conferir a ${nome}: ${error.message}`;
+  }
+  if (!data) return `A ${nome} escolhida não existe mais.`;
+  if (data.active === false) {
+    return `A ${nome} escolhida está inativa. Escolha outra ou reative-a em Estoque → ${tela}.`;
+  }
+  return null;
+}
+
 export async function definirCategoria(
   produtoId: string,
   categoriaId: string | null
@@ -22,6 +60,11 @@ export async function definirCategoria(
 
   const permitido = await exigir("estoque", "products", "update");
   if (!permitido.ok) return permitido;
+
+  if (categoriaId) {
+    const recusa = await recusaDeCadastro(supabase, "categories", categoriaId);
+    if (recusa) return { ok: false, message: recusa };
+  }
 
   const { error } = await supabase
     .from("products")
@@ -38,17 +81,16 @@ export async function definirCategoria(
 }
 
 /**
- * Muda a localização de um produto — ou de todos que dividem o mesmo lugar.
+ * Muda a localização de um produto — ou de todos que estão no mesmo lugar.
  *
- * `emTodos` existe porque o problema real não é o produto errado, é o lugar
- * escrito de três jeitos: "Armário na Sala do TI", "Armário no departamento de
- * TI" e "Armário na sala do TI" são a mesma prateleira em três linhas do
- * relatório. Corrigir de um em um é o trabalho que fez a divergência aparecer;
- * corrigir todos de uma vez é o que a resolve.
+ * Recebe o id de uma localização cadastrada e ativa. Não cria localização a
+ * partir de texto: era esse caminho que produzia "Armário na Sala do TI" e
+ * "Armário na sala do TI" como dois lugares. Localização nova se cadastra em
+ * Estoque → Localizações.
  */
 export async function definirLocalizacao(
   produtoId: string,
-  local: string | null,
+  localId: string | null,
   emTodos = false
 ): Promise<Resultado<{ afetados: number }>> {
   const { supabase, user } = await getSession();
@@ -57,140 +99,58 @@ export async function definirLocalizacao(
   const permitido = await exigir("estoque", "products", "update");
   if (!permitido.ok) return permitido;
 
-  const novo = local?.trim().slice(0, 200) || null;
-  let valorParaSalvar: string | null = novo;
-
+  const novo = localId || null;
   if (novo) {
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        novo
-      );
-    try {
-      if (isUuid) {
-        valorParaSalvar = novo;
-      } else {
-        const { data: locExistente } = await supabase
-          .from("locations")
-          .select("id, name")
-          .ilike("name", novo)
-          .maybeSingle();
-
-        if (locExistente?.id) {
-          valorParaSalvar = locExistente.id;
-        } else {
-          const { data: novaLoc } = await supabase
-            .from("locations")
-            .insert({ name: novo })
-            .select("id")
-            .maybeSingle();
-          if (novaLoc?.id) {
-            valorParaSalvar = novaLoc.id;
-          }
-        }
-      }
-    } catch {
-      valorParaSalvar = novo;
-    }
+    const recusa = await recusaDeCadastro(supabase, "locations", novo);
+    if (recusa) return { ok: false, message: recusa };
   }
 
   if (emTodos) {
-    const { data: atual } = await supabase
+    const { data: atual, error: erroAtual } = await supabase
       .from("products")
       .select("location")
       .eq("id", produtoId)
       .single();
 
-    const antigo = (atual?.location as string | null)?.trim();
+    if (erroAtual) {
+      console.error("Falha ao ler localização atual:", erroAtual);
+      return { ok: false, message: `Não foi possível salvar: ${erroAtual.message}` };
+    }
+
+    const antigo = atual?.location as string | null;
 
     if (antigo) {
-      let resUpdate = await supabase
+      const { data, error } = await supabase
         .from("products")
-        .update({ location: valorParaSalvar })
+        .update({ location: novo })
         .eq("location", antigo)
         .eq("active", true)
         .select("id");
 
-      if (resUpdate.error && valorParaSalvar !== novo) {
-        resUpdate = await supabase
-          .from("products")
-          .update({ location: novo })
-          .eq("location", antigo)
-          .eq("active", true)
-          .select("id");
-      }
-
-      if (resUpdate.error) {
-        console.error("Falha ao renomear localização:", resUpdate.error);
-        return {
-          ok: false,
-          message: `Não foi possível salvar: ${resUpdate.error.message}`,
-        };
+      if (error) {
+        console.error("Falha ao mudar localização em lote:", error);
+        return { ok: false, message: `Não foi possível salvar: ${error.message}` };
       }
 
       revalidar();
-      return { ok: true, data: { afetados: resUpdate.data?.length ?? 0 } };
+      return { ok: true, data: { afetados: data?.length ?? 0 } };
     }
   }
 
-  let resSingle = await supabase
+  const { error } = await supabase
     .from("products")
-    .update({ location: valorParaSalvar })
+    .update({ location: novo })
     .eq("id", produtoId);
 
-  if (resSingle.error && valorParaSalvar !== novo) {
-    resSingle = await supabase
-      .from("products")
-      .update({ location: novo })
-      .eq("id", produtoId);
-  }
-
-  if (resSingle.error) {
-    console.error("Falha ao definir localização:", resSingle.error);
-    return {
-      ok: false,
-      message: `Não foi possível salvar: ${resSingle.error.message}`,
-    };
+  if (error) {
+    console.error("Falha ao definir localização:", error);
+    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
   }
 
   revalidar();
   return { ok: true, data: { afetados: 1 } };
 }
 
-/**
- * Muda o código do produto.
- *
- * O código é único e aparece em toda listagem — é por ele que se procura o
- * item na prateleira. Trocá-lo não mexe no histórico: as movimentações
- * apontam para o id, não para o código, então o passado continua correto.
- */
-export async function definirCodigo(
-  produtoId: string,
-  codigo: string
-): Promise<Resultado> {
-  const { supabase, user } = await getSession();
-  if (!user) return { ok: false, message: "Não autenticado" };
-
-  const permitido = await exigir("estoque", "products", "update");
-  if (!permitido.ok) return permitido;
-
-  const novo = codigo.trim().toUpperCase().slice(0, 40);
-  if (novo.length < 2) {
-    return { ok: false, message: "O código deve ter ao menos 2 caracteres." };
-  }
-
-  const { error } = await supabase
-    .from("products")
-    .update({ code: novo })
-    .eq("id", produtoId);
-
-  if (error) {
-    if (error.code === "23505") {
-      return { ok: false, message: `Já existe um produto com o código ${novo}.` };
-    }
-    console.error("Falha ao definir código:", error);
-    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
-  }
-
-  revalidar();
-  return { ok: true, data: undefined };
-}
+// Não existe ação para trocar o código: ele é gerado pelo banco no cadastro
+// (gatilho `products_gerar_codigo`) e o gatilho `products_codigo_imutavel`
+// recusa qualquer alteração. Ver 042_codigo_e_listagem_de_produtos.sql.

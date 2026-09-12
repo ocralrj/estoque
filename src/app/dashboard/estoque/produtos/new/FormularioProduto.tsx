@@ -1,39 +1,42 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SuggestWithAi from "@/components/ai/SuggestWithAi";
-import type { Category } from "@/types/database";
+
+interface Opcao {
+  id: string;
+  name: string;
+}
 
 export default function FormularioProduto() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [locaisUsados, setLocaisUsados] = useState<
-    { local: string; itens: string[] }[]
-  >([]);
+  const [categories, setCategories] = useState<Opcao[]>([]);
+  const [locais, setLocais] = useState<Opcao[]>([]);
+  const [itensPorLocal, setItensPorLocal] = useState<Record<string, string[]>>({});
+  const [erroCarga, setErroCarga] = useState("");
   const [formData, setFormData] = useState({
-    code: "",
     name: "",
     description: "",
     category_id: "",
     unit: "",
     quantity_current: 0,
     quantity_minimum: 0,
-    location: "",
+    location_id: "",
   });
 
   useEffect(() => {
     async function carregar() {
       const supabase = createClient();
 
-      const [{ data: cats }, { data: locaisDB }, { data: produtos }] = await Promise.all([
-        supabase.from("categories").select("*").order("name"),
-        supabase
-          .from("locations")
-          .select("id, name")
-          .order("name"),
+      // Só cadastros ativos: inativo não entra em produto novo. O banco recusa
+      // do mesmo jeito (gatilho da 043); aqui ele apenas não é oferecido.
+      const [cats, locs, produtos] = await Promise.all([
+        supabase.from("categories").select("id, name").eq("active", true).order("name"),
+        supabase.from("locations").select("id, name").eq("active", true).order("name"),
         supabase
           .from("products")
           .select("location, name")
@@ -41,60 +44,32 @@ export default function FormularioProduto() {
           .not("location", "is", null),
       ]);
 
-      setCategories(cats || []);
-
-      const listaLocais = (locaisDB as { id: string; name: string }[] | null) ?? [];
-      const mapaLocais = new Map<string, string>();
-      for (const l of listaLocais) {
-        mapaLocais.set(l.id, l.name);
+      const falha = cats.error ?? locs.error ?? produtos.error;
+      if (falha) {
+        console.error("Falha ao carregar categorias e localizações:", falha);
+        setErroCarga(`Não foi possível carregar categorias e localizações: ${falha.message}`);
       }
 
-      const mapa = new Map<string, string[]>();
-      // Inclui todos os locais cadastrados
-      for (const l of listaLocais) {
-        if (!mapa.has(l.name)) {
-          mapa.set(l.name, []);
-        }
-      }
+      setCategories((cats.data as Opcao[] | null) ?? []);
+      setLocais((locs.data as Opcao[] | null) ?? []);
 
-      for (const p of produtos ?? []) {
-        const raw = (p.location as string | null)?.trim();
-        if (!raw) continue;
-        const localNome = (mapaLocais.get(raw) || raw).trim();
-        const lista = mapa.get(localNome) ?? [];
-        lista.push(p.name as string);
-        mapa.set(localNome, lista);
+      const mapa: Record<string, string[]> = {};
+      for (const p of produtos.data ?? []) {
+        const id = p.location as string;
+        mapa[id] = [...(mapa[id] ?? []), p.name as string];
       }
-
-      setLocaisUsados(
-        Array.from(mapa.entries())
-          .map(([local, itens]) => ({ local, itens }))
-          .sort((a, b) => b.itens.length - a.itens.length)
-      );
+      setItensPorLocal(mapa);
     }
     carregar();
   }, []);
 
-  // Compara sem acento e sem caixa: "Sala do TI" e "sala do ti" são o mesmo
-  // lugar, e é justamente essa diferença que multiplica prateleiras no
-  // relatório.
-  function normalizar(t: string) {
-    return t
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase()
-      .trim();
-  }
+  const itensNoLocal = formData.location_id
+    ? itensPorLocal[formData.location_id] ?? []
+    : [];
 
-  const buscado = normalizar(formData.location);
-  const locaisSemelhantes = buscado
-    ? locaisUsados.filter((l) => normalizar(l.local).includes(buscado)).slice(0, 5)
-    : locaisUsados.slice(0, 5);
-
-  // Sem estes três não existe produto: código e nome o identificam, a unidade
-  // dá sentido a qualquer quantidade. O resto pode ser preenchido depois.
+  // Sem estes dois não existe produto: o nome o identifica, a unidade dá
+  // sentido a qualquer quantidade. O código vem do banco (gatilho da 042).
   const podeSalvar =
-    formData.code.trim().length > 0 &&
     formData.name.trim().length > 0 &&
     formData.unit.trim().length > 0;
 
@@ -105,53 +80,20 @@ export default function FormularioProduto() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const localInput = formData.location.trim();
-    let locationVal: string | null = localInput || null;
-
-    if (localInput) {
-      try {
-        const { data: locExistente } = await supabase
-          .from("locations")
-          .select("id, name")
-          .ilike("name", localInput)
-          .maybeSingle();
-
-        if (locExistente?.id) {
-          locationVal = locExistente.id;
-        } else {
-          const { data: novaLoc } = await supabase
-            .from("locations")
-            .insert({ name: localInput })
-            .select("id")
-            .maybeSingle();
-          if (novaLoc?.id) {
-            locationVal = novaLoc.id;
-          }
-        }
-      } catch {
-        locationVal = localInput;
-      }
-    }
-
+    // Sem `code`: o gatilho `products_gerar_codigo` preenche com o maior
+    // código + 1, sob trava, para dois cadastros simultâneos não colidirem.
     const payload = {
-      code: formData.code,
       name: formData.name,
       description: formData.description || null,
       category_id: formData.category_id || null,
       unit: formData.unit,
       quantity_current: formData.quantity_current,
       quantity_minimum: formData.quantity_minimum,
-      location: locationVal,
+      location: formData.location_id || null,
       created_by: user?.id,
     };
 
-    let { error } = await supabase.from("products").insert(payload);
-
-    if (error && locationVal !== localInput) {
-      payload.location = localInput;
-      const retry = await supabase.from("products").insert(payload);
-      error = retry.error;
-    }
+    const { error } = await supabase.from("products").insert(payload);
 
     if (error) {
       alert("Erro ao criar produto: " + error.message);
@@ -168,16 +110,26 @@ export default function FormularioProduto() {
 
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {erroCarga && (
+            <p className="rounded-lg bg-[var(--erro-bg)] px-3 py-2 text-sm text-[var(--erro-fg)]">
+              {erroCarga}
+            </p>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Código *
+            <label
+              htmlFor="codigo-produto"
+              className="block text-sm font-medium text-[var(--text)] mb-1"
+            >
+              Código
             </label>
             <input
+              id="codigo-produto"
               type="text"
-              required
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
+              readOnly
+              disabled
+              value="Gerado automaticamente ao salvar"
+              className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-[var(--text-muted)] cursor-not-allowed"
             />
           </div>
 
@@ -204,13 +156,13 @@ export default function FormularioProduto() {
                 whatToSuggest="descrições claras e úteis para o cadastro do produto no almoxarifado"
                 currentValue={formData.description}
                 context={{
-                  codigo: formData.code,
                   nome: formData.name,
                   unidade: formData.unit,
                   categoria:
                     categories.find((c) => c.id === formData.category_id)?.name ||
                     null,
-                  localizacao: formData.location,
+                  localizacao:
+                    locais.find((l) => l.id === formData.location_id)?.name || null,
                 }}
                 onAccept={(texto) =>
                   setFormData((prev) => ({ ...prev, description: texto }))
@@ -226,10 +178,14 @@ export default function FormularioProduto() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
+            <label
+              htmlFor="categoria-produto"
+              className="block text-sm font-medium text-[var(--text)] mb-1"
+            >
               Categoria
             </label>
             <select
+              id="categoria-produto"
               value={formData.category_id}
               onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
@@ -241,6 +197,15 @@ export default function FormularioProduto() {
                 </option>
               ))}
             </select>
+            {categories.length === 0 && !erroCarga && (
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Nenhuma categoria ativa. Cadastre em{" "}
+                <Link href="/dashboard/estoque/categorias" className="text-[var(--primary)] hover:underline">
+                  Estoque → Categorias
+                </Link>
+                .
+              </p>
+            )}
           </div>
 
           <div>
@@ -286,53 +251,46 @@ export default function FormularioProduto() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">
-              Localização (Nome do local)
+            <label
+              htmlFor="localizacao-produto"
+              className="block text-sm font-medium text-[var(--text)] mb-1"
+            >
+              Localização
             </label>
-            <input
-              type="text"
-              list="locais-em-uso"
-              placeholder="ex: Almoxarifado Central, Depósito 1"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            <select
+              id="localizacao-produto"
+              value={formData.location_id}
+              onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
-            />
-            <datalist id="locais-em-uso">
-              {locaisUsados.map((l) => (
-                <option key={l.local} value={l.local} />
+            >
+              <option value="">Selecione uma localização</option>
+              {locais.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
               ))}
-            </datalist>
+            </select>
+            {locais.length === 0 && !erroCarga && (
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Nenhuma localização ativa. Cadastre em{" "}
+                <Link href="/dashboard/estoque/localizacoes" className="text-[var(--primary)] hover:underline">
+                  Estoque → Localizações
+                </Link>
+                .
+              </p>
+            )}
 
-            {/* O que já mora no lugar digitado. Responde a pergunta que se faz
-                ao guardar algo — "cabe aqui?" — mostrando o que está lá, em vez
-                de deixar a pessoa abrir outra tela para conferir. */}
-            {locaisSemelhantes.length > 0 && (
+            {/* O que já mora no lugar escolhido. Responde a pergunta que se faz
+                ao guardar algo — "cabe aqui?" — sem abrir outra tela. */}
+            {itensNoLocal.length > 0 && (
               <div className="mt-2 rounded-lg bg-[var(--neo-flat)] px-3 py-2">
                 <p className="text-xs font-semibold text-[var(--text-muted)]">
-                  {formData.location.trim()
-                    ? "Locais parecidos cadastrados ou em uso — clique para reaproveitar"
-                    : "Locais cadastrados / em uso"}
+                  Já guardados neste local: {itensNoLocal.length} item(ns)
                 </p>
-                <ul className="mt-1 space-y-1">
-                  {locaisSemelhantes.map((l) => (
-                    <li key={l.local}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, location: l.local })
-                        }
-                        className="text-left text-xs text-[var(--primary)] hover:underline"
-                      >
-                        <strong>{l.local}</strong>
-                        <span className="text-[var(--text-muted)]">
-                          {" "}
-                          — {l.itens.length} item(ns): {l.itens.slice(0, 3).join(", ")}
-                          {l.itens.length > 3 ? "…" : ""}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {itensNoLocal.slice(0, 5).join(", ")}
+                  {itensNoLocal.length > 5 ? "…" : ""}
+                </p>
               </div>
             )}
           </div>
@@ -351,11 +309,9 @@ export default function FormularioProduto() {
               </button>
             ) : (
               <p className="rounded-lg bg-[var(--neo-flat)] px-4 py-2 text-xs text-[var(--text-muted)]">
-                {!formData.code.trim()
-                  ? "Informe o código para continuar"
-                  : !formData.name.trim()
-                    ? "Informe o nome para continuar"
-                    : "Informe a unidade para continuar"}
+                {!formData.name.trim()
+                  ? "Informe o nome para continuar"
+                  : "Informe a unidade para continuar"}
               </p>
             )}
             <button

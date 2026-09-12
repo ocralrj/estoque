@@ -25,6 +25,7 @@ export const NOMES_DE_RECURSO: Record<string, string> = {
   products: "Produtos",
   movements: "Movimentações",
   categories: "Categorias",
+  locations: "Localizações",
   alerts: "Alertas de estoque",
   reports: "Relatórios",
   documents: "Documentos",

@@ -56,6 +56,24 @@ export function IconeSuperAdmin({ className = "h-4 w-4" }: { className?: string 
   );
 }
 
+export function IconeVer({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </svg>
+  );
+}
+
 export function IconeExcluir({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg

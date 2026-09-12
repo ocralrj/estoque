@@ -15,6 +15,8 @@ const TRACOS: Record<string, string> = {
   inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z",
   estoque: "M12 3 3 7.5v9L12 21l9-4.5v-9L12 3Zm0 18V12m0 0 9-4.5M12 12 3 7.5",
   produtos: "M4 7h16v13H4V7Zm0 0 2-3h12l2 3M9.5 11.5h5",
+  categorias: "M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 12.2V3h9.2l8.4 7.6a2 2 0 0 1 0 2.8ZM7.5 7.5h.01",
+  localizacoes: "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
   movimentacoes: "M7 8h13m0 0-3-3m3 3-3 3M17 16H4m0 0 3-3m-3 3 3 3",
   alertas: "M12 3a5 5 0 0 0-5 5v4l-2 3h14l-2-3V8a5 5 0 0 0-5-5Zm-2 15a2 2 0 0 0 4 0",
   relatorios: "M3 20h18M7.5 20v-6M12 20V8m4.5 12v-9",

@@ -12,6 +12,8 @@ const moduleLabelMap: Record<string, string> = {
   dashboard: "Início",
   estoque: "Estoque",
   produtos: "Produtos",
+  categorias: "Categorias",
+  localizacoes: "Localizações",
   movimentacoes: "Movimentações",
   alertas: "Alertas",
   relatorios: "Relatórios",

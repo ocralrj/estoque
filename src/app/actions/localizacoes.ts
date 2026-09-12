@@ -1,79 +1,35 @@
 "use server";
 
-import { exigir, sessaoAutorizada, chave, type Acao } from "@/lib/permissoes";
-import { revalidatePath } from "next/cache";
-import { getSession } from "@/lib/auth";
+import * as cadastro from "@/lib/estoque/cadastros-servidor";
+import type { DadosDoCadastro } from "@/lib/estoque/cadastros";
 
 /**
- * Guarda das ações de localização.
+ * Localizações de produto (Estoque → Localizações).
+ *
+ * As regras — nome único, inativa fora das escolhas, em uso não se exclui —
+ * são as mesmas das categorias e vivem em `cadastros-servidor.ts`.
  */
-async function autorizar(modulo: string, recurso: string, acao: Acao) {
-  const { supabase, user } = await getSession();
-  if (!user) throw new Error("Não autenticado");
 
-  const permitido = await exigir(modulo, recurso, acao);
-  if (!permitido.ok) throw new Error(permitido.message);
-
-  return { supabase, user };
+export async function listarLocalizacoes(somenteAtivas = false) {
+  return cadastro.listar("localizacao", somenteAtivas);
 }
 
-export async function listarLocalizacoes() {
-  const { supabase } = await getSession();
-  const { data, error } = await supabase
-    .from("locations")
-    .select("*")
-    .order("name");
-
-  if (error) throw error;
-  return data;
+export async function listarLocalizacoesComUso() {
+  return cadastro.listarComUso("localizacao");
 }
 
-export async function criarLocalizacao(formData: FormData) {
-  const { supabase, user } = await autorizar("admin", "locations", "create");
-
-  const name = (formData.get("name") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
-
-  if (!name) throw new Error("Nome da localização é obrigatório");
-
-  const { error } = await supabase.from("locations").insert({
-    name: name.slice(0, 120),
-    description: description || null,
-    created_by: user.id,
-  });
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/localizacoes");
+export async function criarLocalizacao(dados: DadosDoCadastro) {
+  return cadastro.criar("localizacao", dados);
 }
 
-export async function atualizarLocalizacao(id: string, formData: FormData) {
-  const { supabase, user } = await autorizar("admin", "locations", "update");
+export async function atualizarLocalizacao(id: string, dados: DadosDoCadastro) {
+  return cadastro.atualizar("localizacao", id, dados);
+}
 
-  const name = (formData.get("name") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
-
-  if (!name) throw new Error("Nome da localização é obrigatório");
-
-  const { error } = await supabase
-    .from("locations")
-    .update({
-      name: name.slice(0, 120),
-      description: description || null,
-    })
-    .eq("id", id);
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/localizacoes");
+export async function definirStatusDaLocalizacao(id: string, ativa: boolean) {
+  return cadastro.definirStatus("localizacao", id, ativa);
 }
 
 export async function excluirLocalizacao(id: string) {
-  const { supabase, user } = await autorizar("admin", "locations", "delete");
-
-  const { error } = await supabase.from("locations").delete().eq("id", id);
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/localizacoes");
+  return cadastro.excluir("localizacao", id);
 }

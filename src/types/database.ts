@@ -37,6 +37,17 @@ export interface Category {
   id: string;
   name: string;
   description: string | null;
+  /** Inativa não aparece para produto novo; o produto que já a usa continua. */
+  active: boolean;
+  created_at: string;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  description: string | null;
+  /** Inativa não aparece para produto novo; o produto que já a usa continua. */
+  active: boolean;
   created_at: string;
 }
 

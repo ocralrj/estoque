@@ -67,6 +67,7 @@ export const sessaoAutorizada = cache(async (): Promise<Sessao> => {
   const { data, error } = await supabase.rpc("minhas_permissoes");
 
   if (error || !Array.isArray(data)) {
+    console.error("[permissoes] minhas_permissoes falhou; usando o papel como reserva", user.id, error);
     return {
       permissoes: permissoesDoPapel(papel),
       papel,
@@ -158,9 +159,15 @@ export async function exigir(
   recurso: string,
   acao: Acao
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { papel } = await sessaoAutorizada();
+  const { papel, permissoes, emReserva } = await sessaoAutorizada();
   if (!papel) return { ok: false, message: "Não autenticado" };
   if (!(await pode(modulo, recurso, acao))) {
+    console.warn("[permissoes] negado", {
+      chave: chave(modulo, recurso, acao),
+      papel,
+      emReserva,
+      totalDePermissoes: permissoes.size,
+    });
     return { ok: false, message: "Você não tem permissão para esta ação." };
   }
   return { ok: true };

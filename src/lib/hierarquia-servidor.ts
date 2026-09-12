@@ -18,16 +18,22 @@ async function carregarLado(
   supabase: SupabaseClient,
   userId: string
 ): Promise<Lado | null> {
-  const { data } = await supabase
+  // A FK precisa ser nomeada: `funcoes.created_by` também aponta para
+  // `profiles`, e um `funcoes(nivel)` sem ela é ambíguo (PGRST201) — a consulta
+  // inteira falha e todo mundo, até o Super Admin, cai no bloqueio.
+  const { data, error } = await supabase
     .from("profiles")
-    .select("id, role, departamento, funcao_id, funcoes(nivel)")
+    .select("id, role, departamento, funcao_id, funcoes!profiles_funcao_id_fkey(nivel)")
     .eq("id", userId)
     .single();
 
+  if (error) {
+    console.error("[hierarquia] falha ao carregar perfil", userId, error);
+  }
   if (!data) return null;
 
-  // `funcoes` vem como objeto ou lista conforme o formato do embed; sem a
-  // migração aplicada, vem ausente — e aí o nível cai no equivalente ao papel.
+  // `funcoes` vem como objeto ou lista conforme o formato do embed; sem função
+  // atribuída, vem nulo — e aí o nível cai no equivalente ao papel.
   const bruto = (data as { funcoes?: unknown }).funcoes;
   const relacao = Array.isArray(bruto) ? bruto[0] : bruto;
   const nivel =

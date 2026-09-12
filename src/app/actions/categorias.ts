@@ -1,79 +1,35 @@
 "use server";
 
-import { exigir, sessaoAutorizada, chave, type Acao } from "@/lib/permissoes";
-import { revalidatePath } from "next/cache";
-import { getSession } from "@/lib/auth";
+import * as cadastro from "@/lib/estoque/cadastros-servidor";
+import type { DadosDoCadastro } from "@/lib/estoque/cadastros";
 
 /**
- * Guarda das ações de categoria.
+ * Categorias de produto (Estoque → Categorias).
+ *
+ * As regras — nome único, inativa fora das escolhas, em uso não se exclui —
+ * são as mesmas das localizações e vivem em `cadastros-servidor.ts`.
  */
-async function autorizar(modulo: string, recurso: string, acao: Acao) {
-  const { supabase, user } = await getSession();
-  if (!user) throw new Error("Não autenticado");
 
-  const permitido = await exigir(modulo, recurso, acao);
-  if (!permitido.ok) throw new Error(permitido.message);
-
-  return { supabase, user };
+export async function listarCategorias(somenteAtivas = false) {
+  return cadastro.listar("categoria", somenteAtivas);
 }
 
-export async function listarCategorias() {
-  const { supabase } = await getSession();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("name");
-
-  if (error) throw error;
-  return data;
+export async function listarCategoriasComUso() {
+  return cadastro.listarComUso("categoria");
 }
 
-export async function criarCategoria(formData: FormData) {
-  const { supabase, user } = await autorizar("admin", "categories", "create");
-
-  const name = (formData.get("name") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
-
-  if (!name) throw new Error("Nome da categoria é obrigatório");
-
-  const { error } = await supabase.from("categories").insert({
-    name: name.slice(0, 120),
-    description: description || null,
-    created_by: user.id,
-  });
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/categorias");
+export async function criarCategoria(dados: DadosDoCadastro) {
+  return cadastro.criar("categoria", dados);
 }
 
-export async function atualizarCategoria(id: string, formData: FormData) {
-  const { supabase, user } = await autorizar("admin", "categories", "update");
+export async function atualizarCategoria(id: string, dados: DadosDoCadastro) {
+  return cadastro.atualizar("categoria", id, dados);
+}
 
-  const name = (formData.get("name") as string)?.trim();
-  const description = (formData.get("description") as string)?.trim();
-
-  if (!name) throw new Error("Nome da categoria é obrigatório");
-
-  const { error } = await supabase
-    .from("categories")
-    .update({
-      name: name.slice(0, 120),
-      description: description || null,
-    })
-    .eq("id", id);
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/categorias");
+export async function definirStatusDaCategoria(id: string, ativa: boolean) {
+  return cadastro.definirStatus("categoria", id, ativa);
 }
 
 export async function excluirCategoria(id: string) {
-  const { supabase, user } = await autorizar("admin", "categories", "delete");
-
-  const { error } = await supabase.from("categories").delete().eq("id", id);
-
-  if (error) throw error;
-
-  revalidatePath("/dashboard/admin/categorias");
+  return cadastro.excluir("categoria", id);
 }

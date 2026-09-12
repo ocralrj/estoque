@@ -51,7 +51,7 @@ export function permissoesDoPapel(papel: string | null | undefined): Set<Chave> 
   const TODAS = ["read", "create", "update", "delete", "export", "print", "manage"];
 
   if (papel === "super_admin" || papel === "gestor") {
-    for (const r of ["products", "movements", "categories", "alerts", "reports"]) {
+    for (const r of ["products", "movements", "categories", "locations", "alerts", "reports"]) {
       add("estoque", r, TODAS);
     }
     for (const r of ["documents", "folders", "search", "audit", "retention"]) {
@@ -69,7 +69,7 @@ export function permissoesDoPapel(papel: string | null | undefined): Set<Chave> 
   }
 
   if (papel === "almoxarife") {
-    for (const r of ["products", "movements", "categories", "alerts", "reports"]) {
+    for (const r of ["products", "movements", "categories", "locations", "alerts", "reports"]) {
       add("estoque", r, ["read", "create", "update", "export", "print"]);
     }
     for (const r of ["documents", "folders", "search"]) {

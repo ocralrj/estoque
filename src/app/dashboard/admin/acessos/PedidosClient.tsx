@@ -10,6 +10,8 @@ import {
 } from "@/app/actions/acessos";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import Avatar from "@/components/ui/Avatar";
+import Tooltip from "@/components/ui/Tooltip";
+import { IconeExcluir } from "@/components/ui/IconesAcao";
 import { formatDateTime } from "@/lib/labels";
 
 /**
@@ -240,14 +242,20 @@ export default function PedidosClient({
                     {p.status === "aprovado" ? "Aprovado" : "Recusado"}
                   </span>
                   {podeExcluirRecusados && p.status === "recusado" && (
-                    <button
-                      type="button"
-                      disabled={pendente}
-                      onClick={() => excluir(p)}
-                      className="text-xs font-bold text-[var(--danger)] hover:underline disabled:opacity-50"
+                    <Tooltip
+                      lado="cima"
+                      texto={`Excluir a solicitação recusada de ${p.nome} — libera o e-mail para um novo pedido`}
                     >
-                      Excluir
-                    </button>
+                      <button
+                        type="button"
+                        disabled={pendente}
+                        onClick={() => excluir(p)}
+                        aria-label={`Excluir a solicitação recusada de ${p.nome}`}
+                        className="neo-button inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--erro-fg)] disabled:opacity-50"
+                      >
+                        <IconeExcluir />
+                      </button>
+                    </Tooltip>
                   )}
                 </span>
                 {p.motivo_recusa && (

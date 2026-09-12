@@ -91,7 +91,10 @@ export default function DashboardShell({
         </div>
       )}
 
-      <main className="min-w-0 flex-1 overflow-y-auto bg-[var(--neo-bg)] p-4 sm:p-6 lg:p-9">
+      {/* Quem rola é a janela, não o main. Um overflow "auto" aqui fazia do
+          main um contêiner de rolagem que nunca rola — e o cabeçalho, sticky,
+          grudava nele em vez de na tela. "clip" corta sem criar esse contêiner. */}
+      <main className="min-w-0 flex-1 overflow-x-clip bg-[var(--neo-bg)] p-4 sm:p-6 lg:p-9">
         <DashboardHeader profile={profile} onOpenMenu={() => setMobileOpen(true)} />
         <Breadcrumbs />
         {children}
