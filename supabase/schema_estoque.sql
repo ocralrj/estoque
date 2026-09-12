@@ -109,23 +109,29 @@ create table if not exists protocolos (
 
 -- ============================================================
 -- FUNÇÃO: criar profile automaticamente ao registrar usuário
+--
+-- Mantida igual à _manual_apply/045. O search_path fixo é obrigatório: o Auth
+-- insere em auth.users com search_path `auth`, e sem ele `profiles` não é
+-- encontrada e toda criação de conta falha com erro 500. Todo cadastro nasce
+-- requisitante; promover é tarefa de um super admin, pela tela de usuários.
 -- ============================================================
-create or replace function handle_new_user()
-returns trigger as $$
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
 begin
-  insert into profiles (id, email, full_name, role)
+  insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    case
-      when new.email in ('administrador@ocral.com.br', 'jadirconsult@gmail.com') then 'super_admin'::user_role
-      else 'requisitante'::user_role
-    end
+    'requisitante'::public.user_role
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- Criar trigger (drop antes se já existir)
 drop trigger if exists on_auth_user_created on auth.users;
@@ -142,7 +148,7 @@ begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public, pg_temp;
 
 drop trigger if exists profiles_updated_at on profiles;
 create trigger profiles_updated_at
@@ -183,7 +189,7 @@ begin
 
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public, pg_temp;
 
 drop trigger if exists movement_update_quantity on movements;
 create trigger movement_update_quantity
