@@ -41,16 +41,31 @@ export default function DashboardHeader({
 
       // Filtro explícito por usuário: não depender apenas do RLS para
       // não vazar notificações de terceiros se a política mudar.
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, user_id, title, message, is_read, link, permissao, origem_id, created_at, updated_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      //
+      // A contagem é uma consulta à parte: tirada das cinco mais recentes, um
+      // aviso não lido mais antigo que elas não contava, e o sino ficava parado
+      // com notificação pendente.
+      const [lista, naoLidas] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("id, user_id, title, message, is_read, link, permissao, origem_id, created_at, updated_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false),
+      ]);
 
-      if (!ativo || error || !data) return;
-      setNotifications(data);
-      setUnreadCount(data.filter((item) => !item.is_read).length);
+      if (!ativo || lista.error || !lista.data) return;
+      setNotifications(lista.data);
+      setUnreadCount(
+        naoLidas.error || naoLidas.count === null
+          ? lista.data.filter((item) => !item.is_read).length
+          : naoLidas.count
+      );
     }
 
     loadNotifications();

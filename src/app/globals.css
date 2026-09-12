@@ -325,8 +325,21 @@ html.dark .neo-raised {
   animation: sino-balanca 2.6s ease-in-out infinite;
 }
 
-/* Quem pede menos movimento no sistema não recebe o balanço: a contagem
-   vermelha já diz o mesmo sem depender de animação. */
+/* Quem pede menos movimento no sistema recebe um balanço curto e suave, em vez
+   de nenhum. Desligar os "efeitos de animação" do Windows é comum e nem sempre
+   uma escolha consciente — sem animação alguma, o sino parecia não avisar. */
+@keyframes sino-balanca-suave {
+  0%, 30%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(6deg); }
+  20% { transform: rotate(-6deg); }
+}
+
+/* O `!important` é para vencer a regra geral de neo.css, que corta toda
+   animação de quem pede menos movimento. */
 @media (prefers-reduced-motion: reduce) {
-  .sino-balanca { animation: none; }
+  .sino-balanca {
+    animation-name: sino-balanca-suave !important;
+    animation-duration: 4s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
