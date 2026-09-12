@@ -6,6 +6,7 @@ import { getSession, isManager } from "@/lib/auth";
 import { SENHA_INICIAL } from "@/lib/senha";
 import { MAX_SAIDA_BYTES } from "@/lib/imagens/avatar";
 import { SUPER_ADMIN_PRINCIPAL_EMAIL } from "@/lib/admin";
+import { bloqueioDeEdicao } from "@/lib/hierarquia-servidor";
 import type { StatusUsuario, UserRole } from "@/types/database";
 
 type ActionResult = { ok: true } | { ok: false; message: string };
@@ -33,6 +34,13 @@ export async function updateUserRole(
   if (userId === user.id) {
     return { ok: false, message: "Você não pode alterar seu próprio papel." };
   }
+
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior. A mesma regra está no
+  // gatilho `profiles_w_exige_hierarquia` (migração 039) — aqui ela existe para
+  // a mensagem sair em português, e não como erro de gatilho.
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
 
   const grantable = GRANTABLE_ROLES[profile?.role ?? ""] ?? [];
   if (!grantable.includes(role)) {
@@ -95,6 +103,13 @@ export async function definirStatus(
   if (userId === user.id) {
     return { ok: false, message: "Você não pode alterar o status da própria conta." };
   }
+
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior. A mesma regra está no
+  // gatilho `profiles_w_exige_hierarquia` (migração 039) — aqui ela existe para
+  // a mensagem sair em português, e não como erro de gatilho.
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
 
   if (!["ativo", "ferias", "inativo"].includes(status)) {
     return { ok: false, message: "Status inválido." };
@@ -175,6 +190,13 @@ export async function promoverASuperAdmin(userId: string): Promise<ActionResult>
     return { ok: false, message: "Apenas um super admin pode conceder esse papel." };
   }
 
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior. A mesma regra está no
+  // gatilho `profiles_w_exige_hierarquia` (migração 039) — aqui ela existe para
+  // a mensagem sair em português, e não como erro de gatilho.
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
+
   const { data: target } = await supabase
     .from("profiles")
     .select("role, active")
@@ -246,6 +268,8 @@ export interface NovoUsuario {
   fotoBase64?: string | null;
   /** Grupo principal, de onde vêm o nível e as permissões. */
   grupoId?: string | null;
+  /** Função cadastrada. Quando vem, é ela quem decide o papel. */
+  funcaoId?: string | null;
 }
 
 const TIPOS_DE_FOTO: Record<string, string> = {
@@ -283,7 +307,7 @@ function lerFoto(
 export async function convidarUsuario(
   entrada: NovoUsuario
 ): Promise<{ ok: true; senha: string } | { ok: false; message: string }> {
-  const { user, profile } = await getSession();
+  const { supabase, user, profile } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
   const permitido = await exigir("admin", "users", "create");
   if (!permitido.ok) return permitido;
@@ -297,7 +321,30 @@ export async function convidarUsuario(
   // O papel obedece ao mesmo limite de quem cria: sem isto, o gestor criaria
   // pela porta dos fundos alguém com mais poder do que ele próprio pode
   // conceder na lista.
-  const papel = entrada.papel ?? "requisitante";
+  // Com função escolhida, é o nível dela que decide o papel — a tela não manda
+  // papel nenhum. Sem função, o papel vem direto, como sempre veio.
+  let papel = entrada.papel ?? "requisitante";
+  let funcaoId: string | null = null;
+
+  if (entrada.funcaoId) {
+    const { data: funcao } = await supabase
+      .from("funcoes")
+      .select("id, nivel, papel_base, ativo")
+      .eq("id", entrada.funcaoId)
+      .single();
+
+    if (!funcao) return { ok: false, message: "Função não encontrada." };
+    if (!funcao.ativo) return { ok: false, message: "Esta função está desativada." };
+
+    const nivelMinimo = profile?.role === "super_admin" ? 1 : 21;
+    if ((funcao.nivel as number) < nivelMinimo) {
+      return { ok: false, message: "Você não pode conceder uma função acima da sua." };
+    }
+
+    funcaoId = funcao.id as string;
+    papel = funcao.papel_base as UserRole;
+  }
+
   const podeConceder = GRANTABLE_ROLES[profile?.role ?? ""] ?? [];
   if (!podeConceder.includes(papel) || papel === "super_admin") {
     return { ok: false, message: "Você não pode conceder esse papel." };
@@ -351,7 +398,14 @@ export async function convidarUsuario(
     if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
       return { ok: false, message: "Este e-mail já tem conta no sistema." };
     }
-    return { ok: false, message: "Não foi possível criar o acesso." };
+    // Sem o motivo real a falha fica impossível de investigar: o Auth devolve
+    // "Database error creating new user" quando um gatilho em profiles quebra,
+    // e isso não aparece em lugar nenhum além daqui.
+    console.error("Falha ao criar conta:", limpo, error.status, error.code, error.message);
+    return {
+      ok: false,
+      message: `Não foi possível criar o acesso: ${error.message}`,
+    };
   }
 
   const novoId = data.user?.id;
@@ -366,6 +420,7 @@ export async function convidarUsuario(
       // O grupo projeta o papel por gatilho, então vai junto: gravar o papel
       // sem o grupo deixaria a conta com acesso e sem permissão fina nenhuma.
       ...(entrada.grupoId ? { group_id: entrada.grupoId } : {}),
+      ...(funcaoId ? { funcao_id: funcaoId } : {}),
     };
 
     const { error: erroPerfil } = await admin
@@ -426,6 +481,13 @@ export async function definirDepartamento(
   if (!permitido.ok) return permitido;
   if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
 
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior. A mesma regra está no
+  // gatilho `profiles_w_exige_hierarquia` (migração 039) — aqui ela existe para
+  // a mensagem sair em português, e não como erro de gatilho.
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
+
   const { error } = await supabase
     .from("profiles")
     .update({ departamento: departamento?.trim() || null })
@@ -460,4 +522,139 @@ export async function concluirTrocaDeSenha(): Promise<ActionResult> {
 
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+/**
+ * Exclui um usuário de vez: conta de acesso, perfil e o que era só dele.
+ *
+ * A ordem importa. Primeiro a RPC `excluir_dados_do_usuario` apaga o que é da
+ * pessoa e transfere para quem executou a autoria do que é da empresa —
+ * produtos, movimentações, documentos, protocolos. Só depois a conta cai em
+ * `auth.users`, e o perfil vai junto por cascade.
+ *
+ * Invertida, a ordem não funcionaria: dezessete chaves estrangeiras apontam
+ * para `profiles(id)` sem `on delete`, e `products.created_by` é `not null` —
+ * a exclusão morreria com erro de chave estrangeira, ou levaria o catálogo
+ * junto.
+ */
+export async function excluirUsuario(userId: string): Promise<ActionResult> {
+  const { supabase, user, profile } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("admin", "users", "delete");
+  if (!permitido.ok) return permitido;
+  if (!isManager(profile?.role)) return { ok: false, message: "Sem permissão" };
+
+  if (userId === user.id) {
+    return { ok: false, message: "Você não pode excluir a própria conta." };
+  }
+
+  const { data: alvo } = await supabase
+    .from("profiles")
+    .select("id, role, email, full_name, avatar_url")
+    .eq("id", userId)
+    .single();
+
+  if (!alvo) return { ok: false, message: "Usuário não encontrado." };
+
+  // Nunca, sem exceção — nem para o super admin principal. Um sistema que
+  // permite apagar seu próprio administrador permite ficar sem ninguém que o
+  // conserte. Para desfazer a condição, rebaixe a função antes.
+  if (alvo.role === "super_admin") {
+    return {
+      ok: false,
+      message: "Um Super Admin não pode ser excluído. Rebaixe a função antes, se for mesmo o caso.",
+    };
+  }
+
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !chave) {
+    return {
+      ok: false,
+      message:
+        "Exclusão indisponível: falta SUPABASE_SERVICE_ROLE_KEY nas variáveis de produção.",
+    };
+  }
+
+  // Transferência e limpeza rodam na sessão de quem pediu, e não na chave de
+  // serviço: é `auth.uid()` que a RPC usa para conferir o papel. Com a chave,
+  // a checagem do banco seria pulada e sobraria só a da aplicação.
+  const { error: erroDados } = await supabase.rpc("excluir_dados_do_usuario", {
+    p_alvo: userId,
+    p_herdeiro: user.id,
+  });
+
+  if (erroDados) {
+    if (erroDados.code === "42883" || erroDados.code === "PGRST202") {
+      return {
+        ok: false,
+        message:
+          "A função de exclusão ainda não existe no banco. Execute supabase/_manual_apply/038_excluir_usuario.sql.",
+      };
+    }
+    return {
+      ok: false,
+      message: erroDados.message || "Não foi possível preparar a exclusão.",
+    };
+  }
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(url, chave, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  // A foto some antes da conta: depois não haveria mais como descobrir o
+  // caminho dela, e o arquivo ficaria órfão no bucket para sempre.
+  const caminho = caminhoDoAvatar(alvo.avatar_url as string | null);
+  if (caminho) {
+    await admin.storage.from("avatars").remove([caminho]);
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+
+  if (error) {
+    return {
+      ok: false,
+      message:
+        "Os dados foram limpos, mas a conta de acesso não pôde ser removida: " +
+        error.message,
+    };
+  }
+
+  revalidatePath("/dashboard/admin/usuarios");
+  return { ok: true };
+}
+
+/** O caminho do arquivo dentro do bucket, a partir da URL pública. */
+function caminhoDoAvatar(url: string | null): string | null {
+  if (!url) return null;
+  const marca = "/avatars/";
+  const i = url.indexOf(marca);
+  if (i === -1) return null;
+  return url.slice(i + marca.length).split("?")[0] || null;
+}
+
+/** O que a exclusão vai transferir, para a confirmação poder dizer o tamanho. */
+export async function previaDaExclusao(
+  userId: string
+): Promise<{ ok: true; itens: Record<string, number> } | { ok: false; message: string }> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("admin", "users", "delete");
+  if (!permitido.ok) return permitido;
+
+  const { data, error } = await supabase.rpc("previa_exclusao_do_usuario", {
+    p_alvo: userId,
+  });
+
+  // A prévia é um conforto, não um requisito: sem a migração aplicada ela vem
+  // vazia e a confirmação continua funcionando, só sem os números.
+  if (error) return { ok: true, itens: {} };
+
+  return { ok: true, itens: (data ?? {}) as Record<string, number> };
 }

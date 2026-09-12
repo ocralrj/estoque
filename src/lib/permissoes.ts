@@ -2,6 +2,13 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/types/database";
+import {
+  chave,
+  nivelDoPapel,
+  permissoesDoPapel,
+  type Acao,
+  type Chave,
+} from "@/lib/atribuicoes";
 
 /**
  * Autorização do sistema, em um lugar só.
@@ -16,84 +23,8 @@ import type { UserRole } from "@/types/database";
  * chamada.
  */
 
-/** Verbos que uma permissão pode conceder. */
-export type Acao =
-  | "read"
-  | "create"
-  | "update"
-  | "delete"
-  | "export"
-  | "print"
-  | "import"
-  | "upload"
-  | "download"
-  | "manage";
-
-/** Chave achatada de uma permissão, como ela viaja e é comparada. */
-export type Chave = `${string}:${string}:${string}`;
-
-export function chave(modulo: string, recurso: string, acao: Acao | string): Chave {
-  return `${modulo}:${recurso}:${acao}`;
-}
-
-/**
- * Permissões equivalentes a cada papel.
- *
- * Existe como rede de segurança, não como segunda fonte de verdade: se a função
- * `minhas_permissoes` ainda não estiver no banco — migração não aplicada, banco
- * restaurado de um backup antigo — sem isto TODA permissão seria negada e o
- * sistema inteiro ficaria inacessível, inclusive a tela que conserta o
- * problema. Aqui o sistema volta ao comportamento que tinha antes dos grupos,
- * que é conhecido e seguro, em vez de trancar todo mundo do lado de fora.
- *
- * Espelha a semeadura da migração 014.
- */
-function permissoesDoPapel(papel: string | null | undefined): Set<Chave> {
-  const set = new Set<Chave>();
-  const add = (m: string, r: string, acoes: string[]) =>
-    acoes.forEach((a) => set.add(chave(m, r, a)));
-
-  const TODAS = ["read", "create", "update", "delete", "export", "print", "manage"];
-
-  if (papel === "super_admin" || papel === "gestor") {
-    for (const r of ["products", "movements", "categories", "alerts", "reports"]) {
-      add("estoque", r, TODAS);
-    }
-    for (const r of ["documents", "folders", "search", "audit", "retention"]) {
-      add("ged", r, [...TODAS, "upload", "download"]);
-    }
-    add("protocolos", "protocolos", TODAS);
-    add("sugestoes", "minhas", ["read", "create"]);
-    add("sugestoes", "todas", ["read", "manage"]);
-    for (const r of ["users", "departamentos", "audit"]) add("admin", r, TODAS);
-    if (papel === "super_admin") {
-      add("admin", "groups", TODAS);
-      add("admin", "permissions", ["manage"]);
-    }
-    return set;
-  }
-
-  if (papel === "almoxarife") {
-    for (const r of ["products", "movements", "categories", "alerts", "reports"]) {
-      add("estoque", r, ["read", "create", "update", "export", "print"]);
-    }
-    for (const r of ["documents", "folders", "search"]) {
-      add("ged", r, ["read", "create", "update", "upload", "download", "export", "print"]);
-    }
-    add("protocolos", "protocolos", ["read", "create", "update", "manage"]);
-    add("sugestoes", "minhas", ["read", "create"]);
-    return set;
-  }
-
-  // Requisitante e qualquer papel desconhecido: o mínimo.
-  add("estoque", "products", ["read"]);
-  add("estoque", "alerts", ["read"]);
-  add("ged", "documents", ["read", "download"]);
-  add("ged", "search", ["read"]);
-  add("protocolos", "protocolos", ["read", "create"]);
-  add("sugestoes", "minhas", ["read", "create"]);
-  return set;
-}
+export type { Acao, Chave } from "@/lib/atribuicoes";
+export { chave, nivelDoPapel } from "@/lib/atribuicoes";
 
 interface Sessao {
   permissoes: Set<Chave>;
@@ -171,14 +102,6 @@ export const sessaoAutorizada = cache(async (): Promise<Sessao> => {
     emReserva: false,
   };
 });
-
-/** Nível equivalente ao papel, para quando o grupo ainda não responde. */
-export function nivelDoPapel(papel: string | null | undefined): number {
-  if (papel === "super_admin") return 10;
-  if (papel === "gestor") return 20;
-  if (papel === "almoxarife") return 30;
-  return 40;
-}
 
 /** A sessão pode executar esta ação neste recurso? */
 export async function pode(

@@ -1,8 +1,9 @@
 "use client";
 
-import type { Cargo } from "@/types/modules/admin";
-import { IconeEditar, IconeSuperAdmin } from "@/components/ui/IconesAcao";
+import type { Cargo, Funcao } from "@/types/modules/admin";
+import { IconeEditar, IconeExcluir, IconeSuperAdmin } from "@/components/ui/IconesAcao";
 import EditarUsuario from "./EditarUsuario";
+import GerenciarFuncoes from "./GerenciarFuncoes";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +13,10 @@ import {
   promoverASuperAdmin,
   convidarUsuario,
   definirDepartamento,
+  excluirUsuario,
+  previaDaExclusao,
 } from "@/app/actions/users";
+import { definirFuncao } from "@/app/actions/funcoes";
 import { definirGrupoDoUsuario } from "@/app/actions/groups";
 import {
   ROLE_LABELS,
@@ -28,6 +32,8 @@ import SeletorDeFoto from "@/components/ui/SeletorDeFoto";
 import { paraDataUrl, type AvatarPreparado } from "@/lib/imagens/avatar";
 import type { Profile, StatusUsuario, UserRole } from "@/types";
 import { SUPER_ADMIN_PRINCIPAL_EMAIL } from "@/lib/admin";
+import { podeEditarCadastro } from "@/lib/hierarquia";
+import { resumoDoPapel } from "@/lib/atribuicoes";
 
 type Feedback = { kind: "ok" | "erro"; text: string } | null;
 
@@ -44,19 +50,37 @@ export default function UsersClient({
   users,
   currentRole,
   currentEmail,
+  currentDepartamento,
+  currentNivel,
   meuId,
   departamentos,
   grupos,
   cargos,
+  funcoes,
+  avisoFuncoes,
 }: {
   users: Profile[];
   currentRole: string;
   currentEmail: string;
+  /** Departamento de quem está olhando: metade da regra de quem edita quem. */
+  currentDepartamento: string | null;
+  /** Nível da função de quem está olhando: a outra metade. */
+  currentNivel: number | null;
   meuId: string;
-  departamentos: string[];
+  departamentos: { nome: string; descricao: string | null }[];
   /** Grupos disponíveis, do mais alto ao mais baixo na hierarquia. */
-  grupos: { id: string; nome: string; nivel: number }[];
+  grupos: {
+    id: string;
+    nome: string;
+    descricao: string | null;
+    nivel: number;
+    /** O que o grupo concede, resumido a partir das permissões reais. */
+    atribuicoes: string;
+  }[];
   cargos: Cargo[];
+  funcoes: Funcao[];
+  /** Migração pendente: a tela continua, avisando o que falta. */
+  avisoFuncoes: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -66,6 +90,71 @@ export default function UsersClient({
   const [fotoNova, setFotoNova] = useState<AvatarPreparado | null>(null);
   const { confirmar, Dialogo } = useConfirmacao();
   const [editandoUsuario, setEditandoUsuario] = useState<Profile | null>(null);
+  const [gerenciandoFuncoes, setGerenciandoFuncoes] = useState(false);
+
+  const nomesDeDepartamento = departamentos.map((d) => d.nome);
+  const funcaoPorId = new Map(funcoes.map((f) => [f.id, f]));
+
+  /** O nível mais alto que esta pessoa pode conceder ou cadastrar. */
+  const meuNivelMinimo = currentRole === "super_admin" ? 1 : 21;
+
+  /**
+   * Funções oferecíveis: as ativas que não estejam acima de quem está editando.
+   * Super Admin nunca entra na lista — concedê-lo tem botão próprio, com
+   * confirmação, justamente para não sair de um clique distraído num seletor.
+   */
+  const funcoesDisponiveis = funcoes.filter(
+    (f) => f.ativo && f.nivel >= meuNivelMinimo && f.papel_base !== "super_admin"
+  );
+
+  const temFuncoes = funcoes.length > 0;
+
+  /**
+   * As dicas.
+   *
+   * Cada uma responde "o que isto me dá", que é a pergunta de quem olha a
+   * coluna — e não "como isto se chama", que o próprio botão já responde. O
+   * texto das funções e dos grupos é derivado das permissões reais, nunca
+   * escrito à parte: um resumo escrito à mão vira mentira na primeira vez que
+   * alguém mexe na matriz e esquece do texto.
+   */
+  function dicaDaFuncao(perfil: Profile, funcao: Funcao | undefined): string {
+    if (!funcao) {
+      return `${roleLabel(perfil.role)} — ${resumoDoPapel(perfil.role)}${
+        temFuncoes ? " Sem função cadastrada: as permissões vêm do papel." : ""
+      }`;
+    }
+    const descricao = funcao.descricao ? `${funcao.descricao} ` : "";
+    return `${funcao.nome} (nível ${funcao.nivel}, herda de ${ROLE_LABELS[funcao.papel_base]}). ${descricao}${resumoDoPapel(funcao.papel_base)}`;
+  }
+
+  function dicaDoGrupo(
+    grupo: { nome: string; descricao: string | null; nivel: number; atribuicoes: string } | null
+  ): string {
+    if (!grupo) {
+      return "Sem grupo: as permissões caem para as do papel, que são as mínimas da função.";
+    }
+    const descricao = grupo.descricao ? `${grupo.descricao} ` : "";
+    return `${grupo.nome} — nível ${grupo.nivel}. ${descricao}${grupo.atribuicoes}`;
+  }
+
+  function dicaDoDepartamento(nome: string | null | undefined, cargo: string | null): string {
+    const oCargo = cargo ? `Cargo: ${cargo}.` : "Sem cargo definido.";
+    if (!nome) {
+      return `Sem departamento — enxerga apenas os documentos do GED sem departamento definido. ${oCargo}`;
+    }
+    const dados = departamentos.find((d) => d.nome === nome);
+    const descricao = dados?.descricao ? `${dados.descricao} ` : "";
+    return `${nome}. ${descricao}Enxerga no GED os documentos deste departamento e os que não têm departamento. ${oCargo}`;
+  }
+
+  /** Quem está olhando, do jeito que a regra de hierarquia compara. */
+  const eu = {
+    id: meuId,
+    role: currentRole,
+    departamento: currentDepartamento,
+    nivel: currentNivel,
+  };
 
   const [novo, setNovo] = useState({
     email: "",
@@ -75,6 +164,7 @@ export default function UsersClient({
     status: "ativo" as StatusUsuario,
     retorno: "",
     grupo: "",
+    funcao: "",
   });
 
   // "Super Admin" não entra no seletor: conceder o papel máximo do sistema por
@@ -95,6 +185,48 @@ export default function UsersClient({
     });
     if (!ok) return;
     run(u.id, () => promoverASuperAdmin(u.id));
+  }
+
+  /**
+   * Exclui de vez: conta de acesso, perfil e o que era só da pessoa.
+   *
+   * A confirmação diz o tamanho antes de perguntar. Uma pergunta que não
+   * informa quantos produtos e documentos vão mudar de dono não é uma
+   * confirmação: é um clique a mais no caminho de um estrago irreversível.
+   */
+  async function excluir(u: Profile) {
+    const nome = u.full_name || u.email;
+    setBusyId(u.id);
+
+    const previa = await previaDaExclusao(u.id);
+    setBusyId(null);
+
+    const itens = previa.ok ? previa.itens : {};
+    const total = Object.values(itens).reduce((a, b) => a + b, 0);
+
+    const ok = await confirmar({
+      titulo: `Excluir "${nome}" do sistema?`,
+      mensagem:
+        `A conta de acesso, o perfil, as notificações, as sugestões, os pedidos e a trilha de auditoria desta pessoa são apagados. Não há como desfazer.` +
+        (total > 0
+          ? ` O que é da empresa fica: ${total} registro(s) de produtos, movimentações, documentos e protocolos passam para o seu nome.`
+          : ""),
+      rotuloConfirmar: "Excluir definitivamente",
+    });
+    if (!ok) return;
+
+    setBusyId(u.id);
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await excluirUsuario(u.id);
+      if (res.ok) {
+        setFeedback({ kind: "ok", text: `"${nome}" foi excluído do sistema.` });
+        router.refresh();
+      } else {
+        setFeedback({ kind: "erro", text: res.message ?? "Erro ao excluir." });
+      }
+      setBusyId(null);
+    });
   }
 
   function run(userId: string, action: () => Promise<{ ok: boolean; message?: string }>) {
@@ -129,6 +261,7 @@ export default function UsersClient({
         retornoPrevisto: novo.retorno || null,
         fotoBase64: fotoNova ? await paraDataUrl(fotoNova.blob) : null,
         grupoId: novo.grupo || null,
+        funcaoId: novo.funcao || null,
       });
       if (res.ok) {
         const email = novo.email.trim();
@@ -140,6 +273,7 @@ export default function UsersClient({
           status: "ativo",
           retorno: "",
           grupo: "",
+          funcao: "",
         });
         setCriando(false);
         setFotoNova(null);
@@ -158,26 +292,45 @@ export default function UsersClient({
     <div className="mx-auto max-w-5xl">
       <Dialogo />
 
+      {gerenciandoFuncoes && (
+        <GerenciarFuncoes
+          funcoes={funcoes}
+          aviso={avisoFuncoes}
+          meuNivelMinimo={meuNivelMinimo}
+          aoFechar={() => setGerenciandoFuncoes(false)}
+        />
+      )}
+
       {editandoUsuario && (
         <EditarUsuario
           usuario={editandoUsuario}
           papeisDisponiveis={availableRoles}
           grupos={grupos}
-          departamentos={departamentos}
+          departamentos={nomesDeDepartamento}
           cargos={cargos}
+          funcoes={funcoesDisponiveis}
           aoFechar={() => setEditandoUsuario(null)}
         />
       )}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-[var(--text)]">Usuários</h1>
-        <button
-          type="button"
-          onClick={() => setCriando((c) => !c)}
-          className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)]"
-        >
-          {criando ? "Cancelar" : "Novo usuário"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setGerenciandoFuncoes(true)}
+            className="neo-button rounded-full px-5 py-2.5 text-sm font-bold text-[var(--text)]"
+          >
+            Gerenciar funções
+          </button>
+          <button
+            type="button"
+            onClick={() => setCriando((c) => !c)}
+            className="rounded-full bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-[var(--on-accent)]"
+          >
+            {criando ? "Cancelar" : "Novo usuário"}
+          </button>
+        </div>
       </div>
 
       {criando && (
@@ -212,20 +365,36 @@ export default function UsersClient({
               <label htmlFor="novo-papel" className={rotulo}>
                 Função
               </label>
-              <select
-                id="novo-papel"
-                value={novo.papel}
-                onChange={(e) =>
-                  setNovo({ ...novo, papel: e.target.value as UserRole })
-                }
-                className={campo}
-              >
-                {availableRoles.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
+              {temFuncoes ? (
+                <select
+                  id="novo-papel"
+                  value={novo.funcao}
+                  onChange={(e) => setNovo({ ...novo, funcao: e.target.value })}
+                  className={campo}
+                >
+                  <option value="">Definir depois</option>
+                  {funcoesDisponiveis.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nome} (nível {f.nivel})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  id="novo-papel"
+                  value={novo.papel}
+                  onChange={(e) =>
+                    setNovo({ ...novo, papel: e.target.value as UserRole })
+                  }
+                  className={campo}
+                >
+                  {availableRoles.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label htmlFor="novo-depto" className={rotulo}>
@@ -239,8 +408,8 @@ export default function UsersClient({
               >
                 <option value="">Definir depois</option>
                 {departamentos.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+                  <option key={d.nome} value={d.nome}>
+                    {d.nome}
                   </option>
                 ))}
               </select>
@@ -361,13 +530,31 @@ export default function UsersClient({
                   u.id !== meuId &&
                   (currentRole === "super_admin" &&
                     (!ehSuperAdmin || ehSuperAdminPrincipal));
+                // Administração e Diretoria alteram qualquer cadastro; os
+                // demais só alteram quem for do mesmo departamento e de função
+                // inferior. A mesma regra roda na Server Action e no gatilho do
+                // banco — aqui ela só decide se o botão aparece.
+                const funcaoDele = u.funcao_id ? funcaoPorId.get(u.funcao_id) : undefined;
+                const hierarquiaPermite = podeEditarCadastro(eu, {
+                  id: u.id,
+                  role: u.role,
+                  departamento: u.departamento,
+                  nivel: funcaoDele?.nivel ?? null,
+                });
+
                 // Os demais campos de um super admin continuam protegidos.
                 const editable =
                   !ehSuperAdmin &&
                   u.id !== meuId &&
+                  hierarquiaPermite &&
                   (currentRole === "super_admin" ||
                     u.role === "requisitante" ||
                     u.role === "almoxarife");
+
+                const podeExcluir =
+                  !ehSuperAdmin && u.id !== meuId && hierarquiaPermite;
+
+                const grupoDele = grupos.find((g) => g.id === u.group_id) ?? null;
                 const busy = pending && busyId === u.id;
                 const situacao = statusDoPerfil(u);
 
@@ -390,27 +577,59 @@ export default function UsersClient({
                       </div>
                     </td>
                     <td data-rotulo="Função" className="px-4 py-3">
-                      <SeletorEmBotao
-                        rotulo={`Função de ${u.full_name || u.email}`}
-                        valor={u.role}
-                        texto={roleLabel(u.role)}
-                        opcoes={availableRoles.map((r) => ({
-                          valor: r,
-                          texto: ROLE_LABELS[r],
-                        }))}
-                        editavel={podeAlterarFuncao || editable}
-                        ocupado={busy}
-                        aparencia={
-                          ehSuperAdmin
-                            ? "font-bold text-[var(--primary-strong)]"
-                            : undefined
-                        }
-                        aoEscolher={(valor) =>
-                          run(u.id, () => updateUserRole(u.id, valor as UserRole))
-                        }
-                      />
+                      {/* Sem a migração 037 aplicada não há funções cadastradas,
+                          e a coluna volta ao seletor de papéis de antes: a tela
+                          não pode parar de funcionar esperando um SQL. */}
+                      <Tooltip lado="cima" texto={dicaDaFuncao(u, funcaoDele)}>
+                        {temFuncoes ? (
+                          <SeletorEmBotao
+                            rotulo={`Função de ${u.full_name || u.email}`}
+                            valor={u.funcao_id ?? ""}
+                            texto={funcaoDele?.nome ?? roleLabel(u.role)}
+                            opcoes={[
+                              { valor: "", texto: "Sem função" },
+                              ...funcoesDisponiveis.map((f) => ({
+                                valor: f.id,
+                                texto: `${f.nome} (nível ${f.nivel})`,
+                              })),
+                            ]}
+                            editavel={podeAlterarFuncao || editable}
+                            ocupado={busy}
+                            apagado={!u.funcao_id}
+                            aparencia={
+                              ehSuperAdmin
+                                ? "font-bold text-[var(--primary-strong)]"
+                                : undefined
+                            }
+                            aoEscolher={(valor) =>
+                              run(u.id, () => definirFuncao(u.id, valor || null))
+                            }
+                          />
+                        ) : (
+                          <SeletorEmBotao
+                            rotulo={`Função de ${u.full_name || u.email}`}
+                            valor={u.role}
+                            texto={roleLabel(u.role)}
+                            opcoes={availableRoles.map((r) => ({
+                              valor: r,
+                              texto: ROLE_LABELS[r],
+                            }))}
+                            editavel={podeAlterarFuncao || editable}
+                            ocupado={busy}
+                            aparencia={
+                              ehSuperAdmin
+                                ? "font-bold text-[var(--primary-strong)]"
+                                : undefined
+                            }
+                            aoEscolher={(valor) =>
+                              run(u.id, () => updateUserRole(u.id, valor as UserRole))
+                            }
+                          />
+                        )}
+                      </Tooltip>
                     </td>
                     <td data-rotulo="Grupo" className="px-4 py-3">
+                      <Tooltip lado="cima" texto={dicaDoGrupo(grupoDele)}>
                       <SeletorEmBotao
                         rotulo={`Grupo de ${u.full_name || u.email}`}
                         valor={u.group_id ?? ""}
@@ -432,17 +651,19 @@ export default function UsersClient({
                           run(u.id, () => definirGrupoDoUsuario(u.id, valor || null))
                         }
                       />
+                      </Tooltip>
                     </td>
                     <td data-rotulo="Departamento" className="px-4 py-3">
-                      {/* A dica traz o cargo: o departamento diz onde a pessoa
-                          trabalha, e a pergunta seguinte é sempre o que ela faz
-                          ali — sem precisar de mais uma coluna na tabela. */}
+                      {/* A dica traz o cargo e o que o departamento governa: o
+                          departamento diz onde a pessoa trabalha, a pergunta
+                          seguinte é sempre o que ela faz ali, e a terceira é o
+                          que isso muda no acesso dela. */}
                       <Tooltip
                         lado="cima"
-                        texto={`${u.full_name || u.email} — ${
-                          cargos.find((c) => c.id === u.cargo_id)?.nome ??
-                          "sem cargo definido"
-                        }`}
+                        texto={dicaDoDepartamento(
+                          u.departamento,
+                          cargos.find((c) => c.id === u.cargo_id)?.nome ?? null
+                        )}
                       >
                       <SeletorEmBotao
                         rotulo={`Departamento de ${u.full_name || u.email}`}
@@ -450,7 +671,10 @@ export default function UsersClient({
                         texto={u.departamento || "Sem departamento"}
                         opcoes={[
                           { valor: "", texto: "Sem departamento" },
-                          ...departamentos.map((d) => ({ valor: d, texto: d })),
+                          ...departamentos.map((d) => ({
+                            valor: d.nome,
+                            texto: d.nome,
+                          })),
                         ]}
                         editavel={editable}
                         ocupado={busy}
@@ -514,6 +738,23 @@ export default function UsersClient({
                               </button>
                             </Tooltip>
                           )}
+
+                        {podeExcluir && (
+                          <Tooltip
+                            lado="cima"
+                            texto={`Excluir ${u.full_name || u.email} do sistema — irreversível`}
+                          >
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => excluir(u)}
+                              aria-label={`Excluir ${u.full_name || u.email}`}
+                              className="neo-button inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--erro-fg)] disabled:opacity-50"
+                            >
+                              <IconeExcluir />
+                            </button>
+                          </Tooltip>
+                        )}
 
                         {ehSuperAdmin && (
                           <span className="text-xs text-[var(--text-muted)]">

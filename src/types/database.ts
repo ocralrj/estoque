@@ -20,6 +20,8 @@ export interface Profile {
   group_id?: string | null;
   /** Cargo: o que a pessoa faz. Não concede acesso — isso é o grupo. */
   cargo_id?: string | null;
+  /** Função: onde a pessoa está na hierarquia. Projeta o papel por gatilho. */
+  funcao_id?: string | null;
   /** true enquanto a senha provisória não for trocada. */
   must_change_password?: boolean;
   /** Situação da conta. `active` é derivado daqui por gatilho no banco. */

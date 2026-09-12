@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { definirStatus, updateUserRole, definirDepartamento } from "@/app/actions/users";
 import { definirGrupoDoUsuario } from "@/app/actions/groups";
 import { definirCargo } from "@/app/actions/cargos";
+import { definirFuncao } from "@/app/actions/funcoes";
 import Avatar from "@/components/ui/Avatar";
 import { ROLE_LABELS, STATUS_LABELS, statusDoPerfil } from "@/lib/labels";
-import type { Cargo } from "@/types/modules/admin";
+import type { Cargo, Funcao } from "@/types/modules/admin";
 import type { Profile, StatusUsuario, UserRole } from "@/types";
 
 /** Amanhã no fuso da empresa: o mínimo aceitável para uma volta de férias. */
@@ -32,6 +33,7 @@ export default function EditarUsuario({
   grupos,
   departamentos,
   cargos,
+  funcoes,
   aoFechar,
 }: {
   usuario: Profile;
@@ -39,6 +41,8 @@ export default function EditarUsuario({
   grupos: { id: string; nome: string; nivel: number }[];
   departamentos: string[];
   cargos: Cargo[];
+  /** Funções que quem edita pode conceder. Vazio = migração ainda não aplicada. */
+  funcoes: Funcao[];
   aoFechar: () => void;
 }) {
   const router = useRouter();
@@ -48,6 +52,7 @@ export default function EditarUsuario({
   const situacaoAtual = statusDoPerfil(usuario);
   const [form, setForm] = useState({
     papel: usuario.role as UserRole,
+    funcao: usuario.funcao_id ?? "",
     grupo: usuario.group_id ?? "",
     departamento: usuario.departamento ?? "",
     cargo: usuario.cargo_id ?? "",
@@ -63,6 +68,7 @@ export default function EditarUsuario({
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [aoFechar]);
 
+  const temFuncoes = funcoes.length > 0;
   const feriasSemData = form.status === "ferias" && form.retorno.length !== 10;
 
   function salvar() {
@@ -79,7 +85,16 @@ export default function EditarUsuario({
       // for recusada, em vez de seguir e deixar a pessoa pela metade.
       const passos: [string, () => Promise<{ ok: boolean; message?: string }>][] = [];
 
-      if (form.papel !== usuario.role) {
+      // Com funções cadastradas, o papel é consequência da função e não se
+      // grava direto: o gatilho do banco o projeta a partir do nível.
+      if (temFuncoes) {
+        if (form.funcao !== (usuario.funcao_id ?? "")) {
+          passos.push([
+            "função",
+            () => definirFuncao(usuario.id, form.funcao || null),
+          ]);
+        }
+      } else if (form.papel !== usuario.role) {
         passos.push(["função", () => updateUserRole(usuario.id, form.papel)]);
       }
       if (form.grupo !== (usuario.group_id ?? "")) {
@@ -156,17 +171,37 @@ export default function EditarUsuario({
         <div className="mt-5 space-y-4">
           <div>
             <label className={rotulo}>Função</label>
-            <select
-              value={form.papel}
-              onChange={(e) => setForm({ ...form, papel: e.target.value as UserRole })}
-              className={campo}
-            >
-              {papeisDisponiveis.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
+            {temFuncoes ? (
+              <>
+                <select
+                  value={form.funcao}
+                  onChange={(e) => setForm({ ...form, funcao: e.target.value })}
+                  className={campo}
+                >
+                  <option value="">Sem função</option>
+                  {funcoes.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nome} (nível {f.nivel})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  O nível da função define as permissões herdadas.
+                </p>
+              </>
+            ) : (
+              <select
+                value={form.papel}
+                onChange={(e) => setForm({ ...form, papel: e.target.value as UserRole })}
+                className={campo}
+              >
+                {papeisDisponiveis.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>

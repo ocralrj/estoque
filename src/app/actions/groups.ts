@@ -3,6 +3,7 @@
 import { exigir, sessaoAutorizada, chave, type Acao } from "@/lib/permissoes";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
+import { bloqueioDeEdicao } from "@/lib/hierarquia-servidor";
 
 /**
  * Guarda das ações de grupo.
@@ -317,6 +318,11 @@ export async function definirGrupoDoUsuario(
       message: "O grupo de um super admin só pode ser alterado por ele mesmo.",
     };
   }
+
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior (migração 039).
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
 
   if (groupId) {
     const impedimento = await validarEscalada(groupId, []);

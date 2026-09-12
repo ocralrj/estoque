@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { exigir } from "@/lib/permissoes";
+import { bloqueioDeEdicao } from "@/lib/hierarquia-servidor";
 import type { Cargo } from "@/types/modules/admin";
 
 type Resultado<T = void> =
@@ -163,6 +164,11 @@ export async function definirCargo(
   const permitido = await exigir("admin", "users", "manage");
   if (!permitido.ok) return permitido;
 
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior (migração 039).
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
+
   const { error } = await supabase
     .from("profiles")
     .update({ cargo_id: cargoId })
@@ -187,6 +193,11 @@ export async function definirDepartamentoDaPessoa(
 
   const permitido = await exigir("admin", "users", "manage");
   if (!permitido.ok) return permitido;
+
+  // Administração e Diretoria alteram qualquer cadastro; os demais só alteram
+  // quem for do mesmo departamento e de função inferior (migração 039).
+  const bloqueio = await bloqueioDeEdicao(supabase, user.id, userId);
+  if (bloqueio) return { ok: false, message: bloqueio };
 
   const { error } = await supabase
     .from("profiles")

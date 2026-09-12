@@ -92,3 +92,24 @@ export interface Cargo {
   ativo: boolean;
   created_at: string;
 }
+
+/**
+ * Função: o que a pessoa é na hierarquia.
+ *
+ * O cargo diz o que ela faz, o grupo diz o que ela pode, a função diz onde ela
+ * está na escada. `nivel` vai de 1 a 99 e MENOR é MAIS ALTO — a mesma escala
+ * de `user_groups.nivel`, para as duas hierarquias não divergirem.
+ */
+export interface Funcao {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  /** 1 a 99, menor = mais alto. */
+  nivel: number;
+  /** Papel de onde herda as permissões. Derivado do nível pelo banco. */
+  papel_base: 'super_admin' | 'gestor' | 'almoxarife' | 'requisitante';
+  ativo: boolean;
+  /** As quatro originais: renomeáveis, nunca excluíveis. */
+  sistema: boolean;
+  created_at: string;
+}

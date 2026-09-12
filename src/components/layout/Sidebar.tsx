@@ -358,8 +358,9 @@ export default function Sidebar({
           aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
           aria-expanded={!isCollapsed}
           className={clsx(
-            "neo-alca fixed z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition-left duration-200 top-[68px]",
-            collapsed ? "left-[64px]" : "left-[304px]"
+            "neo-alca fixed z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--neo-line)] bg-[var(--neo-bg)] text-[var(--text)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition-[left] duration-200 top-[68px]",
+            // Centro do botão (32px) sobre a borda da aside: w-20 = 80px, w-72 = 288px.
+            collapsed ? "left-[64px]" : "left-[272px]"
           )}
         >
           <svg
