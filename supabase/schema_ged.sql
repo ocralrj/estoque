@@ -148,7 +148,7 @@ begin
         new.nome,
         'Status alterado',
         old.status::text || ' -> ' || new.status::text,
-        new.created_by
+        auth.uid()
       );
     end if;
     new.updated_at := now();
@@ -169,6 +169,24 @@ create trigger ged_documents_audit_update
   for each row execute function ged_log_document_change();
 
 -- ============================================================
+-- TRIGGER: auditoria de exclusão de documento
+-- ============================================================
+
+create or replace function ged_log_document_delete()
+returns trigger as $$
+begin
+  insert into ged_audit (documento_nome, acao, detalhe, user_id)
+  values (old.nome, 'Documento excluído', old.codigo || ' — ' || old.status::text, auth.uid());
+  return old;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists ged_documents_audit_delete on ged_documents;
+create trigger ged_documents_audit_delete
+  before delete on ged_documents
+  for each row execute function ged_log_document_delete();
+
+-- ============================================================
 -- RLS
 -- ============================================================
 
@@ -182,7 +200,7 @@ alter table ged_audit enable row level security;
 -- schema_estoque.sql (SECURITY DEFINER + search_path fixo). Não declare outra
 -- função aqui: duplicar o helper foi como o projeto acabou com três versões da
 -- mesma consulta, uma delas sem `set search_path`.
-drop function if exists ged_current_role();
+drop function if exists ged_current_role() cascade;
 
 -- Leitura: qualquer usuário autenticado enxerga o acervo.
 drop policy if exists "GED: leitura autenticada de pastas" on ged_folders;

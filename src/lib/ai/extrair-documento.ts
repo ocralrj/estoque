@@ -88,9 +88,10 @@ function limparPeriodo(v: unknown): string | null {
 const SETORES = ["Fiscal", "DP", "Contábil", "Jurídico", "Administrativo"];
 
 export async function extrairDadosDoArquivo(
-  base64: string,
-  mimeType: string,
-  tamanhoBytes: number
+  base64: string | null,
+  mimeType: string | null,
+  tamanhoBytes: number,
+  textoConteudo?: string
 ): Promise<ExtracaoResultado> {
   const config = getAiConfig();
 
@@ -102,18 +103,33 @@ export async function extrairDadosDoArquivo(
         "A leitura automática exige o Gemini configurado (AI_PROVIDER=gemini e GEMINI_API_KEY).",
     };
   }
-  if (!TIPOS_ACEITOS.includes(mimeType)) {
-    return {
-      ok: false,
-      code: "TIPO",
-      message: "A leitura automática funciona com PDF e imagens. Preencha os campos à mão.",
-    };
+
+  // Se for texto puro (.docx extraído ou .txt), pula a validação de tipo/tamanho
+  // — o que importa é o conteúdo textual, não o binário.
+  const porTexto = typeof textoConteudo === "string" && textoConteudo.length > 0;
+
+  if (!porTexto) {
+    if (!mimeType || !TIPOS_ACEITOS.includes(mimeType)) {
+      return {
+        ok: false,
+        code: "TIPO",
+        message: "A leitura automática funciona com PDF e imagens. Preencha os campos à mão.",
+      };
+    }
+    if (tamanhoBytes > TAMANHO_MAXIMO) {
+      return {
+        ok: false,
+        code: "TAMANHO",
+        message: "Arquivo grande demais para a leitura automática. Preencha os campos à mão.",
+      };
+    }
   }
-  if (tamanhoBytes > TAMANHO_MAXIMO) {
+
+  if (!base64 && !porTexto) {
     return {
       ok: false,
-      code: "TAMANHO",
-      message: "Arquivo grande demais para a leitura automática. Preencha os campos à mão.",
+      code: "VALIDACAO",
+      message: "Nenhum dado para analisar.",
     };
   }
 
@@ -123,21 +139,25 @@ export async function extrairDadosDoArquivo(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.timeoutMs);
 
+  /** Monta o corpo da requisição: inlineData (binário) ou texto puro. */
+  const partes: Record<string, unknown>[] = porTexto
+    ? [
+        {
+          text: `Extraia os dados do texto abaixo.\n\n${textoConteudo!.slice(0, 30_000)}`,
+        },
+      ]
+    : [
+        { inlineData: { mimeType: mimeType!, data: base64! } },
+        { text: "Extraia os dados deste documento." },
+      ];
+
   try {
     const resposta = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inlineData: { mimeType, data: base64 } },
-              { text: "Extraia os dados deste documento." },
-            ],
-          },
-        ],
+        contents: [{ role: "user", parts: partes }],
         systemInstruction: { parts: [{ text: INSTRUCAO }] },
         generationConfig: {
           temperature: 0.1, // extração pede literalidade, não criatividade

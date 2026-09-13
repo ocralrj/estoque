@@ -310,9 +310,10 @@ export async function urlDeDownload(
  * Nada é gravado: o retorno preenche o formulário e quem cadastra revisa.
  */
 export async function lerDocumentoComIa(
-  base64: string,
-  mimeType: string,
-  tamanhoBytes: number
+  base64: string | null,
+  mimeType: string | null,
+  tamanhoBytes: number,
+  textoConteudo?: string
 ): Promise<
   | { ok: true; dados: DadosExtraidos }
   | { ok: false; message: string }
@@ -331,7 +332,7 @@ export async function lerDocumentoComIa(
     };
   }
 
-  const resultado = await extrairDadosDoArquivo(base64, mimeType, tamanhoBytes);
+  const resultado = await extrairDadosDoArquivo(base64, mimeType, tamanhoBytes, textoConteudo);
   if (!resultado.ok) return { ok: false, message: resultado.message };
   return { ok: true, dados: resultado.dados };
 }

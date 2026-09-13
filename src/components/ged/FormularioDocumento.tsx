@@ -13,6 +13,7 @@ import { prepararArquivo, formatarBytes,
   chaveDeArmazenamento,
 } from "@/lib/ged/arquivos";
 import type { ArquivoPreparado } from "@/lib/ged/arquivos";
+import { extrairTextoDeDocx, extrairTextoDeTxt } from "@/lib/ged/extrair-texto";
 import {
   criarDocumento,
   atualizarDocumento,
@@ -264,6 +265,52 @@ export default function FormularioDocumento({
 
     setLendo(true);
     try {
+      // .docx e .txt extraem o texto no navegador e enviam como texto puro para a IA
+      // (Gemini não aceita inlineData para esses formatos).
+      const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      const TXT = "text/plain";
+
+      if (tipoOriginal === DOCX) {
+        const extraido = await extrairTextoDeDocx(original);
+        if (!extraido.ok) {
+          setAvisoIa(extraido.message);
+          return;
+        }
+        const res = await lerDocumentoComIa(null, null, original.size, extraido.texto);
+        if (res.ok) {
+          aplicarLeitura(res.dados);
+          setAvisoIa(
+            res.dados.confianca === "alta"
+              ? "Campos preenchidos pelo conteúdo do documento. Confira antes de salvar."
+              : "Leitura com confiança baixa — confira todos os campos com atenção."
+          );
+        } else {
+          setAvisoIa(res.message);
+        }
+        return;
+      }
+
+      if (tipoOriginal === TXT) {
+        const extraido = await extrairTextoDeTxt(original);
+        if (!extraido.ok) {
+          setAvisoIa(extraido.message);
+          return;
+        }
+        const res = await lerDocumentoComIa(null, null, original.size, extraido.texto);
+        if (res.ok) {
+          aplicarLeitura(res.dados);
+          setAvisoIa(
+            res.dados.confianca === "alta"
+              ? "Campos preenchidos pelo conteúdo do arquivo. Confira antes de salvar."
+              : "Leitura com confiança baixa — confira todos os campos com atenção."
+          );
+        } else {
+          setAvisoIa(res.message);
+        }
+        return;
+      }
+
+      // PDF e imagens — fluxo original com inlineData
       const base64 = await paraBase64(original);
       const res = await lerDocumentoComIa(base64, tipoOriginal, original.size);
       if (res.ok) {
