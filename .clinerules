@@ -1,0 +1,17 @@
+# DIRETRIZES SÊNIOR DE DESENVOLVIMENTO (INSPIRADO NO ANTHROPIC COOKBOOK)
+
+## 1. Economia de Tokens & Escopo
+- Nunca faça varreduras completas no projeto ou leia pastas pesadas como 'node_modules' ou '.next'.
+- Responda de forma extremamente concisa, focando estritamente nos arquivos solicitados pelo usuário usando o '@'.
+- Remova saídas e logs de debug excessivos das respostas.
+
+## 2. Apresentação e Qualidade de Código
+- Sempre explique a lógica em texto curto ANTES de exibir qualquer bloco de código TypeScript, SQL ou React.
+- Explique brevemente o impacto ou o que foi aprendido LOGO APÓS o bloco de código ser exibido.
+- Os comentários no código devem explicar o "PORQUÊ" a lógica foi feita assim, e não o "O QUE" ela faz.
+- Use nomes de variáveis altamente significativos e evite códigos "Frankenstein" ou gambiarras.
+
+## 3. Padrões da Stack (Supabase + Vercel)
+- Nunca coloque chaves de API, senhas ou strings de conexão direto no código (Hardcoded). Sempre use variáveis de ambiente.
+- Defina constantes estruturais no topo do arquivo.
+- Priorize códigos que facilitem a validação estrita de tipos (TypeScript) e segurança de dados.
