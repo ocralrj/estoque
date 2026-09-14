@@ -25,7 +25,7 @@ export default async function GedDocumentosPage({
   // sobrevive ao recarregamento e pode ser compartilhada por link.
   let query = supabase
     .from("ged_documents")
-    .select("*, responsavel:profiles(full_name, email)")
+    .select("*, responsavel:profiles!ged_documents_responsavel_id_fkey(full_name, email)")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -51,7 +51,8 @@ export default async function GedDocumentosPage({
     );
   }
 
-  const { data: documents } = await query.returns<GedDocument[]>();
+  const { data: documents, error } = await query.returns<GedDocument[]>();
+  if (error) throw new Error(`Falha ao listar documentos: ${error.message}`);
 
   // Opções dos filtros a partir do próprio acervo, sem lista fixa no código.
   const { data: facets } = await supabase
