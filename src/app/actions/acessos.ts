@@ -179,6 +179,20 @@ export async function aprovarPedido(
     return { ok: false, message: "Este pedido já foi decidido." };
   }
 
+  // Quem decide: super admin ou o gestor do departamento daquele pedido. A
+  // mesma função roda no RLS (migração 048); aqui ela existe para a mensagem
+  // sair em português e para a conta NÃO ser criada por engano antes de o RLS
+  // barrar a marcação — gestor de outro setor não cria usuário que não decide.
+  const { data: pode } = await supabase.rpc("pode_decidir_pedido_de_acesso", {
+    p_departamento: pedido.departamento,
+  });
+  if (!pode) {
+    return {
+      ok: false,
+      message: "Apenas o gestor do departamento ou o super admin decidem este pedido.",
+    };
+  }
+
   const criado = await convidarUsuario({
     email: pedido.email as string,
     nome: pedido.nome as string,
@@ -214,6 +228,25 @@ export async function recusarPedido(
 
   const permitido = await exigir("admin", "users", "create");
   if (!permitido.ok) return permitido;
+
+  const { data: pedido } = await supabase
+    .from("access_requests")
+    .select("id, departamento, status")
+    .eq("id", id)
+    .single();
+
+  if (!pedido) return { ok: false, message: "Pedido não encontrado." };
+
+  // A mesma alçada da aprovação: super admin ou gestor do departamento.
+  const { data: pode } = await supabase.rpc("pode_decidir_pedido_de_acesso", {
+    p_departamento: pedido.departamento,
+  });
+  if (!pode) {
+    return {
+      ok: false,
+      message: "Apenas o gestor do departamento ou o super admin decidem este pedido.",
+    };
+  }
 
   const { error } = await supabase
     .from("access_requests")
