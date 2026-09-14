@@ -145,6 +145,15 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
   restrição do documento esconde. A política usa `ged_pode_ler(document_id)`;
   registros de exclusão (sem `document_id`) só a gestão vê. A trilha não tem
   política de INSERT: só os triggers escrevem, como SECURITY DEFINER.
+- **Cuidado ao reexecutar `schema_ged.sql` num banco já corrigido.** As funções
+  de trigger `ged_log_document_change()` e `ged_log_document_delete()` precisam
+  do `set search_path = public, pg_temp` (SECURITY DEFINER sem path fixo vira
+  endpoint chamável e vetor de privilege escalation). Um `create or replace`
+  sem o `set` **apaga** a configuração, e o arquivo também carrega políticas
+  RLS antigas (leitura aberta com `auth.uid() is not null`) que desfazem as
+  correções aplicadas pelas migrations `_manual_apply/006`, `007` e `011`.
+  Prefira as correções pontuais de `_manual_apply/` a reexecutar o schema
+  inteiro — o mesmo cuidado documentado para `schema_estoque.sql`.
 - As regras de temporalidade em `ged_retention_rules` são parametrização legal
   (prazo de guarda e destino por tipo de documento), não conteúdo de cliente —
   por isso vêm semeadas no schema.
