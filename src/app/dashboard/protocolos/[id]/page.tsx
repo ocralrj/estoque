@@ -1,10 +1,10 @@
 import { exigirPermissao } from "@/lib/permissoes";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { deleteProtocol, updateProtocol } from "@/app/actions/protocols";
+import { deleteProtocol, updateProtocol, confirmarRecebimento, concluirProtocolo, reabrirProtocolo } from "@/app/actions/protocols";
 import { Button, ConfirmSubmitButton } from "@/components/ui";
 import { isManager, requireSession } from "@/lib/auth";
-import { formatDate, priorityLabel, protocolStatusLabel } from "@/lib/labels";
+import { formatDate, priorityClass, priorityLabel, protocolStatusClass, protocolStatusLabel } from "@/lib/labels";
 
 const statusOptions = [
   { value: "aberto", label: "Aberto" },
@@ -37,6 +37,15 @@ export default async function ProtocolosDetalhesPage({ params }: { params: { id:
   if (error || !protocol) {
     redirect("/dashboard/protocolos");
   }
+
+  const isRequester = protocol.requester_id === user.id;
+  const isAssignedTo = protocol.assigned_to === user.id;
+  const isCreator = isRequester;
+  const isDestinatario = isAssignedTo;
+  const podeConfirmarRecebimento = isDestinatario && protocol.status === "aberto";
+  const podeConcluirProtocolo = isDestinatario && protocol.status === "em_andamento";
+  const statusConcluidoParaDestinatario = protocol.status === "concluido" && isDestinatario;
+  const podeReabrirProtocolo = isCreator && protocol.status === "concluido" && canManage;
 
   const canEdit = canManage || protocol.requester_id === user.id;
 

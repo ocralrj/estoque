@@ -239,3 +239,92 @@ export async function deleteProtocol(protocolId: string) {
 
   revalidatePath("/dashboard/protocolos");
 }
+
+export async function confirmarRecebimento(protocolId: string) {
+  const { supabase, user, profile } = await getSession();
+  if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "update");
+  if (!permitido.ok) throw new Error(permitido.message);
+
+  const { data: protocolo, error: err } = await supabase
+    .from("protocolos")
+    .select("id, status, assigned_to")
+    .eq("id", protocolId)
+    .single();
+
+  if (err || !protocolo) throw new Error("Protocolo não encontrado.");
+  if (protocolo.assigned_to !== user.id && !isManager(profile?.role))
+    throw new Error("Sem permissão.");
+  if (protocolo.status !== "aberto") throw new Error("Status não permitido.");
+
+  const { error } = await supabase
+    .from("protocolos")
+    .update({ status: "em_andamento", read_at: new Date().toISOString() })
+    .eq("id", protocolId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/protocolos/${protocolId}`);
+  revalidatePath("/dashboard/protocolos");
+}
+
+export async function concluirProtocolo(
+  protocolId: string,
+  formData: FormData
+) {
+  const { supabase, user, profile } = await getSession();
+  if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "update");
+  if (!permitido.ok) throw new Error(permitido.message);
+
+  const parecer = (formData.get("parecer") as string)?.trim() || null;
+
+  const { data: protocolo, error: err } = await supabase
+    .from("protocolos")
+    .select("id, status, assigned_to")
+    .eq("id", protocolId)
+    .single();
+
+  if (err || !protocolo) throw new Error("Protocolo não encontrado.");
+  if (protocolo.assigned_to !== user.id && !isManager(profile?.role))
+    throw new Error("Sem permissão.");
+  if (protocolo.status !== "em_andamento") throw new Error("Status não permitido.");
+
+  const { error } = await supabase
+    .from("protocolos")
+    .update({ status: "concluido", parecer })
+    .eq("id", protocolId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/protocolos/${protocolId}`);
+  revalidatePath("/dashboard/protocolos");
+}
+
+export async function reabrirProtocolo(protocolId: string) {
+  const { supabase, user, profile } = await getSession();
+  if (!user) throw new Error("Não autenticado");
+  const permitido = await exigir("protocolos", "protocolos", "update");
+  if (!permitido.ok) throw new Error(permitido.message);
+
+  const { data: protocolo, error: err } = await supabase
+    .from("protocolos")
+    .select("id, status, requester_id")
+    .eq("id", protocolId)
+    .single();
+
+  if (err || !protocolo) throw new Error("Protocolo não encontrado.");
+  if (protocolo.requester_id !== user.id && !isManager(profile?.role))
+    throw new Error("Sem permissão.");
+  if (protocolo.status !== "concluido") throw new Error("Status não permitido.");
+
+  const { error } = await supabase
+    .from("protocolos")
+    .update({ status: "aberto", parecer: null })
+    .eq("id", protocolId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/protocolos/${protocolId}`);
+  revalidatePath("/dashboard/protocolos");
+}
