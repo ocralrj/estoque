@@ -97,7 +97,7 @@ async function extrairComGemini(
       }),
     });
     if (!resp.ok) return { ok: false, code: "PROVIDER", message: "Nao foi possivel ler o documento agora. Preencha os campos a mao." };
-    const json = (await resp.json()) as { candidates?: { content?: { parts?: { text?: string }[] }[] } };
+    const json = (await resp.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
     const texto = json.candidates?.[0]?.content?.parts?.map(p => p.text).join("") ?? "";
     if (!texto) return { ok: false, code: "VALIDACAO", message: "A leitura nao retornou dados." };
     return { ok: true, dados: montarResultado(extrairJsonDaResposta(texto)) };
