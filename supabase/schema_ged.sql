@@ -156,7 +156,7 @@ begin
   end if;
   return null;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 
 drop trigger if exists ged_documents_audit on ged_documents;
 create trigger ged_documents_audit
@@ -179,7 +179,7 @@ begin
   values (old.nome, 'Documento excluído', old.codigo || ' — ' || old.status::text, auth.uid());
   return old;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 
 drop trigger if exists ged_documents_audit_delete on ged_documents;
 create trigger ged_documents_audit_delete
