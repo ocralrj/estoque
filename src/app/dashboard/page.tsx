@@ -1,8 +1,16 @@
+import Link from "next/link";
 import { isManager, requireSession } from "@/lib/auth";
-import { roleLabel } from "@/lib/labels";
+import { pode } from "@/lib/permissoes";
+import { formatDate, roleLabel } from "@/lib/labels";
+import {
+  tarefaAtrasada,
+  tarefaStatusClass,
+  tarefaStatusLabel,
+  type Tarefa,
+} from "@/types/modules/tarefas";
 
 export default async function DashboardPage() {
-  const { supabase, profile } = await requireSession();
+  const { supabase, profile, user } = await requireSession();
   const showUserCount = isManager(profile?.role);
 
   const { count: totalProducts } = await supabase
@@ -35,6 +43,41 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
+  // Minhas tarefas: quem coordena vê todas; os demais veem o que abriram ou o
+  // que ficou com elas. A consulta é defensiva — se o schema ainda não foi
+  // aplicado, o painel não pode cair junto com o módulo que acabou de chegar.
+  const veTarefas = await pode("tarefas", "tarefas", "read");
+  let minhasTarefas: Tarefa[] = [];
+  if (veTarefas) {
+    let query = supabase
+      .from("tarefas")
+      .select(
+        `
+        *,
+        assigned_to:profiles!tarefas_assigned_to_fkey(id, full_name, email),
+        assigned_group:user_groups!tarefas_assigned_group_id_fkey(id, name)
+        `
+      )
+      .in("status", ["aberta", "em_andamento"])
+      .order("prazo", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (!isManager(profile?.role)) {
+      query = query
+        .or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`)
+        .or(`assigned_group_id.eq.${profile?.group_id}`);
+    }
+
+    const { data, error } = await query.returns<Tarefa[]>();
+    if (!error && data) minhasTarefas = data;
+  }
+
+  const emAberto = minhasTarefas.length;
+  const atrasadas = minhasTarefas.filter((t) => tarefaAtrasada(t)).length;
+
+  const mostrarTarefas = veTarefas && emAberto > 0;
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-[var(--text)] mb-6">
@@ -58,6 +101,16 @@ export default async function DashboardPage() {
           <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
             <p className="text-sm text-[var(--text-muted)]">Usuários</p>
             <p className="text-3xl font-bold text-[var(--primary)] mt-1">{totalUsers ?? 0}</p>
+          </div>
+        )}
+        {veTarefas && (
+          <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
+            <p className="text-sm text-[var(--text-muted)]">
+              Tarefas em aberto{atrasadas > 0 && ` · ${atrasadas} atrasada(s)`}
+            </p>
+            <p className={`text-3xl font-bold mt-1 ${atrasadas > 0 ? "text-[var(--erro-solid)]" : "text-[var(--primary)]"}`}>
+              {emAberto}
+            </p>
           </div>
         )}
       </div>
@@ -98,6 +151,55 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {mostrarTarefas && (
+        <section className="mb-8">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text)]">Minhas tarefas</h2>
+              <p className="text-sm text-[var(--text-muted)]">
+                As {emAberto} tarefa(s) em aberto de que você participa
+              </p>
+            </div>
+            <Link
+              href="/dashboard/tarefas"
+              className="text-sm font-semibold text-[var(--primary)] hover:underline"
+            >
+              Ver todas
+            </Link>
+          </div>
+
+          <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
+            <div className="neo-flat overflow-x-auto">
+              <ul className="divide-y divide-[var(--neo-line)]">
+                {minhasTarefas.map((tarefa) => (
+                  <li key={tarefa.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 hover:bg-[var(--neo-flat)]">
+                    <Link
+                      href={`/dashboard/tarefas/${tarefa.id}`}
+                      className="min-w-0 group flex-1"
+                    >
+                      <p className="truncate text-sm font-medium text-[var(--text)] group-hover:text-[var(--primary)]">
+                        {tarefa.titulo}
+                      </p>
+                      <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                        {tarefa.codigo}
+                        {tarefa.assigned_to?.full_name &&
+                          ` · ${tarefa.assigned_to.full_name}`}
+                        {tarefa.assigned_group?.name &&
+                          ` · ${tarefa.assigned_group.name}`}
+                        {tarefa.prazo && ` · prazo ${formatDate(tarefa.prazo)}`}
+                      </p>
+                    </Link>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${tarefaStatusClass(tarefa.status)}`}>
+                      {tarefaStatusLabel(tarefa.status)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

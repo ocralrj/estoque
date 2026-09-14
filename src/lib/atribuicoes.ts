@@ -61,6 +61,7 @@ export function permissoesDoPapel(papel: string | null | undefined): Set<Chave> 
     add("sugestoes", "minhas", ["read", "create"]);
     add("sugestoes", "todas", ["read", "manage"]);
     for (const r of ["users", "departamentos", "audit"]) add("admin", r, TODAS);
+    add("tarefas", "tarefas", TODAS);
     if (papel === "super_admin") {
       add("admin", "groups", TODAS);
       add("admin", "permissions", ["manage"]);
@@ -77,6 +78,7 @@ export function permissoesDoPapel(papel: string | null | undefined): Set<Chave> 
     }
     add("protocolos", "protocolos", ["read", "create", "update", "manage"]);
     add("sugestoes", "minhas", ["read", "create"]);
+    add("tarefas", "tarefas", ["read", "create", "update", "delete", "manage"]);
     return set;
   }
 
@@ -87,6 +89,7 @@ export function permissoesDoPapel(papel: string | null | undefined): Set<Chave> 
   add("ged", "search", ["read"]);
   add("protocolos", "protocolos", ["read", "create"]);
   add("sugestoes", "minhas", ["read", "create"]);
+  add("tarefas", "tarefas", ["read", "create", "update"]);
   return set;
 }
 
@@ -117,6 +120,7 @@ const MODULOS: Record<string, string> = {
   sugestoes: "sugestões",
   admin: "administração",
   certificados: "certificados",
+  tarefas: "tarefas",
 };
 
 /**

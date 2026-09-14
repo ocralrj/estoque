@@ -102,6 +102,15 @@ const ITENS_DO_MENU: NavItem[] = [
     roles: TODOS,
   },
   {
+    href: "/dashboard/tarefas",
+    label: "Tarefas",
+    icone: "tarefas",
+    permissao: "tarefas:tarefas:read",
+    dica: "Compromissos com prazo, responsável e situação",
+    termos: ["atividade", "afazeres", "pendência", "lembrete", "compromisso"],
+    roles: TODOS,
+  },
+  {
     label: "Administração",
     icone: "administracao",
     permissao: "admin:users:read",
@@ -129,6 +138,7 @@ const ATALHOS: (NavItem & { grupo: string })[] = [
   { grupo: "Estoque", href: "/dashboard/estoque/movimentacoes/new", label: "Nova movimentação", icone: "movimentacoes", permissao: "estoque:movements:create", dica: "Registrar entrada ou saída de material", termos: ["registrar entrada", "registrar saída", "dar baixa"], roles: ESTOQUE },
   { grupo: "GED", href: "/dashboard/ged/documentos/novo", label: "Novo documento", icone: "documentos", permissao: "ged:documents:create", dica: "Enviar um arquivo para o acervo", termos: ["enviar arquivo", "upload", "digitalizar", "anexar"], roles: ESTOQUE },
   { grupo: "Protocolos", href: "/dashboard/protocolos/novo", label: "Novo protocolo", icone: "protocolos", permissao: "protocolos:protocolos:create", dica: "Abrir uma solicitação interna", termos: ["abrir chamado", "nova solicitação"], roles: TODOS },
+  { grupo: "Tarefas", href: "/dashboard/tarefas/nova", label: "Nova tarefa", icone: "tarefas", permissao: "tarefas:tarefas:create", dica: "Registrar um compromisso com prazo e responsável", termos: ["criar tarefa", "novo compromisso", "agendar"], roles: TODOS },
   { grupo: "Administração", href: "/dashboard/admin/grupos/novo", label: "Novo grupo", icone: "grupos", permissao: "admin:groups:create", dica: "Criar um conjunto de usuários com permissões em comum", roles: ["super_admin"] },
   { grupo: "Conta", href: "/dashboard/profile", label: "Meu perfil", icone: "usuarios", dica: "Nome, foto e senha da sua conta", termos: ["senha", "foto", "trocar senha", "minha conta"], roles: TODOS },
 ];

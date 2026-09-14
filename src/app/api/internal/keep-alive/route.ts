@@ -77,9 +77,25 @@ export async function GET(request: NextRequest) {
     sugestoesRemovidas = sugestoes;
   }
 
+  // Tarefa vencendo: o responsável só é avisado pelo dia do prazo em diante,
+  // então o sweep diário é o lugar natural — a rotina já visita o banco todo
+  // dia. O módulo ainda pode não existir na base; o erro é esperado até a
+  // migração ser aplicada, e não pode derrubar o heartbeat.
+  let tarefasAvisadas: number | null = null;
+  const { data: tarefas, error: erroTarefas } = await supabase.rpc(
+    "avisar_tarefas_atrasadas"
+  );
+
+  if (erroTarefas) {
+    console.error("Falha ao avisar tarefas atrasadas:", erroTarefas.message);
+  } else if (typeof tarefas === "number") {
+    tarefasAvisadas = tarefas;
+  }
+
   return NextResponse.json({
     status: "ok",
     notificacoesRemovidas,
     sugestoesRemovidas,
+    tarefasAvisadas,
   });
 }
