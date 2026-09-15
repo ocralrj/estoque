@@ -158,6 +158,27 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
   (prazo de guarda e destino por tipo de documento), não conteúdo de cliente —
   por isso vêm semeadas no schema.
 
+## Tarefas
+
+- Módulo em `supabase/schema_tarefas.sql` (aplicar por último, depois de
+  `schema_grupos_permissoes.sql` e de `_manual_apply/022`). A ordem completa
+  está em `docs/APLICAR_SQL.md`.
+- Uma tarefa tem um responsável **pessoa `assigned_to` OU grupo
+  `assigned_group_id`**, prazo opcional e situação por trigger
+  (`tarefas_checa_transicao`): aberta → em andamento → concluída, com cancelar
+  e reabrir. `codigo` é TAR-AAAA-MM-DD-NNN gerado pelo trigger fallback.
+- RLS usa `public.gere_tarefas()` (super_admin/gestor/almoxarife) e
+  `public.usuario_no_grupo(p_grupo)` — nunca consulta `profiles` direto na
+  política. DELETE só para `gere_tarefas()`.
+- O aviso de prazo é do **sweep** `avisar_tarefas_atrasadas()` chamado pelo
+  rota `keep-alive` (dia do prazo em diante, sem repetir no mesmo dia). O
+  trigger de atribuição chama `notificar(...)` da 022; o erro do sweep antes de
+  aplicar o schema é esperado e não pode derrubar o heartbeat.
+- Servidor → `src/app/actions/tarefas.ts` (padrão `Resultado`); tipos, rótulos
+  e classes em `src/types/modules/tarefas.ts` (status/prioridade); páginas em
+  `src/app/dashboard/tarefas/*`. Atribuir pessoa ou grupo é perm das gestão —
+  no formulário só aparece com `tarefas:tarefas:manage`.
+
 ## Rotina anti-pausa do Supabase
 
 O plano gratuito pausa o projeto após ~7 dias sem atividade.
