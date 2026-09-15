@@ -31,10 +31,16 @@ export default async function TarefasPage() {
     .order("created_at", { ascending: false });
 
   if (!coordena) {
-    query = query.or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`);
-    if (profile?.group_id) {
-      query = query.or(`assigned_group_id.eq.${profile.group_id}`);
-    }
+    // Um único or() — dois encadeados virariam E, e quem só tem tarefa do grupo
+    // as perderia todas.
+    const corpo = [
+      `created_by.eq.${user.id}`,
+      `assigned_to.eq.${user.id}`,
+      profile?.group_id ? `assigned_group_id.eq.${profile.group_id}` : null,
+    ]
+      .filter(Boolean)
+      .join(",");
+    query = query.or(corpo);
   }
 
   const { data: tarefas } = await query.returns<Tarefa[]>();

@@ -6,200 +6,376 @@ import {
   tarefaAtrasada,
   tarefaStatusClass,
   tarefaStatusLabel,
+  tarefaVenceHoje,
   type Tarefa,
 } from "@/types/modules/tarefas";
+
+function CartaoResumo({
+  href,
+  rotulo,
+  valor,
+  cor,
+  detalhe,
+}: {
+  href: string;
+  rotulo: string;
+  valor: number;
+  cor: string;
+  detalhe: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="neo-card p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--relevo-2)]"
+    >
+      <p className="text-sm font-medium text-[var(--text-muted)]">{rotulo}</p>
+      <p className={`mt-2 text-3xl font-bold ${cor}`}>{valor}</p>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">{detalhe}</p>
+    </Link>
+  );
+}
 
 export default async function DashboardPage() {
   const { supabase, profile, user } = await requireSession();
   const showUserCount = isManager(profile?.role);
 
-  const { count: totalProducts } = await supabase
-    .from("products")
-    .select("*", { count: "exact", head: true })
-    .eq("active", true);
+  // Cada consulta só sai se a sessão pode abrir a tela que a alimenta. O número
+  // na tela nunca é maior do que a pessoa consegue conferir.
+  const [veTarefas, veProdutos, veAlertas, vePedidos, veMovimes] = await Promise.all([
+    pode("tarefas", "tarefas", "read"),
+    pode("estoque", "products", "read"),
+    pode("estoque", "alerts", "read"),
+    pode("estoque", "requisicoes", "read"),
+    pode("estoque", "movements", "read"),
+  ]);
+  const podeCriarTarefa = await pode("tarefas", "tarefas", "create");
 
-  const { count: lowStockProducts } = await supabase
-    .from("products")
-    .select("*", { count: "exact", head: true })
-    .eq("is_low_stock", true)
-    .eq("active", true);
+  // Quem coordena vê todas; os demais veem as que abriram, as que ficaram com
+  // elas e as do próprio grupo. O mesmo filtro vale para a contagem e a lista.
+  const soMinhas = !isManager(profile?.role);
+  const filtroTarefas = <
+    Q extends { or: (corpo: string) => Q }
+  >(
+    q: Q
+  ) => {
+    let query = q;
+    if (soMinhas) {
+      const corpo = [
+        `created_by.eq.${user.id}`,
+        `assigned_to.eq.${user.id}`,
+        profile?.group_id ? `assigned_group_id.eq.${profile.group_id}` : null,
+      ]
+        .filter(Boolean)
+        .join(",");
+      query = query.or(corpo);
+    }
+    return query;
+  };
 
-  const { count: totalCategories } = await supabase
-    .from("categories")
-    .select("*", { count: "exact", head: true });
+  const { data: minhasAbiertas } = veTarefas
+    ? await filtroTarefas(
+        supabase
+          .from("tarefas")
+          .select(
+            `
+            *,
+            assigned_to:profiles!tarefas_assigned_to_fkey(id, full_name, email),
+            assigned_group:user_groups!tarefas_assigned_group_id_fkey(id, name)
+            `
+          )
+          .in("status", ["aberta", "em_andamento"])
+          .order("prazo", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(5)
+      ).returns<Tarefa[]>()
+    : { data: null };
 
-  // A contagem só aparece para gestao: nao consultamos quando nao sera exibida.
-  const { count: totalUsers } = showUserCount
+  // O selo mostra a contagem total, não só as 5 da lista.
+  const { count: tarefasCountRaw } = veTarefas
+    ? await filtroTarefas(
+        supabase
+          .from("tarefas")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["aberta", "em_andamento"])
+      )
+    : { count: null };
+  const tarefasCount = tarefasCountRaw ?? null;
+
+  const { count: produtosCount } = veProdutos
+    ? await supabase.from("products").select("*", { count: "exact", head: true }).eq("active", true)
+    : { count: null };
+
+  const { count: baixoCount } = veAlertas
+    ? await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("is_low_stock", true)
+        .eq("active", true)
+    : { count: null };
+
+  const { count: pedidosCount } = vePedidos
+    ? await supabase
+        .from("pedidos_material")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "aberto")
+    : { count: null };
+
+  const { count: usuariosCount } = showUserCount
     ? await supabase.from("profiles").select("*", { count: "exact", head: true })
     : { count: null };
 
-  const { data: recentMovements } = await supabase
-    .from("movements")
-    .select(`
-      *,
-      product:products(name),
-      user:profiles(full_name, email)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const minhasTarefas = minhasAbiertas ?? [];
+  const tarefasAbertas = tarefasCount ?? minhasTarefas.length;
+  const tarefasAtrasadas = minhasTarefas.filter((t) => tarefaAtrasada(t)).length;
 
-  // Minhas tarefas: quem coordena vê todas; os demais veem o que abriram ou o
-  // que ficou com elas. A consulta é defensiva — se o schema ainda não foi
-  // aplicado, o painel não pode cair junto com o módulo que acabou de chegar.
-  const veTarefas = await pode("tarefas", "tarefas", "read");
-  let minhasTarefas: Tarefa[] = [];
-  if (veTarefas) {
-    let query = supabase
-      .from("tarefas")
-      .select(
+  const movimentacoes = veMovimes
+    ? await supabase
+        .from("movements")
+        .select(
+          `
+          *,
+          product:products(name),
+          user:profiles(full_name, email)
         `
-        *,
-        assigned_to:profiles!tarefas_assigned_to_fkey(id, full_name, email),
-        assigned_group:user_groups!tarefas_assigned_group_id_fkey(id, name)
-        `
-      )
-      .in("status", ["aberta", "em_andamento"])
-      .order("prazo", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (!isManager(profile?.role)) {
-      query = query
-        .or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`)
-        .or(`assigned_group_id.eq.${profile?.group_id}`);
-    }
-
-    const { data, error } = await query.returns<Tarefa[]>();
-    if (!error && data) minhasTarefas = data;
-  }
-
-  const emAberto = minhasTarefas.length;
-  const atrasadas = minhasTarefas.filter((t) => tarefaAtrasada(t)).length;
-
-  const mostrarTarefas = veTarefas && emAberto > 0;
+        )
+        .order("created_at", { ascending: false })
+        .limit(5)
+    : { data: null };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">
-        Olá, {profile?.full_name?.trim() || "seja bem-vindo"}
-      </h1>
-
-      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-          <p className="text-sm text-[var(--text-muted)]">Total de Produtos</p>
-          <p className="text-3xl font-bold text-[var(--primary)] mt-1">{totalProducts ?? 0}</p>
-        </div>
-        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-          <p className="text-sm text-[var(--text-muted)]">Estoque Baixo</p>
-          <p className="text-3xl font-bold text-[var(--erro-solid)] mt-1">{lowStockProducts ?? 0}</p>
-        </div>
-        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-          <p className="text-sm text-[var(--text-muted)]">Categorias</p>
-          <p className="text-3xl font-bold text-[var(--ok-solid)] mt-1">{totalCategories ?? 0}</p>
-        </div>
-        {showUserCount && (
-          <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-            <p className="text-sm text-[var(--text-muted)]">Usuários</p>
-            <p className="text-3xl font-bold text-[var(--primary)] mt-1">{totalUsers ?? 0}</p>
-          </div>
-        )}
-        {veTarefas && (
-          <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-            <p className="text-sm text-[var(--text-muted)]">
-              Tarefas em aberto{atrasadas > 0 && ` · ${atrasadas} atrasada(s)`}
-            </p>
-            <p className={`text-3xl font-bold mt-1 ${atrasadas > 0 ? "text-[var(--erro-solid)]" : "text-[var(--primary)]"}`}>
-              {emAberto}
-            </p>
-          </div>
-        )}
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--text)]">
+          Olá, {profile?.full_name?.trim() || "seja bem-vindo"}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Aqui você encontra o que precisa de atenção hoje.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Movimentações Recentes</h2>
-          {recentMovements && recentMovements.length > 0 ? (
-            <div className="space-y-3">
-              {recentMovements.map((mov) => (
-                <div key={mov.id} className="flex items-center justify-between border-b pb-2">
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text)]">{mov.product?.name}</p>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {mov.user?.full_name || mov.user?.email}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-semibold ${mov.type === 'entrada' ? 'text-[var(--ok-solid)]' : 'text-[var(--erro-solid)]'}`}>
-                      {mov.type === 'entrada' ? '+' : '-'}{mov.quantity}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)]">{mov.type}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--text-muted)]">Nenhuma movimentação recente</p>
-          )}
-        </div>
-
-        <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-[var(--text)] mb-2">Seu perfil</h2>
-          <p className="text-sm text-[var(--text-muted)]">Email: {profile?.email}</p>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Função:{" "}
-            <span className="font-medium">{roleLabel(profile?.role)}</span>
-          </p>
-        </div>
-      </div>
-
-      {mostrarTarefas && (
-        <section className="mb-8">
-          <div className="mb-4 flex items-center justify-between">
+      {veTarefas && (
+        <section className="neo-card p-5">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Minhas tarefas</h2>
-              <p className="text-sm text-[var(--text-muted)]">
-                As {emAberto} tarefa(s) em aberto de que você participa
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-bold text-[var(--text)]">Minhas tarefas</h2>
+                <span
+                  className={`neo-sit ${
+                    tarefasAtrasadas > 0
+                      ? "neo-sit--erro"
+                      : tarefasAbertas > 0
+                        ? "neo-sit--aviso"
+                        : "neo-sit--ok"
+                  }`}
+                >
+                  {tarefasAbertas} aberta{tarefasAbertas > 1 ? "s" : ""}
+                  {tarefasAtrasadas > 0 && ` · ${tarefasAtrasadas} atrasada${tarefasAtrasadas > 1 ? "s" : ""}`}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Suas tarefas em aberto e as da sua área.
               </p>
             </div>
-            <Link
-              href="/dashboard/tarefas"
-              className="text-sm font-semibold text-[var(--primary)] hover:underline"
-            >
-              Ver todas
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {podeCriarTarefa && (
+                <Link
+                  href="/dashboard/tarefas/nova"
+                  className="neo-btn neo-btn--primario !min-h-[40px] !px-4 !py-2 text-sm"
+                >
+                  Nova tarefa
+                </Link>
+              )}
+              <Link
+                href="/dashboard/tarefas"
+                className="neo-btn !min-h-[40px] !px-4 !py-2 text-sm"
+              >
+                Ver todas
+              </Link>
+            </div>
           </div>
 
-          <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
-            <div className="neo-flat overflow-x-auto">
-              <ul className="divide-y divide-[var(--neo-line)]">
-                {minhasTarefas.map((tarefa) => (
-                  <li key={tarefa.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 hover:bg-[var(--neo-flat)]">
-                    <Link
-                      href={`/dashboard/tarefas/${tarefa.id}`}
-                      className="min-w-0 group flex-1"
-                    >
-                      <p className="truncate text-sm font-medium text-[var(--text)] group-hover:text-[var(--primary)]">
-                        {tarefa.titulo}
+          {tarefasAbertas > 0 ? (
+            <div className="neo-flat">
+              <ul className="neo-lista">
+                {minhasTarefas.map((tarefa) => {
+                  const atrasada = tarefaAtrasada(tarefa);
+                  const venceHoje = tarefaVenceHoje(tarefa);
+                  return (
+                    <li key={tarefa.id}>
+                      <Link
+                        href={`/dashboard/tarefas/${tarefa.id}`}
+                        className="block px-4 py-3 transition hover:bg-[var(--neo-flat-alt)]"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-[var(--text)]">
+                              {tarefa.titulo}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                              {tarefa.codigo}
+                              {tarefa.assigned_to?.full_name &&
+                                ` · ${tarefa.assigned_to.full_name}`}
+                              {tarefa.assigned_group?.name &&
+                                ` · ${tarefa.assigned_group.name}`}
+                              {tarefa.prazo && (
+                                <span
+                                  className={
+                                    atrasada
+                                      ? " font-bold text-[var(--erro-fg)]"
+                                      : venceHoje
+                                        ? " font-bold text-[var(--aviso-fg)]"
+                                        : ""
+                                  }
+                                >
+                                  {" "}
+                                  · prazo {formatDate(tarefa.prazo)}
+                                  {atrasada && " (atrasada)"}
+                                  {venceHoje && " (hoje)"}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <span
+                            className={`neo-sit ${tarefaStatusClass(tarefa.status)}`}
+                          >
+                            {tarefaStatusLabel(tarefa.status)}
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <div className="neo-flat">
+              <div className="px-4 py-10 text-center">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Nenhuma tarefa em aberto para você.
+                </p>
+                {podeCriarTarefa && (
+                  <Link
+                    href="/dashboard/tarefas/nova"
+                    className="mt-3 inline-block text-sm font-semibold text-[var(--primary)] hover:underline"
+                  >
+                    Criar uma tarefa
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(veProdutos || veAlertas || vePedidos || showUserCount) && (
+        <section>
+          <h2 className="mb-4 text-lg font-bold text-[var(--text)]">Resumo</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {veProdutos && (
+              <CartaoResumo
+                href="/dashboard/estoque/produtos"
+                rotulo="Produtos ativos"
+                valor={produtosCount ?? 0}
+                cor="text-[var(--primary)]"
+                detalhe="O que está cadastrado no almoxarifado"
+              />
+            )}
+            {veAlertas && (
+              <CartaoResumo
+                href="/dashboard/estoque/alertas"
+                rotulo="Estoque baixo"
+                valor={baixoCount ?? 0}
+                cor={baixoCount ? "text-[var(--erro-solid)]" : "text-[var(--ok-solid)]"}
+                detalhe={
+                  baixoCount ? "Abaixo do mínimo — precisa repor" : "Tudo dentro do mínimo"
+                }
+              />
+            )}
+            {vePedidos && (
+              <CartaoResumo
+                href="/dashboard/estoque/pedidos"
+                rotulo="Pedidos em aberto"
+                valor={pedidosCount ?? 0}
+                cor={pedidosCount ? "text-[var(--aviso-solid)]" : "text-[var(--ok-solid)]"}
+                detalhe="Aguardando atendimento do almoxarifado"
+              />
+            )}
+            {showUserCount && (
+              <CartaoResumo
+                href="/dashboard/admin/usuarios"
+                rotulo="Usuários ativos"
+                valor={usuariosCount ?? 0}
+                cor="text-[var(--primary)]"
+                detalhe="Contas liberadas no sistema"
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section className="neo-card p-5">
+          <h2 className="mb-4 text-lg font-bold text-[var(--text)]">
+            Movimentações recentes
+          </h2>
+          {movimentacoes.data && movimentacoes.data.length > 0 ? (
+            <div className="neo-flat">
+              <ul className="neo-lista">
+                {movimentacoes.data.map((mov) => (
+                  <li key={mov.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--text)]">
+                        {mov.product?.name}
                       </p>
-                      <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                        {tarefa.codigo}
-                        {tarefa.assigned_to?.full_name &&
-                          ` · ${tarefa.assigned_to.full_name}`}
-                        {tarefa.assigned_group?.name &&
-                          ` · ${tarefa.assigned_group.name}`}
-                        {tarefa.prazo && ` · prazo ${formatDate(tarefa.prazo)}`}
+                      <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                        {mov.user?.full_name || mov.user?.email} · {formatDate(mov.created_at)}
                       </p>
-                    </Link>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${tarefaStatusClass(tarefa.status)}`}>
-                      {tarefaStatusLabel(tarefa.status)}
-                    </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`neo-sit ${mov.type === "entrada" ? "neo-sit--ok" : "neo-sit--info"}`}>
+                        {mov.type === "entrada" ? "Entrada" : "Saída"}
+                      </span>
+                      <span
+                        className={`w-16 text-right text-sm font-bold ${
+                          mov.type === "entrada" ? "text-[var(--ok-fg)]" : "text-[var(--erro-fg)]"
+                        }`}
+                      >
+                        {mov.type === "entrada" ? "+" : "-"}
+                        {mov.quantity}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
+          ) : (
+            <div className="neo-flat">
+              <p className="px-4 py-10 text-center text-sm text-[var(--text-muted)]">
+                Nenhuma movimentação recente.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <section className="neo-card p-5">
+          <h2 className="mb-4 text-lg font-bold text-[var(--text)]">Seu perfil</h2>
+          <div className="space-y-2">
+            <p className="text-sm text-[var(--text-muted)]">
+              <span className="font-semibold text-[var(--text)]">Email:</span> {profile?.email}
+            </p>
+            <p className="text-sm text-[var(--text-muted)]">
+              <span className="font-semibold text-[var(--text)]">Função:</span>{" "}
+              {roleLabel(profile?.role)}
+            </p>
+            <Link
+              href="/dashboard/profile"
+              className="mt-3 inline-block text-sm font-semibold text-[var(--primary)] hover:underline"
+            >
+              Editar meu perfil
+            </Link>
           </div>
         </section>
-      )}
+      </div>
     </div>
   );
 }
