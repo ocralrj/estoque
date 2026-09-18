@@ -92,10 +92,26 @@ export async function GET(request: NextRequest) {
     tarefasAvisadas = tarefas;
   }
 
+  // Certificado vencendo em 30 dias ou menos: avisa quem cuida da empresa, a
+  // gestão e o super admin. O sweep diário é o lugar natural — a rotina já
+  // visita o banco todo dia. O erro é esperado até a migração ser aplicada, e
+  // não pode derrubar o heartbeat.
+  let certificadosAvisados: number | null = null;
+  const { data: certificados, error: erroCertificados } = await supabase.rpc(
+    "avisar_certificados_a_vencer"
+  );
+
+  if (erroCertificados) {
+    console.error("Falha ao avisar certificados a vencer:", erroCertificados.message);
+  } else if (typeof certificados === "number") {
+    certificadosAvisados = certificados;
+  }
+
   return NextResponse.json({
     status: "ok",
     notificacoesRemovidas,
     sugestoesRemovidas,
     tarefasAvisadas,
+    certificadosAvisados,
   });
 }

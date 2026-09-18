@@ -31,6 +31,10 @@ A pasta `supabase/_manual_apply/` guarda ajustes aplicáveis sob demanda
 (índices de performance, correção de recursão em RLS, promoção de super admin).
 Aplique apenas quando o problema correspondente aparecer.
 
+- `_manual_apply/049_aviso_certificado_para_gestores.sql`: inclui o papel
+  `gestor` nos avisos de certificado a vencer (30 dias ou menos). O sweep é
+  disparado pela rota `keep-alive` todo dia.
+
 Os arquivos `supabase/fix_rls_redirect_loop.sql` e
 `supabase/fix_trigger_and_create_user.sql` corrigem, respectivamente, o loop de
 redirecionamento causado por política RLS recursiva em `profiles` e falhas do

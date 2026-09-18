@@ -225,7 +225,7 @@ export default function FormularioProtocolo({
           {/* O destino sobe para quem abre o protocolo — o almoxarife escolhe
               para quem vai. Só a opção "grupo" fica atrás de `manage`, que é
               gestão. */}
-          {pessoas.length > 0 || grupos.length > 0 ? (
+          {(pessoas.length > 0 || grupos.length > 0) && (
             <div>
               <label className="block text-sm font-medium text-[var(--text)]">
                 Este protocolo vai para
@@ -240,13 +240,17 @@ export default function FormularioProtocolo({
                   [
                     ["ninguem", "Ninguém ainda", "Fica na fila geral"],
                     ["pessoa", "Uma pessoa", "Alguém específico responde"],
-                    ["grupo", "Um grupo", "Quem estiver na área responde"],
+                    ["grupo", "Um grupo", "Quem estiver livre na área responde"],
                   ] as const
-                ).map(([valor, titulo, detalhe]) => (
-                  <button
-                    key={valor}
-                    type="button"
-                    onClick={() => setDestino(valor)}
+                )
+                  // O almoxarife que abre escolhe a pessoa; "grupo" é gestão e
+                  // só aparece para quem tem a permissão de atribuir.
+                  .filter(([valor]) => valor !== "grupo" || podeAtribuir)
+                  .map(([valor, titulo, detalhe]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setDestino(valor)}
                     aria-pressed={destino === valor}
                     className={`rounded-2xl border p-3 text-left transition ${
                       destino === valor

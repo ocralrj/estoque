@@ -10,8 +10,8 @@ import {
   type GedRetentionRule,
 } from "@/types/modules/ged";
 
-/** Alerta de certificado a partir deste prazo. */
-const ALERT_WINDOW_DAYS = 60;
+/** Alerta de certificado: vence em 30 dias ou menos. */
+const ALERT_WINDOW_DAYS = 30;
 
 export default async function GedPage() {
   const { supabase } = await requireSession();
@@ -21,7 +21,7 @@ export default async function GedPage() {
     { count: totalDocs },
     { count: assinados },
     { data: recentes },
-    { data: certificados },
+    { data: certificadosBrutos },
     { data: regras },
   ] = await Promise.all([
     supabase.from("ged_documents").select("*", { count: "exact", head: true }),
@@ -36,10 +36,9 @@ export default async function GedPage() {
       .limit(4)
       .returns<GedDocument[]>(),
     supabase
-      .from("ged_certificates")
-      .select("*")
-      .order("validade")
-      .returns<GedCertificate[]>(),
+      .from("certificados")
+      .select("id, titular, validade_fim, empresa:empresas(razao_social)")
+      .order("validade_fim"),
     supabase
       .from("ged_retention_rules")
       .select("*")
@@ -48,7 +47,27 @@ export default async function GedPage() {
       .returns<GedRetentionRule[]>(),
   ]);
 
-  const vencendo = (certificados ?? []).filter(
+  // Fonte real: tabela `certificados` (a antiga `ged_certificates` era só
+  // semente/contagem e foi importada pela 031). O RLS já limita a quem cuida
+  // da empresa + gestão.
+  const certificados: GedCertificate[] = (
+    ((certificadosBrutos ?? []) as unknown) as {
+      id: string;
+      titular: string;
+      validade_fim: string;
+      empresa: { razao_social: string } | { razao_social: string }[] | null;
+    }[]
+  ).map((c) => ({
+    id: c.id,
+    cliente: Array.isArray(c.empresa)
+      ? (c.empresa[0]?.razao_social ?? "—")
+      : (c.empresa?.razao_social ?? "—"),
+    certificado: c.titular,
+    validade: c.validade_fim,
+    observacao: null,
+  }));
+
+  const vencendo = certificados.filter(
     (item) => daysUntil(item.validade) <= ALERT_WINDOW_DAYS
   );
 
