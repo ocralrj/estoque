@@ -1,10 +1,26 @@
 export type TarefaStatus =
-  | "aberta"
+  | "aguardando"
   | "em_andamento"
+  | "confirmacao"
   | "concluida"
   | "cancelada";
 
 export type TarefaPrioridade = "baixa" | "media" | "alta";
+
+/** Linha do histórico/comentário de uma tarefa (o embutido da FK é a pessoa). */
+export interface TarefaComentario {
+  id: string;
+  tarefa_id: string;
+  autor_id: string;
+  tipo: "comentario" | "transicao";
+  texto: string;
+  created_at: string;
+  autor?: {
+    id: string;
+    full_name: string | null;
+    email: string;
+  } | null;
+}
 
 export interface Tarefa {
   id: string;
@@ -16,16 +32,11 @@ export interface Tarefa {
   /** Null = sem data combinada. Atrasar só existe quando há prazo. */
   prazo: string | null;
   created_by: string;
-  assigned_to_id?: string | null;
-  assigned_to?: {
+  assigned_to: string | null;
+  executor?: {
     id: string;
     full_name: string | null;
     email: string;
-  } | null;
-  assigned_group_id?: string | null;
-  assigned_group?: {
-    id: string;
-    name: string;
   } | null;
   concluida_por_id?: string | null;
   concluida_por?: {
@@ -41,18 +52,21 @@ export interface Tarefa {
     full_name: string | null;
     email: string;
   } | null;
+  comentarios?: TarefaComentario[];
 }
 
 export const TAREFA_STATUS_LABELS: Record<TarefaStatus, string> = {
-  aberta: "Aberta",
+  aguardando: "Aguardando",
   em_andamento: "Em andamento",
+  confirmacao: "Confirmação",
   concluida: "Concluída",
   cancelada: "Cancelada",
 };
 
 export const TAREFA_STATUS_CLASSES: Record<TarefaStatus, string> = {
-  aberta: "neo-sit neo-sit--info",
+  aguardando: "neo-sit neo-sit--info",
   em_andamento: "neo-sit neo-sit--aviso",
+  confirmacao: "neo-sit neo-sit--info",
   concluida: "neo-sit neo-sit--ok",
   cancelada: "neo-sit neo-sit--erro",
 };
@@ -87,14 +101,31 @@ export function tarefaPrioridadeLabel(prioridade: string): string {
   return TAREFA_PRIORIDADE_LABELS[prioridade as TarefaPrioridade] ?? prioridade;
 }
 
-/** Vencida, na visão de hoje: prazo é data pura, sem hora; venceu quem passou de ontem. */
-export function tarefaAtrasada(t: Pick<Tarefa, "prazo" | "status">): boolean {
-  if (!t.prazo) return false;
-  if (t.status === "concluida" || t.status === "cancelada") return false;
+export function tarefaStatus(): TarefaStatus[] {
+  return ["aguardando", "em_andamento", "confirmacao", "concluida", "cancelada"];
+}
+
+/** Em aberto: ainda dentro do fluxo normal, sujeita a atraso. */
+export function tarefaEmCurso(status: string): boolean {
+  return status === "aguardando" || status === "em_andamento" || status === "confirmacao";
+}
+
+/** Dias de atraso, em inteiro positivo. Só existe para tarefa em curso com prazo no passado. */
+export function tarefaDiasDeAtraso(t: Pick<Tarefa, "prazo" | "status">): number | null {
+  if (!t.prazo) return null;
+  if (!tarefaEmCurso(t.status)) return null;
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
-  return new Date(t.prazo) < hoje;
+  const prazo = new Date(t.prazo);
+  prazo.setHours(0, 0, 0, 0);
+  const dias = Math.round((hoje.getTime() - prazo.getTime()) / 86400000);
+  return dias > 0 ? dias : null;
+}
+
+/** Vencida, na visão de hoje: prazo é data pura, sem hora; venceu quem passou de ontem. */
+export function tarefaAtrasada(t: Pick<Tarefa, "prazo" | "status">): boolean {
+  return tarefaDiasDeAtraso(t) !== null;
 }
 
 /** Vence ainda hoje? Para pintar de vermelho o que não passou do ponto, mas já corre. */

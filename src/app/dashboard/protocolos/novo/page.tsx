@@ -23,16 +23,22 @@ export default async function Page() {
   const podeAtribuir = await pode("protocolos", "protocolos", "manage");
   const { supabase } = await getSession();
 
-  const [{ data: pessoas }, { data: grupos }] = podeAtribuir
-    ? await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .eq("active", true)
-          .order("full_name", { nullsFirst: false }),
-        supabase.from("user_groups").select("id, name, nivel").order("nivel"),
-      ])
-    : [{ data: [] }, { data: [] }];
+  // A lista de pessoas ativas sobe para qualquer um que vá atribuir a pessoa
+  // (almoxarife abre e escolhe para quem vai). Só opções de grupo ficam atrás
+  // de `manage`, que é gestão.
+  const [listaPessoas, listaGrupos] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("active", true)
+      .order("full_name", { nullsFirst: false }),
+    podeAtribuir
+      ? supabase.from("user_groups").select("id, name, nivel").order("nivel")
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const pessoas = listaPessoas.data;
+  const grupos = listaGrupos.data;
 
   return (
     <FormularioProtocolo

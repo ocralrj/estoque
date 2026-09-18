@@ -228,6 +228,18 @@ create policy "Super admin e gestor veem todos os perfis"
     public.get_user_role() in ('super_admin', 'gestor')
   );
 
+-- No modelo pessoa→pessoa, qualquer autenticado precisa escolher quem vai
+-- executar a tarefa. Essa listagem é o que alimenta o seletor "De quem é esta
+-- tarefa", então a leitura dos perfis ATIVOS é liberada para todos (nunca os
+-- desativados — quem foi desligado não entra na escolha).
+drop policy if exists "Todos os autenticados veem a lista de pessoas ativas" on profiles;
+create policy "Todos os autenticados veem a lista de pessoas ativas"
+  on profiles for select
+  to authenticated
+  using (
+    active = true
+  );
+
 drop policy if exists "Super admin atualiza qualquer perfil" on profiles;
 create policy "Super admin atualiza qualquer perfil"
   on profiles for update

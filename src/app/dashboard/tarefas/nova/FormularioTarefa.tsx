@@ -25,9 +25,8 @@ export default function FormularioTarefa({
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("media");
   const [prazo, setPrazo] = useState("");
-  const [destino, setDestino] = useState<"ninguem" | "pessoa" | "grupo">("ninguem");
+  const [destino, setDestino] = useState<"ninguem" | "pessoa">("ninguem");
   const [assignedTo, setAssignedTo] = useState("");
-  const [assignedGroup, setAssignedGroup] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,9 +42,6 @@ export default function FormularioTarefa({
     if (prazo) formData.set("prazo", prazo);
     if (destino === "pessoa" && assignedTo) {
       formData.set("assigned_to", assignedTo);
-    }
-    if (destino === "grupo" && assignedGroup) {
-      formData.set("assigned_group_id", assignedGroup);
     }
 
     const res = await criarTarefa(formData);
@@ -140,13 +136,12 @@ export default function FormularioTarefa({
                   área — o DP, o Financeiro — e escolher um nome nesses casos
                   elege um responsável arbitrário que pode estar de férias. */}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {(
-                  [
+                  {(
+                    [
                     ["ninguem", "Ninguém ainda", "Fica na fila"],
                     ["pessoa", "Uma pessoa", "Um responsável específico"],
-                    ["grupo", "Um grupo", "Quem estiver na área responde"],
                   ] as const
-                ).map(([valor, tituloOpcao, detalhe]) => (
+                  ).map(([valor, tituloOpcao, detalhe]) => (
                   <button
                     key={valor}
                     type="button"
@@ -178,21 +173,6 @@ export default function FormularioTarefa({
                   {pessoas.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nome}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {destino === "grupo" && (
-                <select
-                  value={assignedGroup}
-                  onChange={(e) => setAssignedGroup(e.target.value)}
-                  className="mt-3 w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
-                >
-                  <option value="">Escolha o grupo</option>
-                  {grupos.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.nome}
                     </option>
                   ))}
                 </select>

@@ -1,21 +1,21 @@
 import { exigirPermissao, pode } from "@/lib/permissoes";
-import { requireSession, canManageStock } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import Link from "next/link";
-import { formatDate } from "@/lib/labels";
-import {
-  tarefaAtrasada,
-  tarefaPrioridadeClass,
-  tarefaPrioridadeLabel,
-  tarefaStatusClass,
-  tarefaStatusLabel,
-  tarefaVenceHoje,
-  type Tarefa,
-} from "@/types/modules/tarefas";
+import KanbanTarefas from "./KanbanTarefas";
+import type { Tarefa, TarefaComentario } from "@/types/modules/tarefas";
 
+/**
+ * Quadro Kanban de tarefas.
+ *
+ * Pessoa para pessoa: cada um vê onde é solicitante ou executor; o super admin
+ * vê todo o quadro. O servidor traz as tarefas com os nomes embutidos (FKs
+ * nomeadas — tarefas liga três vezes com profiles) e o histórico/comentários
+ * de cada uma, agrupados no cliente para alimentar o card e o accordion.
+ */
 export default async function TarefasPage() {
   const { supabase, user, profile } = await requireSession();
   await exigirPermissao("tarefas", "tarefas", "read");
-  const coordena = canManageStock(profile?.role);
+  const ehSuperAdmin = profile?.role === "super_admin";
   const podeCriar = await pode("tarefas", "tarefas", "create");
 
   let query = supabase
@@ -23,144 +23,76 @@ export default async function TarefasPage() {
     .select(
       `
       *,
-      assigned_to:profiles!tarefas_assigned_to_fkey(id, full_name, email),
-      assigned_group:user_groups!tarefas_assigned_group_id_fkey(id, name),
-      criada_por:profiles!tarefas_created_by_fkey(id, full_name, email)
+      executor:profiles!tarefas_assigned_to_fkey(id, full_name, email),
+      criada_por:profiles!tarefas_created_by_fkey(id, full_name, email),
+      concluida_por:profiles!tarefas_concluida_por_fkey(id, full_name, email)
       `
     )
+    .order("prazo", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
-  if (!coordena) {
-    // Um único or() — dois encadeados virariam E, e quem só tem tarefa do grupo
-    // as perderia todas.
-    const corpo = [
-      `created_by.eq.${user.id}`,
-      `assigned_to.eq.${user.id}`,
-      profile?.group_id ? `assigned_group_id.eq.${profile.group_id}` : null,
-    ]
+  if (!ehSuperAdmin) {
+    // Um único or() — dois encadeados virariam E, e um lado ficaria de fora.
+    const corpo = [`created_by.eq.${user.id}`, `assigned_to.eq.${user.id}`]
       .filter(Boolean)
       .join(",");
     query = query.or(corpo);
   }
 
   const { data: tarefas } = await query.returns<Tarefa[]>();
+  const lista = tarefas ?? [];
+  const ids = lista.map((t) => t.id);
+
+  // Histórico e comentários das tarefas visíveis, num só passe.
+  const { data: comentarios } =
+    ids.length > 0
+      ? await supabase
+          .from("tarefa_comentarios")
+          .select(
+            `
+            *,
+            autor:profiles!tarefa_comentarios_autor_id_fkey(id, full_name, email)
+            `
+          )
+          .in("tarefa_id", ids)
+          .order("created_at", { ascending: true })
+      : { data: [] };
+
+  const porTarefa = new Map<string, TarefaComentario[]>();
+  for (const madeira of comentarios ?? []) {
+    const grupo = porTarefa.get(madeira.tarefa_id) ?? [];
+    grupo.push(madeira);
+    porTarefa.set(madeira.tarefa_id, grupo);
+  }
 
   return (
     <div>
-      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Tarefas</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            {coordena
-              ? "Todas as tarefas da equipe, com prazo, responsável e situação."
-              : "Suas tarefas: as que você abriu e as que ficaram com você."}
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            {ehSuperAdmin
+              ? "Quadro da equipe: cada card anda por aguardando, em andamento, confirmação, concluída e cancelada."
+              : "Suas tarefas: você pediu ou foi nomeado. O executor executa; quem pediu valida."}
           </p>
         </div>
         {podeCriar && (
           <Link
             href="/dashboard/tarefas/nova"
-            className="px-4 py-2 bg-[var(--primary)] text-[var(--on-accent)] rounded-lg hover:brightness-110 transition-colors"
+            className="neo-btn neo-btn--primario !min-h-[40px] !px-4 !py-2 text-sm"
           >
             Nova Tarefa
           </Link>
         )}
       </div>
 
-      <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm overflow-hidden">
-        <div className="neo-flat overflow-x-auto">
-          <table className="w-full sm:min-w-[900px] tabela-mobile">
-            <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Código
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Título
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Situação
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Prioridade
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Responsável
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Prazo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-[var(--neo-bg)] divide-y divide-[var(--neo-line)]">
-              {tarefas && tarefas.length > 0 ? (
-                tarefas.map((tarefa) => {
-                  const atrasada = tarefaAtrasada(tarefa);
-                  const venceHoje = tarefaVenceHoje(tarefa);
-                  return (
-                    <tr key={tarefa.id} className="hover:bg-[var(--neo-flat)]">
-                      <td data-rotulo="Código" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text)]">
-                        {tarefa.codigo}
-                      </td>
-                      <td data-rotulo="Título" className="px-6 py-4 text-sm text-[var(--text)]">
-                        {tarefa.titulo}
-                      </td>
-                      <td data-rotulo="Situação" className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${tarefaStatusClass(tarefa.status)}`}>
-                          {tarefaStatusLabel(tarefa.status)}
-                        </span>
-                      </td>
-                      <td data-rotulo="Prioridade" className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${tarefaPrioridadeClass(tarefa.prioridade)}`}>
-                          {tarefaPrioridadeLabel(tarefa.prioridade)}
-                        </span>
-                      </td>
-                      <td data-rotulo="Responsável" className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-muted)]">
-                        {tarefa.assigned_to?.full_name || tarefa.assigned_to?.email || tarefa.assigned_group?.name || "—"}
-                      </td>
-                      <td data-rotulo="Prazo" className="px-6 py-4 whitespace-nowrap text-sm">
-                        {tarefa.prazo ? (
-                          <span
-                            className={
-                              atrasada
-                                ? "font-semibold text-[var(--erro-fg)]"
-                                : venceHoje
-                                  ? "font-semibold text-[var(--aviso-fg)]"
-                                  : "text-[var(--text-muted)]"
-                            }
-                          >
-                            {formatDate(tarefa.prazo)}
-                            {atrasada && " · atrasada"}
-                            {venceHoje && " · hoje"}
-                          </span>
-                        ) : (
-                          <span className="text-[var(--text-muted)]">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Link
-                          href={`/dashboard/tarefas/${tarefa.id}`}
-                          className="text-[var(--primary)] hover:underline"
-                        >
-                          Ver
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-[var(--text-muted)]">
-                    Nenhuma tarefa encontrada.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <KanbanTarefas
+        tarefas={lista}
+        comentariosPorTarefa={porTarefa}
+        meuId={user.id}
+        papel={profile?.role ?? null}
+        podeCriar={podeCriar}
+      />
     </div>
   );
 }

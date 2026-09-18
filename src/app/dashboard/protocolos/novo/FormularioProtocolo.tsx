@@ -222,9 +222,12 @@ export default function FormularioProtocolo({
             </select>
           </div>
 
-          {podeAtribuir && (
+          {/* O destino sobe para quem abre o protocolo — o almoxarife escolhe
+              para quem vai. Só a opção "grupo" fica atrás de `manage`, que é
+              gestão. */}
+          {pessoas.length > 0 || grupos.length > 0 ? (
             <div>
-              <label className="mb-2 block text-sm font-medium text-[var(--text)]">
+              <label className="block text-sm font-medium text-[var(--text)]">
                 Este protocolo vai para
               </label>
 
