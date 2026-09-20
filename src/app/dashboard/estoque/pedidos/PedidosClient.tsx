@@ -10,15 +10,8 @@ import {
 } from "@/app/actions/pedidos";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import Avatar from "@/components/ui/Avatar";
+import BuscaProduto from "./BuscaProduto";
 import { formatDateTime } from "@/lib/labels";
-
-interface Produto {
-  id: string;
-  name: string;
-  code: string;
-  unit: string;
-  quantity_current: number;
-}
 
 const SITUACAO: Record<string, { texto: string; classe: string }> = {
   aberto: { texto: "Aguardando", classe: "neo-sit neo-sit--info" },
@@ -38,13 +31,11 @@ const SITUACAO: Record<string, { texto: string; classe: string }> = {
  */
 export default function PedidosClient({
   pedidos,
-  produtos,
   meuId,
   podeAtender,
   podePedir,
 }: {
   pedidos: PedidoDeMaterial[];
-  produtos: Produto[];
   meuId: string;
   podeAtender: boolean;
   podePedir: boolean;
@@ -205,23 +196,16 @@ export default function PedidosClient({
               {itens.map((item, i) => (
                 <div key={i} className="flex flex-wrap items-end gap-2">
                   <div className="min-w-[12rem] flex-1">
-                    <label className={rotulo}>Produto</label>
-                    <select
-                      value={item.productId}
-                      onChange={(e) => {
+                    <label htmlFor={`produto-${i}`} className={rotulo}>Produto</label>
+                    <BuscaProduto
+                      inputId={`produto-${i}`}
+                      productId={item.productId}
+                      onSelect={(id) => {
                         const copia = [...itens];
-                        copia[i] = { ...copia[i], productId: e.target.value };
+                        copia[i] = { ...copia[i], productId: id };
                         setItens(copia);
                       }}
-                      className={campo}
-                    >
-                      <option value="">Escolha o produto</option>
-                      {produtos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.code} — {p.name} ({p.quantity_current} {p.unit})
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="w-28">

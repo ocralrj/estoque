@@ -12,12 +12,7 @@ export default async function PedidosDeMaterialPage() {
     pode("estoque", "requisicoes", "create"),
   ]);
 
-  const { supabase, user } = await getSession();
-  const { data: produtos } = await supabase
-    .from("products")
-    .select("id, name, code, unit, quantity_current")
-    .eq("active", true)
-    .order("name");
+  const { user } = await getSession();
 
   return (
     <div className="space-y-6">
@@ -32,7 +27,6 @@ export default async function PedidosDeMaterialPage() {
       {pedidos.ok ? (
         <PedidosClient
           pedidos={pedidos.data}
-          produtos={(produtos ?? []) as never}
           meuId={user?.id ?? ""}
           podeAtender={podeAtender}
           podePedir={podePedir}

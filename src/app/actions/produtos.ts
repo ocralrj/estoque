@@ -156,6 +156,52 @@ export async function definirLocalizacao(
 // recusa qualquer alteração. Ver 042_codigo_e_listagem_de_produtos.sql.
 
 /**
+ * Resumo do produto para a busca do pedido: o suficiente para identificar.
+ */
+export interface ProdutoResumo {
+  id: string;
+  name: string;
+  code: string;
+  unit: string;
+  quantity_current: number;
+}
+
+/**
+ * Busca produtos pelo nome para o autocomplete do pedido.
+ *
+ * Parcial e sem diferenciar maiúsculas (`ilike`), limitada a 10 linhas: a
+ * lista completa não viaja para o navegador, e cada tecla dispara no máximo
+ * uma consulta (o campo usa debounce). `%` e `_` digitados valem como letra.
+ */
+export async function buscarProdutos(termo: string): Promise<Resultado<ProdutoResumo[]>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("estoque", "products", "read");
+  if (!permitido.ok) return permitido;
+
+  const texto = termo.trim().slice(0, 60);
+  if (!texto) return { ok: true, data: [] };
+
+  const LIKE = texto.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, code, unit, quantity_current")
+    .eq("active", true)
+    .ilike("name", `%${LIKE}%`)
+    .order("name")
+    .limit(10);
+
+  if (error) {
+    console.error("Falha ao buscar produtos:", error);
+    return { ok: false, message: "Não foi possível buscar os produtos." };
+  }
+
+  return { ok: true, data: (data ?? []) as ProdutoResumo[] };
+}
+
+/**
  * Atualiza o cadastro completo do produto (tela "Alterar Produto").
  *
  * Nunca toca em `code` (imutável pelo gatilho da 042) nem em
