@@ -10,7 +10,7 @@ import {
 } from "@/app/actions/pedidos";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import Avatar from "@/components/ui/Avatar";
-import BuscaProduto from "./BuscaProduto";
+import BuscaProduto from "@/components/estoque/BuscaProduto";
 import { formatDateTime } from "@/lib/labels";
 
 const SITUACAO: Record<string, { texto: string; classe: string }> = {

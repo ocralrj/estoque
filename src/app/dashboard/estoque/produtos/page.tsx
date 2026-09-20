@@ -10,6 +10,7 @@ import {
   type CadastroSimples,
 } from "./CamposEditaveis";
 import AcoesProduto from "./AcoesProduto";
+import PesquisaProduto from "./PesquisaProduto";
 
 const POR_PAGINA = 50;
 
@@ -227,41 +228,12 @@ export default async function ProductsPage({
       <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <h1 className="text-2xl font-bold text-[var(--text)]">Produtos</h1>
-          <form
-            method="get"
-            action="/dashboard/estoque/produtos"
-            role="search"
-            className="flex items-center gap-2"
-          >
-            <input type="hidden" name="ordem" value={ordem} />
-            <input type="hidden" name="direcao" value={direcao} />
-            <label htmlFor="busca-produto" className="sr-only">
-              Pesquisar por nome do produto
-            </label>
-            <input
-              id="busca-produto"
-              type="search"
-              name="busca"
-              defaultValue={busca}
-              placeholder="Pesquisar por nome…"
-              maxLength={60}
-              className="w-56 rounded-lg border border-[var(--neo-line)] bg-[var(--neo-flat)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-[var(--neo-flat)] px-3 py-1.5 text-sm font-bold text-[var(--text)] hover:brightness-95"
-            >
-              Buscar
-            </button>
-            {busca && (
-              <Link
-                href={urlDaLista(ordem, direcao, 1, "")}
-                className="text-sm font-semibold text-[var(--text-muted)] hover:underline"
-              >
-                Limpar
-              </Link>
-            )}
-          </form>
+          <PesquisaProduto
+            busca={busca}
+            ordem={ordem}
+            direcao={direcao}
+            hrefLimpar={urlDaLista(ordem, direcao, 1, "")}
+          />
         </div>
         {canManage && (
           <Link

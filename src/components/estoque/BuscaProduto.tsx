@@ -8,21 +8,33 @@ import { buscarProdutos, type ProdutoResumo } from "@/app/actions/produtos";
  *
  * Cada tecla (com debounce de 250 ms) consulta o banco por correspondência
  * parcial, sem diferenciar maiúsculas, limitada a 10 linhas — a lista completa
- * não viaja para o navegador. Escolher preenche o id da linha do pedido pelo
- * fluxo que já existia; se o texto mudar depois da escolha, a seleção é
- * desfeita para o pedido nunca levar um produto diferente do exibido.
+ * não viaja para o navegador. Dois modos:
+ *
+ * - Pedido (`onSelect`): escolher preenche o id da linha pelo fluxo que já
+ *   existia; se o texto mudar depois da escolha, a seleção é desfeita para o
+ *   pedido nunca levar um produto diferente do exibido.
+ * - Filtro (`aoConfirmar`, sem `onSelect`): escolher ou limpar confirma o
+ *   texto para o pai filtrar (a tabela, por exemplo); digitar só sugere.
  */
 export default function BuscaProduto({
-  productId,
+  productId = "",
   onSelect,
   inputId,
+  textoInicial = "",
+  placeholder = "Digite o nome do produto…",
+  aoConfirmar,
 }: {
-  /** Id já escolhido nesta linha ("" = nenhum). */
-  productId: string;
-  onSelect: (id: string) => void;
+  /** Id já escolhido nesta linha ("" = nenhum). Só no modo pedido. */
+  productId?: string;
+  onSelect?: (id: string) => void;
   inputId: string;
+  /** Texto inicial do campo (a busca atual, no modo filtro). */
+  textoInicial?: string;
+  placeholder?: string;
+  /** Modo filtro: recebe o texto confirmado (seleção, Enter ou limpeza). */
+  aoConfirmar?: (texto: string) => void;
 }) {
-  const [texto, setTexto] = useState("");
+  const [texto, setTexto] = useState(textoInicial);
   const [aberta, setAberta] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [resultados, setResultados] = useState<ProdutoResumo[]>([]);
@@ -30,9 +42,10 @@ export default function BuscaProduto({
   const [escolhido, setEscolhido] = useState<ProdutoResumo | null>(null);
   const vez = useRef(0);
 
-  // O pai limpa a linha (pedido enviado): volta ao vazio.
+  // O pai limpa a linha (pedido enviado): volta ao vazio. Só no modo pedido —
+  // no modo filtro o texto inicial vem do servidor e permanece.
   useEffect(() => {
-    if (!productId) {
+    if (onSelect && !productId) {
       vez.current++;
       setTexto("");
       setResultados([]);
@@ -40,7 +53,7 @@ export default function BuscaProduto({
       setAberta(false);
       setDestaque(-1);
     }
-  }, [productId]);
+  }, [productId, onSelect]);
 
   useEffect(() => {
     if (!texto.trim()) {
@@ -70,7 +83,8 @@ export default function BuscaProduto({
     setResultados([]);
     setAberta(false);
     setDestaque(-1);
-    onSelect(p.id);
+    if (onSelect) onSelect(p.id);
+    else aoConfirmar?.(p.name);
   }
 
   function limpar() {
@@ -80,15 +94,25 @@ export default function BuscaProduto({
     setResultados([]);
     setAberta(false);
     setDestaque(-1);
-    onSelect("");
+    if (onSelect) onSelect("");
+    else aoConfirmar?.("");
   }
 
   function aoDigitar(valor: string) {
+    const estavaVazio = texto === "";
     setTexto(valor);
     setAberta(true);
-    if (escolhido && valor !== escolhido.name) {
-      setEscolhido(null);
-      onSelect("");
+    if (onSelect) {
+      if (escolhido && valor !== escolhido.name) {
+        setEscolhido(null);
+        onSelect("");
+      }
+    } else if (valor === "" && !estavaVazio) {
+      // Campo apagado: volta à lista completa sem esperar seleção.
+      vez.current++;
+      setResultados([]);
+      setAberta(false);
+      aoConfirmar?.("");
     }
   }
 
@@ -106,6 +130,12 @@ export default function BuscaProduto({
       if (aberta && resultados.length > 0) {
         e.preventDefault();
         escolher(resultados[destaque >= 0 ? destaque : 0]);
+      } else if (!onSelect && texto.trim()) {
+        // Sem sugestão (ou lista fechada): filtra pelo texto digitado, como
+        // fazia o botão Buscar.
+        e.preventDefault();
+        setAberta(false);
+        aoConfirmar?.(texto.trim());
       }
     } else if (e.key === "Escape") {
       setAberta(false);
@@ -125,7 +155,7 @@ export default function BuscaProduto({
         aria-autocomplete="list"
         autoComplete="off"
         value={texto}
-        placeholder="Digite o nome do produto…"
+        placeholder={placeholder}
         onChange={(e) => aoDigitar(e.target.value)}
         onFocus={() => {
           if (texto.trim() && resultados.length > 0) setAberta(true);
