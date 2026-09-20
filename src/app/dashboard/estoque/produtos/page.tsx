@@ -23,12 +23,11 @@ function lerParametro(valor: string | string[] | undefined) {
   return Array.isArray(valor) ? valor[0] : valor;
 }
 
-function urlDaLista(ordem: Ordem | null, direcao: Direcao, pagina: number) {
+function urlDaLista(ordem: Ordem, direcao: Direcao, pagina: number, busca: string) {
   const params = new URLSearchParams();
-  if (ordem) {
-    params.set("ordem", ordem);
-    params.set("direcao", direcao);
-  }
+  params.set("ordem", ordem);
+  params.set("direcao", direcao);
+  if (busca) params.set("busca", busca);
   if (pagina > 1) params.set("pagina", String(pagina));
   const query = params.toString();
   return `/dashboard/estoque/produtos${query ? `?${query}` : ""}`;
@@ -54,11 +53,13 @@ function CabecalhoOrdenavel({
   coluna,
   ordem,
   direcao,
+  busca,
 }: {
   rotulo: string;
   coluna: Ordem;
-  ordem: Ordem | null;
+  ordem: Ordem;
   direcao: Direcao;
+  busca: string;
 }) {
   const ativa = ordem === coluna;
   // Primeiro clique ordena crescente; nos seguintes, alterna.
@@ -70,7 +71,7 @@ function CabecalhoOrdenavel({
       aria-sort={ativa ? (direcao === "asc" ? "ascending" : "descending") : "none"}
     >
       <Link
-        href={urlDaLista(coluna, proxima, 1)}
+        href={urlDaLista(coluna, proxima, 1, busca)}
         scroll={false}
         className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-[var(--text)] ${
           ativa ? "text-[var(--text)]" : ""
@@ -108,8 +109,12 @@ export default async function ProductsPage({
   await exigirPermissao("estoque", "products", "read");
 
   const ordemParam = lerParametro(searchParams.ordem);
-  const ordem = ORDENS.includes(ordemParam as Ordem) ? (ordemParam as Ordem) : null;
+  // Padrão: código crescente — é o que identifica o produto no dia a dia.
+  const ordem: Ordem = ORDENS.includes(ordemParam as Ordem)
+    ? (ordemParam as Ordem)
+    : "codigo";
   const direcao: Direcao = lerParametro(searchParams.direcao) === "desc" ? "desc" : "asc";
+  const busca = (lerParametro(searchParams.busca) ?? "").trim().slice(0, 60);
   const pagina = Math.max(1, Math.floor(Number(lerParametro(searchParams.pagina))) || 1);
   const crescente = direcao === "asc";
 
@@ -122,6 +127,12 @@ export default async function ProductsPage({
       { count: "exact" }
     )
     .eq("active", true);
+
+  if (busca) {
+    // `%` e `_` digitados valem como letra, não como coringa.
+    const termo = busca.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+    consulta = consulta.ilike("name", `%${termo}%`);
+  }
 
   switch (ordem) {
     case "codigo":
@@ -171,7 +182,7 @@ export default async function ProductsPage({
 
   // Página além da última (lista encolheu, link antigo): volta para a primeira.
   if (erroProdutos?.code === "PGRST103" && pagina > 1) {
-    redirect(urlDaLista(ordem, direcao, 1));
+    redirect(urlDaLista(ordem, direcao, 1, busca));
   }
   if (erroProdutos) {
     console.error("Falha ao listar produtos:", erroProdutos);
@@ -199,7 +210,44 @@ export default async function ProductsPage({
   return (
     <div>
       <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-[var(--text)]">Produtos</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <h1 className="text-2xl font-bold text-[var(--text)]">Produtos</h1>
+          <form
+            method="get"
+            action="/dashboard/estoque/produtos"
+            role="search"
+            className="flex items-center gap-2"
+          >
+            <input type="hidden" name="ordem" value={ordem} />
+            <input type="hidden" name="direcao" value={direcao} />
+            <label htmlFor="busca-produto" className="sr-only">
+              Pesquisar por nome do produto
+            </label>
+            <input
+              id="busca-produto"
+              type="search"
+              name="busca"
+              defaultValue={busca}
+              placeholder="Pesquisar por nome…"
+              maxLength={60}
+              className="w-56 rounded-lg border border-[var(--neo-line)] bg-[var(--neo-flat)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-[var(--neo-flat)] px-3 py-1.5 text-sm font-bold text-[var(--text)] hover:brightness-95"
+            >
+              Buscar
+            </button>
+            {busca && (
+              <Link
+                href={urlDaLista(ordem, direcao, 1, "")}
+                className="text-sm font-semibold text-[var(--text-muted)] hover:underline"
+              >
+                Limpar
+              </Link>
+            )}
+          </form>
+        </div>
         {canManage && (
           <Link
             href="/dashboard/estoque/produtos/new"
@@ -215,19 +263,19 @@ export default async function ProductsPage({
           <table className="w-full tabela-mobile">
             <thead className="bg-[var(--neo-flat)] border-b border-[var(--neo-line)]">
               <tr>
-                <CabecalhoOrdenavel rotulo="Código" coluna="codigo" ordem={ordem} direcao={direcao} />
+                <CabecalhoOrdenavel rotulo="Código" coluna="codigo" ordem={ordem} direcao={direcao} busca={busca} />
                 <th className={classeTh}>
                   Nome
                 </th>
-                <CabecalhoOrdenavel rotulo="Categoria" coluna="categoria" ordem={ordem} direcao={direcao} />
+                <CabecalhoOrdenavel rotulo="Categoria" coluna="categoria" ordem={ordem} direcao={direcao} busca={busca} />
                 <th className={classeTh}>
                   Quantidade
                 </th>
                 <th className={classeTh}>
                   Mínimo
                 </th>
-                <CabecalhoOrdenavel rotulo="Localização" coluna="localizacao" ordem={ordem} direcao={direcao} />
-                <CabecalhoOrdenavel rotulo="Status" coluna="status" ordem={ordem} direcao={direcao} />
+                <CabecalhoOrdenavel rotulo="Localização" coluna="localizacao" ordem={ordem} direcao={direcao} busca={busca} />
+                <CabecalhoOrdenavel rotulo="Status" coluna="status" ordem={ordem} direcao={direcao} busca={busca} />
                 {canManage && (
                   <th className={classeTh}>
                     Ações
@@ -296,6 +344,8 @@ export default async function ProductsPage({
                       <span className="text-[var(--erro-fg)]">
                         Não foi possível carregar os produtos: {erroProdutos.message}
                       </span>
+                    ) : busca ? (
+                      `Nenhum produto encontrado para “${busca}”.`
                     ) : (
                       "Nenhum produto cadastrado"
                     )}
@@ -318,7 +368,7 @@ export default async function ProductsPage({
             <nav aria-label="Paginação de produtos" className="flex flex-wrap items-center gap-1">
               {pagina > 1 ? (
                 <Link
-                  href={urlDaLista(ordem, direcao, pagina - 1)}
+                  href={urlDaLista(ordem, direcao, pagina - 1, busca)}
                   className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
                 >
                   ‹ Anterior
@@ -345,7 +395,7 @@ export default async function ProductsPage({
                 ) : (
                   <Link
                     key={p}
-                    href={urlDaLista(ordem, direcao, p)}
+                    href={urlDaLista(ordem, direcao, p, busca)}
                     className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
                   >
                     {p}
@@ -355,7 +405,7 @@ export default async function ProductsPage({
 
               {pagina < totalPaginas ? (
                 <Link
-                  href={urlDaLista(ordem, direcao, pagina + 1)}
+                  href={urlDaLista(ordem, direcao, pagina + 1, busca)}
                   className="rounded-full px-3 py-1.5 text-xs font-bold text-[var(--text)] hover:bg-[var(--neo-flat)]"
                 >
                   Próxima ›
