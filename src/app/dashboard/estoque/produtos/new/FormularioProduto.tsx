@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { atualizarProdutoCompleto } from "@/app/actions/produtos";
 import SuggestWithAi from "@/components/ai/SuggestWithAi";
 
 interface Opcao {
@@ -11,21 +12,38 @@ interface Opcao {
   name: string;
 }
 
-export default function FormularioProduto() {
+/** Produto carregado para alteração: todos os campos atuais, menos o código. */
+export interface ProdutoEmEdicao {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category_id: string | null;
+  categoria_nome: string | null;
+  unit: string;
+  quantity_current: number;
+  quantity_minimum: number;
+  location: string | null;
+  localizacao_nome: string | null;
+}
+
+export default function FormularioProduto({ produto }: { produto?: ProdutoEmEdicao }) {
+  const emEdicao = !!produto;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [salvo, setSalvo] = useState(false);
   const [categories, setCategories] = useState<Opcao[]>([]);
   const [locais, setLocais] = useState<Opcao[]>([]);
   const [itensPorLocal, setItensPorLocal] = useState<Record<string, string[]>>({});
   const [erroCarga, setErroCarga] = useState("");
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    category_id: "",
-    unit: "",
-    quantity_current: 0,
-    quantity_minimum: 0,
-    location_id: "",
+    name: produto?.name ?? "",
+    description: produto?.description ?? "",
+    category_id: produto?.category_id ?? "",
+    unit: produto?.unit ?? "",
+    quantity_current: produto?.quantity_current ?? 0,
+    quantity_minimum: produto?.quantity_minimum ?? 0,
+    location_id: produto?.location ?? "",
   });
 
   useEffect(() => {
@@ -67,6 +85,29 @@ export default function FormularioProduto() {
     ? itensPorLocal[formData.location_id] ?? []
     : [];
 
+  // Na alteração, a categoria/localização atual entra na lista mesmo inativa:
+  // sem ela o campo abriria mostrando outra opção como se fosse a do produto.
+  const categoriasDisponiveis =
+    produto?.category_id && !categories.some((c) => c.id === produto.category_id)
+      ? [
+          ...categories,
+          {
+            id: produto.category_id,
+            name: `${produto.categoria_nome ?? "Categoria"} (inativa)`,
+          },
+        ]
+      : categories;
+  const locaisDisponiveis =
+    produto?.location && !locais.some((l) => l.id === produto.location)
+      ? [
+          ...locais,
+          {
+            id: produto.location,
+            name: `${produto.localizacao_nome ?? "Localização"} (inativa)`,
+          },
+        ]
+      : locais;
+
   // Sem estes dois não existe produto: o nome o identifica, a unidade dá
   // sentido a qualquer quantidade. O código vem do banco (gatilho da 042).
   const podeSalvar =
@@ -76,6 +117,27 @@ export default function FormularioProduto() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+
+    // Alterar atualiza o registro que já existe — nunca cria outro.
+    if (emEdicao && produto) {
+      const res = await atualizarProdutoCompleto(produto.id, {
+        name: formData.name,
+        description: formData.description || null,
+        category_id: formData.category_id || null,
+        unit: formData.unit,
+        quantity_minimum: formData.quantity_minimum,
+        location: formData.location_id || null,
+      });
+      if (!res.ok) {
+        alert(res.message);
+        setLoading(false);
+        return;
+      }
+      setSalvo(true);
+      setLoading(false);
+      setTimeout(() => router.push("/dashboard/estoque/produtos"), 1500);
+      return;
+    }
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -106,13 +168,20 @@ export default function FormularioProduto() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">Novo Produto</h1>
+      <h1 className="text-2xl font-bold text-[var(--text)] mb-6">
+        {emEdicao ? "Alterar Produto" : "Novo Produto"}
+      </h1>
 
       <div className="bg-[var(--neo-bg)] rounded-xl shadow-sm p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           {erroCarga && (
             <p className="rounded-lg bg-[var(--erro-bg)] px-3 py-2 text-sm text-[var(--erro-fg)]">
               {erroCarga}
+            </p>
+          )}
+          {salvo && (
+            <p className="rounded-lg bg-[var(--ok-bg)] px-3 py-2 text-sm text-[var(--ok-fg)]">
+              Produto atualizado com sucesso. Voltando à lista…
             </p>
           )}
 
@@ -128,7 +197,7 @@ export default function FormularioProduto() {
               type="text"
               readOnly
               disabled
-              value="Gerado automaticamente ao salvar"
+              value={produto?.code ?? "Gerado automaticamente ao salvar"}
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-[var(--text-muted)] cursor-not-allowed"
             />
           </div>
@@ -191,13 +260,13 @@ export default function FormularioProduto() {
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             >
               <option value="">Selecione uma categoria</option>
-              {categories.map((cat) => (
+              {categoriasDisponiveis.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>
               ))}
             </select>
-            {categories.length === 0 && !erroCarga && (
+            {categoriasDisponiveis.length === 0 && !erroCarga && (
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 Nenhuma categoria ativa. Cadastre em{" "}
                 <Link href="/dashboard/estoque/categorias" className="text-[var(--primary)] hover:underline">
@@ -227,13 +296,36 @@ export default function FormularioProduto() {
               <label className="block text-sm font-medium text-[var(--text)] mb-1">
                 Quantidade Atual
               </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.quantity_current}
-                onChange={(e) => setFormData({ ...formData, quantity_current: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
-              />
+              {emEdicao ? (
+                <>
+                  <input
+                    type="number"
+                    readOnly
+                    disabled
+                    value={formData.quantity_current}
+                    aria-label="Quantidade atual (somente leitura)"
+                    className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg text-[var(--text-muted)] cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    A quantidade muda por movimentação, não aqui.{" "}
+                    <Link
+                      href={`/dashboard/estoque/movimentacoes/new?product=${produto?.id ?? ""}`}
+                      className="text-[var(--primary)] hover:underline"
+                    >
+                      Movimentar
+                    </Link>
+                    .
+                  </p>
+                </>
+              ) : (
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.quantity_current}
+                  onChange={(e) => setFormData({ ...formData, quantity_current: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
+                />
+              )}
             </div>
 
             <div>
@@ -264,13 +356,13 @@ export default function FormularioProduto() {
               className="w-full px-3 py-2 border border-[var(--neo-line)] rounded-lg focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
             >
               <option value="">Selecione uma localização</option>
-              {locais.map((l) => (
+              {locaisDisponiveis.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
                 </option>
               ))}
             </select>
-            {locais.length === 0 && !erroCarga && (
+            {locaisDisponiveis.length === 0 && !erroCarga && (
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 Nenhuma localização ativa. Cadastre em{" "}
                 <Link href="/dashboard/estoque/localizacoes" className="text-[var(--primary)] hover:underline">
@@ -305,7 +397,7 @@ export default function FormularioProduto() {
                 disabled={loading}
                 className="rounded-lg bg-[var(--primary)] px-6 py-2 text-[var(--on-accent)] transition-colors hover:brightness-110 disabled:opacity-60"
               >
-                {loading ? "Salvando..." : "Salvar Produto"}
+                {loading ? "Salvando..." : emEdicao ? "Salvar Alterações" : "Salvar Produto"}
               </button>
             ) : (
               <p className="rounded-lg bg-[var(--neo-flat)] px-4 py-2 text-xs text-[var(--text-muted)]">

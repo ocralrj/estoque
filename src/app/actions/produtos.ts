@@ -156,12 +156,24 @@ export async function definirLocalizacao(
 // recusa qualquer alteração. Ver 042_codigo_e_listagem_de_produtos.sql.
 
 /**
- * Troca o nome do produto. Só o nome: código é imutável, e categoria e
- * localização têm ações próprias na linha.
+ * Atualiza o cadastro completo do produto (tela "Alterar Produto").
+ *
+ * Nunca toca em `code` (imutável pelo gatilho da 042) nem em
+ * `quantity_current` (dono é o gatilho de movimentação — a quantidade muda por
+ * movimentação, não por edição de cadastro). Atualiza o registro existente.
  */
-export async function renomearProduto(
+export interface DadosDoProduto {
+  name: string;
+  description: string | null;
+  category_id: string | null;
+  unit: string;
+  quantity_minimum: number;
+  location: string | null;
+}
+
+export async function atualizarProdutoCompleto(
   produtoId: string,
-  nome: string
+  dados: DadosDoProduto
 ): Promise<Resultado> {
   const { supabase, user } = await getSession();
   if (!user) return { ok: false, message: "Não autenticado" };
@@ -169,16 +181,37 @@ export async function renomearProduto(
   const permitido = await exigir("estoque", "products", "update");
   if (!permitido.ok) return permitido;
 
-  const novo = nome.trim().slice(0, 120);
-  if (!novo) return { ok: false, message: "Dê um nome para o produto." };
+  const nome = dados.name.trim().slice(0, 120);
+  const unidade = dados.unit.trim().slice(0, 20);
+  if (!nome) return { ok: false, message: "Dê um nome para o produto." };
+  if (!unidade) return { ok: false, message: "Informe a unidade para continuar." };
+  if (!Number.isInteger(dados.quantity_minimum) || dados.quantity_minimum < 0) {
+    return { ok: false, message: "Quantidade mínima inválida." };
+  }
+
+  if (dados.category_id) {
+    const recusa = await recusaDeCadastro(supabase, "categories", dados.category_id);
+    if (recusa) return { ok: false, message: recusa };
+  }
+  if (dados.location) {
+    const recusa = await recusaDeCadastro(supabase, "locations", dados.location);
+    if (recusa) return { ok: false, message: recusa };
+  }
 
   const { error } = await supabase
     .from("products")
-    .update({ name: novo })
+    .update({
+      name: nome,
+      description: dados.description?.slice(0, 4000) || null,
+      category_id: dados.category_id,
+      unit: unidade,
+      quantity_minimum: dados.quantity_minimum,
+      location: dados.location,
+    })
     .eq("id", produtoId);
 
   if (error) {
-    console.error("Falha ao renomear produto:", error);
+    console.error("Falha ao atualizar produto:", error);
     return { ok: false, message: `Não foi possível salvar: ${error.message}` };
   }
 
