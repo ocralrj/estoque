@@ -163,10 +163,13 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
 - Módulo em `supabase/schema_tarefas.sql` (aplicar por último, depois de
   `schema_grupos_permissoes.sql` e de `_manual_apply/022`). A ordem completa
   está em `docs/APLICAR_SQL.md`.
-- Uma tarefa tem um responsável **pessoa `assigned_to` OU grupo
-  `assigned_group_id`**, prazo opcional e situação por trigger
-  (`tarefas_checa_transicao`): aberta → em andamento → concluída, com cancelar
-  e reabrir. `codigo` é TAR-AAAA-MM-DD-NNN gerado pelo trigger fallback.
+- Uma tarefa tem um responsável **pessoa `assigned_to`** (obrigatório),
+  prazo opcional e situação por trigger
+  (`tarefas_checa_transicao`): aguardando → em andamento → confirmação →
+  concluída, com cancelar e reabrir. `codigo` é TAR-AAAA-MM-DD-NNN gerado pelo trigger fallback.
+  Sem grupos: a coluna `assigned_group_id` foi removida do banco (migração
+  dentro de `schema_tarefas.sql`) e a UI pessoa-para-pessoa é a verdade —
+  não reintroduzir grupo sem migração + RLS.
 - RLS usa `public.gere_tarefas()` (super_admin/gestor/almoxarife) e
   `public.usuario_no_grupo(p_grupo)` — nunca consulta `profiles` direto na
   política. DELETE só para `gere_tarefas()`.
@@ -176,7 +179,7 @@ Especificação em `docs/neo-sistema-de-design.md`; CSS em `src/app/neo.css`.
   aplicar o schema é esperado e não pode derrubar o heartbeat.
 - Servidor → `src/app/actions/tarefas.ts` (padrão `Resultado`); tipos, rótulos
   e classes em `src/types/modules/tarefas.ts` (status/prioridade); páginas em
-  `src/app/dashboard/tarefas/*`. Atribuir pessoa ou grupo é perm das gestão —
+  `src/app/dashboard/tarefas/*`. Atribuir pessoa é perm das gestão —
   no formulário só aparece com `tarefas:tarefas:manage`.
 
 ## Rotina anti-pausa do Supabase
