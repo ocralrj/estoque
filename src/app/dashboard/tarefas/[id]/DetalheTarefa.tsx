@@ -42,14 +42,12 @@ export default function DetalheTarefa({
   coordena,
   participa,
   pessoas,
-  grupos,
 }: {
   tarefa: Tarefa;
   podeAtribuir: boolean;
   coordena: boolean;
   participa: boolean;
   pessoas: Nomeacao[];
-  grupos: Nomeacao[];
 }) {
   const router = useRouter();
   const { confirmar, Dialogo } = useConfirmacao();
@@ -61,11 +59,10 @@ export default function DetalheTarefa({
   const [descricao, setDescricao] = useState(tarefa.descricao ?? "");
   const [prioridade, setPrioridade] = useState<TarefaPrioridade>(tarefa.prioridade);
   const [prazo, setPrazo] = useState(tarefa.prazo ?? "");
-  const [destino, setDestino] = useState<"ninguem" | "pessoa" | "grupo">(() =>
-    tarefa.assigned_to_id ? "pessoa" : tarefa.assigned_group_id ? "grupo" : "ninguem"
+  const [destino, setDestino] = useState<"ninguem" | "pessoa">(() =>
+    tarefa.assigned_to ? "pessoa" : "ninguem"
   );
-  const [assignedTo, setAssignedTo] = useState(tarefa.assigned_to?.id ?? "");
-  const [assignedGroup, setAssignedGroup] = useState(tarefa.assigned_group?.id ?? "");
+  const [assignedTo, setAssignedTo] = useState(tarefa.assigned_to ?? "");
 
   const atrasada = tarefaAtrasada(tarefa);
 
@@ -117,9 +114,6 @@ export default function DetalheTarefa({
     if (destino === "pessoa" && assignedTo) {
       formData.set("assigned_to", assignedTo);
     }
-    if (destino === "grupo" && assignedGroup) {
-      formData.set("assigned_group_id", assignedGroup);
-    }
 
     iniciar(async () => {
       const res = await atualizarTarefa(tarefa.id, formData);
@@ -170,7 +164,7 @@ export default function DetalheTarefa({
   const AUTO: Partial<
     Record<TarefaStatus, { rotulo: string; proximo: TarefaStatus }>
   > = {
-    aberta: { rotulo: TAREFA_STATUS_LABELS.em_andamento, proximo: "em_andamento" },
+    aguardando: { rotulo: TAREFA_STATUS_LABELS.em_andamento, proximo: "em_andamento" },
     em_andamento: { rotulo: TAREFA_STATUS_LABELS.concluida, proximo: "concluida" },
   };
   const auto = AUTO[tarefa.status];
@@ -249,9 +243,8 @@ export default function DetalheTarefa({
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--text-muted)]">Responsável</span>
               <span className="text-sm font-medium text-[var(--text)]">
-                {tarefa.assigned_to?.full_name ||
-                  tarefa.assigned_to?.email ||
-                  tarefa.assigned_group?.name ||
+                {tarefa.executor?.full_name ||
+                  tarefa.executor?.email ||
                   "Não atribuída"}
               </span>
             </div>
@@ -396,7 +389,6 @@ export default function DetalheTarefa({
                       [
                         ["ninguem", "Ninguém", "Fica na fila"],
                         ["pessoa", "Uma pessoa", "Um responsável específico"],
-                        ["grupo", "Um grupo", "Quem estiver na área responde"],
                       ] as const
                     ).map(([valor, tituloOpcao, detalhe]) => (
                       <button
@@ -426,21 +418,6 @@ export default function DetalheTarefa({
                       {pessoas.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.nome}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  {destino === "grupo" && (
-                    <select
-                      value={assignedGroup}
-                      onChange={(e) => setAssignedGroup(e.target.value)}
-                      className="mt-3 w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
-                    >
-                      <option value="">Escolha o grupo</option>
-                      {grupos.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.nome}
                         </option>
                       ))}
                     </select>

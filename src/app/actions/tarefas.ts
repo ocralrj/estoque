@@ -246,11 +246,6 @@ export async function mudarStatusTarefa(
       message: "Apenas quem vai executar (ou a gestão) pode iniciar a tarefa.",
     };
   }
-  // Cancelar é de quem pediu ou do executor (recusa no encaminhamento).
-  if (proximo === "cancelada" && papel === "fora") {
-    return { ok: false, message: "Você não pode cancelar esta tarefa." };
-  }
-
   const { error } = await supabase
     .from("tarefas")
     .update({ status: proximo })

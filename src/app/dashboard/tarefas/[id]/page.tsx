@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { exigirPermissao, pode } from "@/lib/permissoes";
 import { requireSession } from "@/lib/auth";
 import DetalheTarefa, { type Nomeacao } from "./DetalheTarefa";
-import type { Tarefa, TarefaComentario } from "@/types/modules/tarefas";
+import type { Tarefa } from "@/types/modules/tarefas";
 
 /**
  * Detalhe de uma tarefa.
@@ -47,23 +47,11 @@ export default async function TarefaDetalhePage({
     t.created_by === user.id ||
     t.assigned_to === user.id;
 
-  const [{ data: pessoas }, { data: comentarios }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email")
-      .eq("active", true)
-      .order("full_name", { nullsFirst: false }),
-    supabase
-      .from("tarefa_comentarios")
-      .select(
-        `
-        *,
-        autor:profiles!tarefa_comentarios_autor_id_fkey(id, full_name, email)
-        `
-      )
-      .eq("tarefa_id", params.id)
-      .order("created_at", { ascending: true }),
-  ]);
+  const { data: pessoas } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("active", true)
+    .order("full_name", { nullsFirst: false });
 
   const nomeacoes: (p: {
     id: string;
@@ -78,11 +66,9 @@ export default async function TarefaDetalhePage({
     <DetalheTarefa
       tarefa={t}
       podeAtribuir={podeAtribuir}
+      coordena={podeAtribuir}
       participa={participa}
-      ehSuperAdmin={profile?.role === "super_admin"}
-      meuId={user.id}
       pessoas={(pessoas ?? []).map(nomeacoes)}
-      comentarios={(comentarios ?? []) as TarefaComentario[]}
     />
   );
 }

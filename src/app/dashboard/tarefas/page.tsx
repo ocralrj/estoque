@@ -90,8 +90,7 @@ export default async function TarefasPage() {
         tarefas={lista}
         comentariosPorTarefa={porTarefa}
         meuId={user.id}
-        papel={profile?.role ?? null}
-        podeCriar={podeCriar}
+        ehSuperAdmin={ehSuperAdmin}
       />
     </div>
   );

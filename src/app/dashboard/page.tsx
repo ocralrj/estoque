@@ -50,8 +50,8 @@ export default async function DashboardPage() {
   ]);
   const podeCriarTarefa = await pode("tarefas", "tarefas", "create");
 
-  // Quem coordena vê todas; os demais veem as que abriram, as que ficaram com
-  // elas e as do próprio grupo. O mesmo filtro vale para a contagem e a lista.
+  // Quem coordena vê todas; os demais veem as que abriram e as que ficaram
+  // com elas. O mesmo filtro vale para a contagem e a lista.
   const soMinhas = !isManager(profile?.role);
   const filtroTarefas = <
     Q extends { or: (corpo: string) => Q }
@@ -60,13 +60,9 @@ export default async function DashboardPage() {
   ) => {
     let query = q;
     if (soMinhas) {
-      const corpo = [
-        `created_by.eq.${user.id}`,
-        `assigned_to.eq.${user.id}`,
-        profile?.group_id ? `assigned_group_id.eq.${profile.group_id}` : null,
-      ]
-        .filter(Boolean)
-        .join(",");
+      const corpo = [`created_by.eq.${user.id}`, `assigned_to.eq.${user.id}`].join(
+        ","
+      );
       query = query.or(corpo);
     }
     return query;
@@ -79,11 +75,10 @@ export default async function DashboardPage() {
           .select(
             `
             *,
-            assigned_to:profiles!tarefas_assigned_to_fkey(id, full_name, email),
-            assigned_group:user_groups!tarefas_assigned_group_id_fkey(id, name)
+            executor:profiles!tarefas_assigned_to_fkey(id, full_name, email)
             `
           )
-          .in("status", ["aberta", "em_andamento"])
+          .in("status", ["aguardando", "em_andamento"])
           .order("prazo", { ascending: true, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(5)
@@ -96,7 +91,7 @@ export default async function DashboardPage() {
         supabase
           .from("tarefas")
           .select("*", { count: "exact", head: true })
-          .in("status", ["aberta", "em_andamento"])
+          .in("status", ["aguardando", "em_andamento"])
       )
     : { count: null };
   const tarefasCount = tarefasCountRaw ?? null;
@@ -213,10 +208,8 @@ export default async function DashboardPage() {
                             </p>
                             <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                               {tarefa.codigo}
-                              {tarefa.assigned_to?.full_name &&
-                                ` · ${tarefa.assigned_to.full_name}`}
-                              {tarefa.assigned_group?.name &&
-                                ` · ${tarefa.assigned_group.name}`}
+                              {tarefa.executor?.full_name &&
+                                ` · ${tarefa.executor.full_name}`}
                               {tarefa.prazo && (
                                 <span
                                   className={
