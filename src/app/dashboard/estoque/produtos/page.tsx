@@ -9,6 +9,7 @@ import {
   CelulaLocalizacao,
   type CadastroSimples,
 } from "./CamposEditaveis";
+import AcoesProduto from "./AcoesProduto";
 
 const POR_PAGINA = 50;
 
@@ -197,6 +198,20 @@ export default async function ProductsPage({
   // Editar na linha exige a permissão de alterar produto — a de movimentar não
   // basta: quem dá baixa não decide onde a coisa fica guardada.
   const podeEditar = await pode("estoque", "products", "update");
+  const podeExcluir = await pode("estoque", "products", "delete");
+  const mostraAcoes = canManage || podeEditar || podeExcluir;
+
+  // Quais produtos da página têm movimentação: para eles, excluir vira
+  // desativar (o histórico não pode ir junto). Toda sessão autenticada lê
+  // movimentações, então a contagem vale para qualquer papel.
+  const idsDaPagina = products.map((p) => p.id);
+  const { data: usosData } =
+    idsDaPagina.length > 0
+      ? await supabase.from("movements").select("product_id").in("product_id", idsDaPagina)
+      : { data: [] };
+  const emUsoPorProduto = new Set(
+    ((usosData as { product_id: string }[] | null) ?? []).map((m) => m.product_id)
+  );
 
   const locaisLista = ((locaisData as CadastroSimples[] | null) ?? []);
 
@@ -276,7 +291,7 @@ export default async function ProductsPage({
                 </th>
                 <CabecalhoOrdenavel rotulo="Localização" coluna="localizacao" ordem={ordem} direcao={direcao} busca={busca} />
                 <CabecalhoOrdenavel rotulo="Status" coluna="status" ordem={ordem} direcao={direcao} busca={busca} />
-                {canManage && (
+                {mostraAcoes && (
                   <th className={classeTh}>
                     Ações
                   </th>
@@ -325,21 +340,23 @@ export default async function ProductsPage({
                         <span className="neo-sit neo-sit--ok">Normal</span>
                       )}
                     </td>
-                    {canManage && (
+                    {mostraAcoes && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Link
-                          href={`/dashboard/estoque/movimentacoes/new?product=${product.id}`}
-                          className="text-[var(--primary)] hover:underline"
-                        >
-                          Movimentar
-                        </Link>
+                        <AcoesProduto
+                          produtoId={product.id}
+                          nome={product.name}
+                          podeMovimentar={canManage}
+                          podeEditar={podeEditar}
+                          podeExcluir={podeExcluir}
+                          emUso={emUsoPorProduto.has(product.id)}
+                        />
                       </td>
                     )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={canManage ? 8 : 7} className="px-6 py-4 text-center text-sm text-[var(--text-muted)]">
+                  <td colSpan={mostraAcoes ? 8 : 7} className="px-6 py-4 text-center text-sm text-[var(--text-muted)]">
                     {erroProdutos ? (
                       <span className="text-[var(--erro-fg)]">
                         Não foi possível carregar os produtos: {erroProdutos.message}

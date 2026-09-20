@@ -154,3 +154,87 @@ export async function definirLocalizacao(
 // Não existe ação para trocar o código: ele é gerado pelo banco no cadastro
 // (gatilho `products_gerar_codigo`) e o gatilho `products_codigo_imutavel`
 // recusa qualquer alteração. Ver 042_codigo_e_listagem_de_produtos.sql.
+
+/**
+ * Troca o nome do produto. Só o nome: código é imutável, e categoria e
+ * localização têm ações próprias na linha.
+ */
+export async function renomearProduto(
+  produtoId: string,
+  nome: string
+): Promise<Resultado> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("estoque", "products", "update");
+  if (!permitido.ok) return permitido;
+
+  const novo = nome.trim().slice(0, 120);
+  if (!novo) return { ok: false, message: "Dê um nome para o produto." };
+
+  const { error } = await supabase
+    .from("products")
+    .update({ name: novo })
+    .eq("id", produtoId);
+
+  if (error) {
+    console.error("Falha ao renomear produto:", error);
+    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
+  }
+
+  revalidar();
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Exclui o produto — ou o desativa, quando já tem movimentação.
+ *
+ * Apagar de verdade um produto com entrada/saída levaria o histórico junto
+ * (a chave de `movements` é em cascata). O que resolve o caso real — "não
+ * usamos mais isto" — é tirar da lista mantendo o rastro: `active = false`
+ * some da listagem (que só mostra ativos) sem apagar as movimentações.
+ */
+export async function excluirProduto(
+  produtoId: string
+): Promise<Resultado<{ desativado: boolean }>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("estoque", "products", "delete");
+  if (!permitido.ok) return permitido;
+
+  const { count, error: erroContagem } = await supabase
+    .from("movements")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", produtoId);
+
+  if (erroContagem) {
+    console.error("Falha ao conferir movimentações:", erroContagem);
+    return { ok: false, message: `Não foi possível excluir: ${erroContagem.message}` };
+  }
+
+  if ((count ?? 0) > 0) {
+    const { error } = await supabase
+      .from("products")
+      .update({ active: false })
+      .eq("id", produtoId);
+
+    if (error) {
+      console.error("Falha ao desativar produto:", error);
+      return { ok: false, message: `Não foi possível desativar: ${error.message}` };
+    }
+
+    revalidar();
+    return { ok: true, data: { desativado: true } };
+  }
+
+  const { error } = await supabase.from("products").delete().eq("id", produtoId);
+
+  if (error) {
+    console.error("Falha ao excluir produto:", error);
+    return { ok: false, message: `Não foi possível excluir: ${error.message}` };
+  }
+
+  revalidar();
+  return { ok: true, data: { desativado: false } };
+}
