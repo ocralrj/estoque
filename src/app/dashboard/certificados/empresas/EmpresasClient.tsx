@@ -14,6 +14,7 @@ import Tooltip from "@/components/ui/Tooltip";
 import { formatarCnpj } from "@/lib/cnpj";
 import { formatarCep } from "@/lib/empresas";
 import FormularioEmpresa from "./FormularioEmpresa";
+import HistoricoWebDaEmpresa from "./HistoricoWebDaEmpresa";
 import LogoDaEmpresa from "./LogoDaEmpresa";
 
 export interface PessoaSimples {
@@ -605,6 +606,8 @@ function VisualizacaoDaEmpresa({
             </div>
           ))}
       </dl>
+
+      {e.site && <HistoricoWebDaEmpresa site={e.site} />}
 
       <div className="flex flex-col-reverse gap-2 border-t border-[var(--stroke)] pt-4 sm:flex-row sm:justify-end">
         <button
