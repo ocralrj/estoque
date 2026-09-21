@@ -226,10 +226,13 @@ async function parsePDF(file: File): Promise<string[][]> {
   // (campos privados de classe, Promise.withResolvers etc.) que o webpack do
   // Next 14 não consegue parsear — o legacy é transpilado e compatible.
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
+  // O worker NÃO é embutido no bundle: um `new URL(..., import.meta.url)`
+  // faria o webpack emitir o worker como asset e o Terser quebraria ao
+  // minificá-lo (`import.meta` fora de módulo). Aponta para o CDN com a
+  // versão exata da lib instalada, que o `pdfjs.version` garante.
+  const versao = (pdfjs as { version?: string }).version ?? "6.3.289";
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${versao}/legacy/build/pdf.worker.min.mjs`;
   const buf = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data: buf }).promise;
   const linhas: string[][] = [];
