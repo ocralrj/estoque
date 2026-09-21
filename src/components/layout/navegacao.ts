@@ -86,6 +86,17 @@ const ITENS_DO_MENU: NavItem[] = [
     ],
   },
   {
+    label: "Contabilidade",
+    icone: "contabilidade",
+    permissao: "contabilidade:balancetes:read",
+    dica: "Análises de balancetes das empresas clientes",
+    termos: ["balancete", "balanço", "análise contábil", "resultado contábil"],
+    roles: GESTAO,
+    children: [
+      { href: "/dashboard/contabilidade/balancetes", label: "Balancetes", icone: "contabilidade", permissao: "contabilidade:balancetes:read", dica: "Análises processadas por empresa e período", termos: ["balancete", "análise"], roles: GESTAO },
+    ],
+  },
+  {
     label: "Estoque",
     icone: "estoque",
     permissao: "estoque:products:read",

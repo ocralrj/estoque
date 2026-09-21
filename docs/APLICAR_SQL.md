@@ -20,8 +20,9 @@ Para cada arquivo: abra-o, copie todo o conteúdo, cole no editor e clique em
 | 4 | `supabase/schema_sugestoes.sql` | `improvement_suggestions` (módulo "Sugerir uma melhoria") |
 | 5 | `supabase/schema_ged.sql` | Módulo GED: documentos, pastas, certificados, temporalidade e auditoria documental |
 | 6 | `supabase/schema_tarefas.sql` | Módulo de tarefas: `tarefas`, atribuição a pessoa ou grupo, situações, notificações, sweep diário de atrasadas e permissões `tarefas:*` |
+| 7 | `supabase/schema_contabilidade.sql` | Módulo Contabilidade: análises de balancetes (`analises_balancetes`, `balancete_contas`, `balancete_indicadores`, `balancete_resultado`), permissões `contabilidade:*` e RLS |
 
-A ordem importa: os schemas 2 a 6 referenciam `profiles`, criada no passo 1.
+A ordem importa: os schemas 2 a 7 referenciam `profiles`, criada no passo 1.
 `schema_tarefas.sql` depende ainda de `schema_grupos_permissoes.sql` (grupos e
 permissoes) e de `_manual_apply/022` (função `notificar` com destino).
 

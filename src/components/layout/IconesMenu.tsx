@@ -40,6 +40,8 @@ const TRACOS: Record<string, string> = {
   auditoria: "M12 3 4 6v6c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V6l-8-3Zm-3 8.6 2.2 2.2 4.3-4.3",
   tarefas:
     "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 4h12M5 12h12M5 16h8",
+  contabilidade:
+    "M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm0 4h12M9 12h.01M12 12h.01M15 12h.01M9 15.5h.01M12 15.5h.01M15 15.5h.01M9 19h6",
 };
 
 export type NomeDeIcone = keyof typeof TRACOS;

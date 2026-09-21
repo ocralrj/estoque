@@ -20,6 +20,7 @@ export const NOMES_DE_MODULO: Record<string, string> = {
   admin: "Administração",
   certificados: "Certificados",
   tarefas: "Tarefas",
+  contabilidade: "Contabilidade",
 };
 
 export const NOMES_DE_RECURSO: Record<string, string> = {
@@ -43,6 +44,7 @@ export const NOMES_DE_RECURSO: Record<string, string> = {
   permissions: "Permissões",
   departamentos: "Departamentos",
   tarefas: "Tarefas",
+  balancetes: "Balancetes",
 };
 
 /** Ordem em que as ações aparecem, do mais brando ao mais destrutivo. */
