@@ -30,6 +30,7 @@ type Linha = Certificado & {
   classe: string;
   telefone: string | null;
   email: string | null;
+  situacaoCadastral: string | null;
 };
 
 /**
@@ -81,6 +82,7 @@ function montarLinhas(
       classe: s.classe,
       telefone: emp?.telefone ?? null,
       email: emp?.email ?? null,
+      situacaoCadastral: emp?.situacao_cadastral ?? null,
     };
   });
 }
@@ -131,6 +133,12 @@ function Tabela({
                         {[c.telefone, c.email].filter(Boolean).join(" · ")}
                       </div>
                     )}
+                    {c.situacaoCadastral &&
+                      c.situacaoCadastral.toUpperCase() !== "ATIVA" && (
+                        <div className="text-xs font-bold text-[var(--erro-fg)]">
+                          Empresa {c.situacaoCadastral}
+                        </div>
+                      )}
                   </td>
                   <td>{c.tipo}</td>
                   <td>{formatDate(c.validade_fim)}</td>
