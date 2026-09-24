@@ -174,6 +174,10 @@ export default function FormularioEmpresa({
 
   const siteNormalizado = normalizarSite(campos.site);
   const siteInvalido = campos.site.trim().length > 0 && !siteValido(siteNormalizado);
+  // Situação negativa (Baixada, Suspensa…): o campo acende em vermelho.
+  const situacaoNegativa =
+    campos.situacaoCadastral.trim().length > 0 &&
+    campos.situacaoCadastral.trim().toUpperCase() !== "ATIVA";
   const trabalhandoNoSite =
     situacaoDoSite?.tipo === "procurando" || situacaoDoSite?.tipo === "lendo";
 
@@ -787,7 +791,12 @@ export default function FormularioEmpresa({
             id="empresa-situacao"
             value={campos.situacaoCadastral}
             onChange={(e) => set("situacaoCadastral", e.target.value)}
-            className={campo}
+            aria-invalid={situacaoNegativa}
+            className={`${campo} ${
+              situacaoNegativa
+                ? "border-[var(--erro-solid)] font-semibold text-[var(--erro-fg)]"
+                : ""
+            }`}
           />
         </div>
         <div className="sm:col-span-4">
