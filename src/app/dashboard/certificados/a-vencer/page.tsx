@@ -209,10 +209,13 @@ export default async function CertificadosAVencerPage({
   return (
     <div className="space-y-6">
       <style>{`@media print {
-        @page { margin: 12mm 10mm 18mm; }
+        /* Margem zero: sem ela o navegador imprime o próprio cabeçalho
+           (data, título) e rodapé (URL) em cada página. As margens voltam
+           como respiro do relatório. */
+        @page { size: auto; margin: 0; }
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; }
+        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 12mm 10mm 22mm; }
         .nao-imprimir { display: none !important; }
         .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
         .relatorio-impressao thead { display: table-header-group; }
@@ -220,7 +223,7 @@ export default async function CertificadosAVencerPage({
         .relatorio-impressao { color: #000; }
         .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
         .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
-        .rodape-impressao { position: fixed; bottom: 0; left: 0; right: 0; border: none; background: #fff; color: #000; }
+        .rodape-impressao { position: fixed; bottom: 10mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; }
         .rodape-impressao .pagina::after { content: "Página " counter(page) " de " counter(pages); }
       }`}</style>
 
