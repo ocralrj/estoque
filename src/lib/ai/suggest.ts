@@ -1,11 +1,10 @@
-import { getAiConfig } from "./config";
+import { getAiConfig, temAlgumaChaveIA } from "./config";
 import {
   PROMPT_VERSION,
   buildSystemPrompt,
   buildUserPrompt,
 } from "./prompt-templates";
-import { chatCompletion } from "./providers/openai-compatible";
-import { geminiChatCompletion } from "./providers/gemini";
+import { gerarTextoComRotacao } from "./rotacao";
 import { checkRateLimit } from "./rate-limit";
 import { parseAiSuggestionResponse } from "./validate";
 import type {
@@ -59,7 +58,7 @@ export async function runAiSuggestPipeline(
     };
   }
 
-  if (!config.enabled || !config.apiKey) {
+  if (!config.enabled || !temAlgumaChaveIA()) {
     if (allowFallback) {
       return {
         ok: true,
@@ -72,7 +71,7 @@ export async function runAiSuggestPipeline(
       ok: false,
       code: "NOT_CONFIGURED",
       message:
-        "Sugestões por IA não estão configuradas. Defina GEMINI_API_KEY no servidor (Google AI Studio).",
+        "Sugestões por IA não estão configuradas. Defina GEMINI_API_KEY ou OPENROUTER_API_KEY no servidor.",
     };
   }
 
@@ -98,10 +97,9 @@ export async function runAiSuggestPipeline(
       { role: "system" as const, content: system },
       { role: "user" as const, content: user },
     ];
-    const result =
-      config.provider === "gemini"
-        ? await geminiChatCompletion(config, messages)
-        : await chatCompletion(config, messages);
+    // Rotação com fallback automático (docs/IA_ROTACAO_GUIA.md): tenta os
+    // provedores/chaves/modelos em ordem e troca sozinho em 429/4xx/timeout.
+    const result = await gerarTextoComRotacao(config, messages);
 
     const validated = parseAiSuggestionResponse(result.content, {
       maxItems: n,
