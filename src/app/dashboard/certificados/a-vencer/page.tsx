@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/certificados";
 import { formatDate, formatDateTime } from "@/lib/labels";
 import BotaoImprimir from "./BotaoImprimir";
+import Tooltip from "@/components/ui/Tooltip";
 
 const MESES = [
   "janeiro",
@@ -233,7 +234,7 @@ export default async function CertificadosAVencerPage({
           </div>
         </div>
 
-        <div className="nao-imprimir flex flex-wrap items-center gap-3">
+        <div className="nao-imprimir flex flex-wrap items-end gap-3">
           <form method="get" className="flex flex-wrap items-end gap-3">
             <div>
               <label
@@ -275,20 +276,26 @@ export default async function CertificadosAVencerPage({
                 ))}
               </select>
             </div>
-            <button
-              type="submit"
+            <Tooltip texto="Aplica o mês e o ano escolhidos ao relatório" lado="cima">
+              <button
+                type="submit"
+                className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
+              >
+                Aplicar
+              </button>
+            </Tooltip>
+          </form>
+          <Tooltip texto="Abre a impressão só com o relatório (ou salvar como PDF)" lado="cima">
+            <BotaoImprimir />
+          </Tooltip>
+          <Tooltip texto="Volta para a lista completa de certificados" lado="cima">
+            <Link
+              href="/dashboard/certificados"
               className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
             >
-              Aplicar
-            </button>
-          </form>
-          <BotaoImprimir />
-          <Link
-            href="/dashboard/certificados"
-            className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
-          >
-            Ver todos
-          </Link>
+              Ver todos
+            </Link>
+          </Tooltip>
         </div>
 
         <p className="text-sm text-[var(--muted)]">
