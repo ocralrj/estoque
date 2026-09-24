@@ -82,8 +82,17 @@ const ITENS_DO_MENU: NavItem[] = [
     roles: ESTOQUE,
     children: [
       { href: "/dashboard/certificados", label: "Todos", icone: "certificados", permissao: "certificados:certificates:read", dica: "O acervo, ordenado pelo que vence primeiro", roles: ESTOQUE },
-      { href: "/dashboard/certificados/empresas", label: "Empresas", icone: "departamentos", permissao: "certificados:certificates:read", dica: "As empresas e quem cuida dos certificados de cada uma", termos: ["CNPJ", "clientes"], roles: ESTOQUE },
+      { href: "/dashboard/certificados/a-vencer", label: "A Vencer", icone: "alertas", permissao: "certificados:certificates:read", dica: "Relatório dos certificados vencidos e a vencer em até 90 dias", termos: ["vencendo", "vencido", "vencimento", "expirando", "prazo"], roles: ESTOQUE },
     ],
+  },
+  {
+    href: "/dashboard/certificados/empresas",
+    label: "Empresas",
+    icone: "departamentos",
+    permissao: "certificados:certificates:read",
+    dica: "As empresas e quem cuida dos certificados de cada uma",
+    termos: ["CNPJ", "cliente", "clientes", "empresa"],
+    roles: ESTOQUE,
   },
   {
     label: "Contabilidade",
