@@ -215,10 +215,10 @@ export default async function CertificadosAVencerPage({
         @page { size: auto; margin: 0; }
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 34mm 10mm 22mm; }
-        /* O timbre é fixo: o navegador o repete no topo de cada página. O
+        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 42mm 10mm 22mm; }
+        /* O cabeçalho é fixo: o navegador o repete no topo de cada página. O
            respiro acima compensa a saída dele do fluxo (só na impressão). */
-        .relatorio-impressao .timbre { position: fixed; top: 10mm; left: 10mm; right: 10mm; background: #fff; }
+        .relatorio-impressao .cabecalho-relatorio { position: fixed; top: 10mm; left: 10mm; right: 10mm; background: #fff; }
         .nao-imprimir { display: none !important; }
         .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
         .relatorio-impressao thead { display: table-header-group; }
@@ -231,19 +231,26 @@ export default async function CertificadosAVencerPage({
       }`}</style>
 
       <div className="relatorio-impressao space-y-6">
-        {/* Timbre do relatório impresso. */}
-        <div className="timbre flex items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text)]">
-              Certificados a vencer
-            </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Referência: {MESES[mes - 1]} de {ano} · Emitido em{" "}
-              {formatDateTime(new Date().toISOString())}
-            </p>
+        {/* Cabeçalho do relatório: timbre + resumo. Na impressão ele é fixo e
+            se repete no topo de todas as páginas. */}
+        <div className="cabecalho-relatorio space-y-3">
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text)]">
+                Certificados a vencer
+              </h1>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Referência: {MESES[mes - 1]} de {ano} · Emitido em{" "}
+                {formatDateTime(new Date().toISOString())}
+              </p>
+            </div>
           </div>
+          <p className="text-sm text-[var(--muted)]">
+            {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
+            dias, entre os certificados que você acompanha.
+          </p>
         </div>
 
         <div className="nao-imprimir flex flex-wrap items-end gap-3">
@@ -309,11 +316,6 @@ export default async function CertificadosAVencerPage({
             </Link>
           </Tooltip>
         </div>
-
-        <p className="text-sm text-[var(--muted)]">
-          {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
-          dias, entre os certificados que você acompanha.
-        </p>
 
         <Tabela
           titulo="Vencidos"
