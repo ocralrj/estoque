@@ -61,14 +61,23 @@ export function priorityLabel(priority: string): string {
   return PRIORITY_LABELS[priority] ?? priority;
 }
 
+/** Fuso oficial do sistema: São Paulo (Brasília). O servidor roda em UTC. */
+export const FUSO_SISTEMA = "America/Sao_Paulo";
+
+function comoData(value: string): Date {
+  // Data sem hora (AAAA-MM-DD) é meia-noite em UTC para o JS; sem o ajuste,
+  // o fuso de São Paulo a jogaria para o dia anterior.
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value + "T12:00:00") : new Date(value);
+}
+
 /** Data e hora no formato brasileiro, a partir de um timestamp do banco. */
 export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("pt-BR");
+  return comoData(value).toLocaleString("pt-BR", { timeZone: FUSO_SISTEMA });
 }
 
 /** Apenas a data, no formato brasileiro. */
 export function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("pt-BR");
+  return comoData(value).toLocaleDateString("pt-BR", { timeZone: FUSO_SISTEMA });
 }
 
 /** Situação da conta, como aparece na tela. */
