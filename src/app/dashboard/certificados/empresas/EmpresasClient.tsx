@@ -303,6 +303,14 @@ export default function EmpresasClient({
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {e.e_cliente && <span className={etiqueta}>Cliente</span>}
                       {e.e_fornecedor && <span className={etiqueta}>Fornecedor</span>}
+                      {e.situacao_cadastral &&
+                        (e.situacao_cadastral.toUpperCase() === "ATIVA" ? (
+                          <span className={etiqueta}>{e.situacao_cadastral}</span>
+                        ) : (
+                          <span className="rounded-full bg-[var(--erro-bg)] px-2.5 py-0.5 text-xs font-bold text-[var(--erro-fg)]">
+                            {e.situacao_cadastral}
+                          </span>
+                        ))}
                     </div>
                   </div>
                 </div>
