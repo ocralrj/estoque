@@ -7,9 +7,10 @@ import SuggestWithAi from "@/components/ai/SuggestWithAi";
 import { useConfirmacao } from "@/components/ui/Confirmacao";
 import { Button } from "@/components/ui";
 import { parseArquivo } from "@/lib/contabilidade/parse";
-import { classificarContas, composicao, gerarAnalise, moeda } from "@/lib/contabilidade/analise";
+import { classificarContas, composicao, gerarAnalise, moeda, montarEntradaAnalise } from "@/lib/contabilidade/analise";
 import type { AnaliseGerada, BalanceteExtraido } from "@/lib/contabilidade/tipos";
 import {
+  interpretarBalancete,
   registrarErroAnalise,
   salvarAnalise,
   type EmpresaCliente,
@@ -46,6 +47,9 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [resumo, setResumo] = useState("");
   const [iaUsada, setIaUsada] = useState(false);
+  const [interpretacao, setInterpretacao] = useState("");
+  const [modeloIa, setModeloIa] = useState<string | null>(null);
+  const [gerandoIa, setGerandoIa] = useState(false);
 
   function pegarArquivo(f: File | null) {
     setErro("");
@@ -123,11 +127,37 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
     }
   }
 
+  async function gerarInterpretacao() {
+    if (!previa || gerandoIa) return;
+    setErro("");
+    setGerandoIa(true);
+    try {
+      const entrada = montarEntradaAnalise(
+        previa.analise,
+        previa.empresaNome,
+        inicio,
+        fim
+      );
+      const res = await interpretarBalancete(entrada);
+      if (!res.ok) {
+        setErro(res.message);
+        return;
+      }
+      setInterpretacao(res.data.texto);
+      setModeloIa(res.data.modelo);
+    } catch {
+      setErro("Não foi possível gerar a interpretação agora. Tente novamente.");
+    } finally {
+      setGerandoIa(false);
+    }
+  }
+
   async function salvar() {
     if (!previa) return;
     setErro("");
     setSalvando(true);
     try {
+      const interpretacaoFinal = interpretacao.trim();
       const res = await salvarAnalise({
         empresaId,
         inicio,
@@ -153,7 +183,10 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
           recomendacoes: previa.analise.recomendacoes,
           documentos: previa.analise.documentos,
         },
-        iaUsada,
+        iaUsada: iaUsada || interpretacaoFinal.length > 0,
+        interpretacaoIa: interpretacaoFinal
+          ? { texto: interpretacaoFinal, modelo: modeloIa ?? "desconhecido" }
+          : null,
       });
       if (!res.ok) {
         setErro(res.message);
@@ -349,6 +382,58 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
             {iaUsada && (
               <p className="text-xs text-[var(--text-muted)]">
                 Resumo refinado com IA — revise antes de salvar.
+              </p>
+            )}
+          </div>
+
+          <div className="neo-card space-y-3 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-[var(--text)]">
+                Interpretação por IA
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={gerarInterpretacao}
+                  disabled={gerandoIa || salvando}
+                >
+                  {gerandoIa
+                    ? "Gerando…"
+                    : interpretacao
+                      ? "Regenerar"
+                      : "Gerar interpretação"}
+                </Button>
+                {interpretacao && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setInterpretacao("");
+                      setModeloIa(null);
+                    }}
+                    disabled={gerandoIa || salvando}
+                  >
+                    Descartar
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+              O Analista Financeiro e Contábil interpreta os números calculados
+              acima. Revise e edite à vontade — o texto aceito é salvo junto com
+              a análise.
+            </p>
+            <textarea
+              value={interpretacao}
+              onChange={(e) => setInterpretacao(e.target.value)}
+              rows={10}
+              placeholder="A interpretação gerada aparece aqui para revisão…"
+              className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+            />
+            {modeloIa && interpretacao && (
+              <p className="text-xs text-[var(--text-muted)]">
+                Gerada por {modeloIa} — revise antes de salvar.
               </p>
             )}
           </div>

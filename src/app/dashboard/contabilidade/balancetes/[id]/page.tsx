@@ -218,6 +218,18 @@ export default async function ResultadoBalancetePage({
         <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">{r.resumo}</p>
       </section>
 
+      {r.interpretacaoIa && (
+        <section className="neo-card border-l-4 border-l-[var(--ok-solid)] p-6">
+          <h2 className="text-lg font-bold text-[var(--text)]">Interpretação por IA</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Gerada por {r.interpretacaoIa.modelo} — texto revisável na origem, vale o que está gravado aqui.
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]">
+            {r.interpretacaoIa.texto}
+          </p>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {receitas > 0 && (
           <CartaoIndicador titulo="Receita" valor={brl(receitas)} dica="Soma das contas de receita no período." />

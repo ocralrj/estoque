@@ -94,6 +94,15 @@ create table if not exists public.balancete_resultado (
   created_at timestamptz not null default now()
 );
 
+-- Interpretação por IA (Analista Financeiro e Contábil): texto aceito na
+-- prévia, com modelo e versão do prompt para rastreabilidade.
+alter table public.balancete_resultado
+  add column if not exists interpretacao_ia text;
+alter table public.balancete_resultado
+  add column if not exists interpretacao_ia_modelo text;
+alter table public.balancete_resultado
+  add column if not exists interpretacao_ia_prompt text;
+
 -- ------------------------------------------------------------
 -- 5. Permissões do módulo (gestão concede ao grupo contábil depois)
 -- ------------------------------------------------------------

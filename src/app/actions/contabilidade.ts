@@ -3,8 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { exigir } from "@/lib/permissoes";
+import {
+  gerarInterpretacaoContabil,
+  PROMPT_ANALISE_CONTABIL_VERSION,
+} from "@/lib/ai/analise-contabil";
 import type {
   ContaClassificada,
+  EntradaAnaliseContabil,
   IndicadorCalculado,
 } from "@/lib/contabilidade/tipos";
 
@@ -132,6 +137,8 @@ export interface PayloadAnalise {
     documentos: { prioridade: string; item: string }[];
   };
   iaUsada: boolean;
+  /** Interpretação da IA aceita na prévia (opcional; exige a migração). */
+  interpretacaoIa?: { texto: string; modelo: string } | null;
 }
 
 async function confereEmpresa(
@@ -231,6 +238,13 @@ export async function salvarAnalise(payload: PayloadAnalise): Promise<Resultado<
   }
 
   const r = payload.resultado;
+  const interpretacao = payload.interpretacaoIa?.texto?.trim()
+    ? {
+        interpretacao_ia: payload.interpretacaoIa.texto.slice(0, 12000),
+        interpretacao_ia_modelo: payload.interpretacaoIa.modelo.slice(0, 120),
+        interpretacao_ia_prompt: PROMPT_ANALISE_CONTABIL_VERSION,
+      }
+    : {};
   const { error: erroRes } = await supabase.from("balancete_resultado").insert({
     analise_id: id,
     resumo_executivo: r.resumo,
@@ -243,11 +257,19 @@ export async function salvarAnalise(payload: PayloadAnalise): Promise<Resultado<
     nao_conclusivo: { pode: r.podeConcluir, naoPode: r.naoPodeConcluir },
     recomendacoes: r.recomendacoes,
     documentos_recomendados: r.documentos,
-    ia_usada: payload.iaUsada,
+    ia_usada: payload.iaUsada || Boolean(payload.interpretacaoIa?.texto?.trim()),
+    ...interpretacao,
   });
   if (erroRes) {
     console.error("Falha ao salvar relatório:", erroRes);
     await supabase.from("analises_balancetes").delete().eq("id", id);
+    if (erroRes.code === "42703") {
+      return {
+        ok: false,
+        message:
+          "Banco desatualizado para a interpretação por IA. Execute novamente supabase/schema_contabilidade.sql no SQL Editor.",
+      };
+    }
     return { ok: false, message: "Não foi possível salvar o relatório." };
   }
 
@@ -312,6 +334,7 @@ export interface AnaliseCompleta extends NovaAnalise {
     recomendacoes: string;
     documentos: { prioridade: string; item: string }[];
     ia_usada: boolean;
+    interpretacaoIa: { texto: string; modelo: string } | null;
   } | null;
 }
 
@@ -356,6 +379,8 @@ export async function obterAnalise(id: string): Promise<Resultado<AnaliseComplet
     recomendacoes: string;
     documentos_recomendados: { prioridade: string; item: string }[];
     ia_usada: boolean;
+    interpretacao_ia?: string | null;
+    interpretacao_ia_modelo?: string | null;
   } | null;
 
   return {
@@ -390,14 +415,46 @@ export async function obterAnalise(id: string): Promise<Resultado<AnaliseComplet
             recomendacoes: res.recomendacoes,
             documentos: res.documentos_recomendados ?? [],
             ia_usada: res.ia_usada,
+            interpretacaoIa: res.interpretacao_ia
+              ? {
+                  texto: res.interpretacao_ia,
+                  modelo: res.interpretacao_ia_modelo ?? "desconhecido",
+                }
+              : null,
           }
         : null,
     },
   };
 }
 
-export async function excluirAnalise(id: string): Promise<void> {
-  const { supabase, user } = await getSession();
+/**
+ * Interpretação do balancete pela IA (Analista Financeiro e Contábil).
+ *
+ * A IA recebe só os números já calculados e devolve texto para revisar: ela
+ * sugere, a pessoa decide. Não persiste nada — o aceite vai junto no salvar.
+ */
+export async function interpretarBalancete(
+  entrada: EntradaAnaliseContabil
+): Promise<Resultado<{ texto: string; modelo: string; prompt_version: string }>> {
+  const { user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("contabilidade", "balancetes", "create");
+  if (!permitido.ok) return permitido;
+
+  if (JSON.stringify(entrada).length > 20000) {
+    return { ok: false, message: "Dados extensos demais para interpretar." };
+  }
+
+  const res = await gerarInterpretacaoContabil(user.id, entrada);
+  if (!res.ok) return { ok: false, message: res.mensagem };
+  return {
+    ok: true,
+    data: { texto: res.texto, modelo: res.modelo, prompt_version: res.prompt_version },
+  };
+}
+
+export async function excluirAnalise(id: string): Promise<void> {  const { supabase, user } = await getSession();
   if (!user) throw new Error("Não autenticado");
 
   const permitido = await exigir("contabilidade", "balancetes", "delete");

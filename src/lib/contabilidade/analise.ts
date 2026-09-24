@@ -12,6 +12,7 @@ import type {
   ClassificacaoConta,
   ContaClassificada,
   ContaExtraida,
+  EntradaAnaliseContabil,
   IndicadorCalculado,
   PontoAtencao,
   TotaisBalancete,
@@ -287,6 +288,48 @@ export function calcularIndicadores(
   }
 
   return { indicadores: ind, base: { ac, anc, pc, pnc, pl, estoques, temCirculante } };
+}
+
+/** Monta a entrada do analista (IA) a partir dos números determinísticos. */
+export function montarEntradaAnalise(
+  analise: AnaliseGerada,
+  empresa: string,
+  periodoInicial: string,
+  periodoFinal: string
+): EntradaAnaliseContabil {
+  const t = analise.totais;
+  const c = composicao(analise.contas);
+  const num = (v: number) => (Number.isFinite(v) ? v : null);
+  return {
+    empresa,
+    periodo_inicial: periodoInicial,
+    periodo_final: periodoFinal,
+    ativo_total: num(t.ativo),
+    ativo_circulante: num(c.ac),
+    disponibilidades: num(c.disponivel),
+    estoques: num(c.estoques),
+    clientes: num(c.clientes),
+    passivo_circulante: num(c.pc),
+    passivo_nao_circulante: num(c.pnc),
+    patrimonio_liquido: num(t.patrimonioLiquido),
+    receita_bruta: null,
+    deducoes_receita: null,
+    receitas_periodo: num(t.receitas),
+    custos: num(t.custos),
+    despesas_operacionais: num(t.despesas),
+    despesas_financeiras: null,
+    receita_financeira: null,
+    indicadores: analise.indicadores.map((i) => ({
+      chave: i.chave,
+      rotulo: i.rotulo,
+      formula: i.formula,
+      valor: Number.isFinite(i.valor) ? i.valor : null,
+      limitacao: i.limitacao,
+    })),
+    pontos_atencao: analise.pontos.map((p) => ({ fato: p.fato, impacto: p.impacto })),
+    avisos_validacao: analise.avisosValidacao,
+    balancete_fechado: t.balanceado,
+  };
 }
 
 /** Monta o relatório completo a partir dos números. */
