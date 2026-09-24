@@ -215,7 +215,10 @@ export default async function CertificadosAVencerPage({
         @page { size: auto; margin: 0; }
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 12mm 10mm 22mm; }
+        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 34mm 10mm 22mm; }
+        /* O timbre é fixo: o navegador o repete no topo de cada página. O
+           respiro acima compensa a saída dele do fluxo (só na impressão). */
+        .relatorio-impressao .timbre { position: fixed; top: 10mm; left: 10mm; right: 10mm; background: #fff; }
         .nao-imprimir { display: none !important; }
         .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
         .relatorio-impressao thead { display: table-header-group; }
@@ -223,13 +226,13 @@ export default async function CertificadosAVencerPage({
         .relatorio-impressao { color: #000; }
         .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
         .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
-        .rodape-impressao { position: fixed; bottom: 10mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; }
+        .rodape-impressao { position: fixed; bottom: 10mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; text-align: right; }
         .rodape-impressao .pagina::after { content: "Página " counter(page) " de " counter(pages); }
       }`}</style>
 
       <div className="relatorio-impressao space-y-6">
         {/* Timbre do relatório impresso. */}
-        <div className="flex items-center gap-4">
+        <div className="timbre flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
           <div>
