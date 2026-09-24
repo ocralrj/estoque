@@ -9,6 +9,7 @@ import {
 import { formatDate, formatDateTime } from "@/lib/labels";
 import BotaoImprimir from "./BotaoImprimir";
 import Tooltip from "@/components/ui/Tooltip";
+import RodapeRelatorio from "@/components/relatorios/RodapeRelatorio";
 
 const MESES = [
   "janeiro",
@@ -208,14 +209,19 @@ export default async function CertificadosAVencerPage({
   return (
     <div className="space-y-6">
       <style>{`@media print {
+        @page { margin: 12mm 10mm 18mm; }
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
         .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; }
         .nao-imprimir { display: none !important; }
-        .relatorio-impressao .neo-card { box-shadow: none; border: 1px solid #999; }
+        .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
+        .relatorio-impressao thead { display: table-header-group; }
+        .relatorio-impressao tr { page-break-inside: avoid; }
         .relatorio-impressao { color: #000; }
         .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
         .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
+        .rodape-impressao { position: fixed; bottom: 0; left: 0; right: 0; border: none; background: #fff; color: #000; }
+        .rodape-impressao .pagina::after { content: "Página " counter(page) " de " counter(pages); }
       }`}</style>
 
       <div className="relatorio-impressao space-y-6">
@@ -313,6 +319,8 @@ export default async function CertificadosAVencerPage({
           linhas={aVencer}
           vazio="Nada vencendo nos 90 dias a partir da referência."
         />
+
+        <RodapeRelatorio />
       </div>
     </div>
   );

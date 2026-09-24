@@ -17,6 +17,7 @@ Next.js 14 (App Router) + Supabase (PostgreSQL) + TypeScript + Tailwind CSS. Dep
 - **Helpers compartilhados** (criados para acabar com a repetição de auth em cada página):
   - `@/lib/auth` → `requireSession(roles?)` para Server Components (redireciona), `getSession()` para Actions e Route Handlers (devolve `user: null`), mais `isManager`, `canManageStock`, `MANAGER_ROLES`, `STOCK_ROLES`.
   - `@/lib/labels` → rótulos e classes de badge (papéis, status e prioridade de protocolo) e `formatDate`/`formatDateTime`.
+  - **Todo relatório impresso (papel/PDF) termina com `<RodapeRelatorio>`** (`@/components/relatorios`): assinatura "Desenvolvido por www.icardcase.com.br | (21) 98878-5170" e contador de páginas, com o cabeçalho da tabela repetido em cada página e sem bordas na impressão.
   - `@/lib/codes` → `generateRecordCode("NUP" | "SUG")` para códigos legíveis de registro.
 
 ## Auth e permissões
