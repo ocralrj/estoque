@@ -48,8 +48,6 @@ function Tabela({ titulo, linhas, vazio }: { titulo: string; linhas: Linha[]; va
                 <th className="text-left">Titular</th>
                 <th className="text-left">Tipo</th>
                 <th className="text-left">Validade</th>
-                <th className="text-left">Telefone</th>
-                <th className="text-left">E-mail</th>
                 <th className="text-left">Situação</th>
               </tr>
             </thead>
@@ -64,11 +62,16 @@ function Tabela({ titulo, linhas, vazio }: { titulo: string; linhas: Linha[]; va
                       <div className="text-xs text-[var(--muted)]">{c.empresa.cnpj}</div>
                     )}
                   </td>
-                  <td>{c.titular}</td>
+                  <td>
+                    <div className="font-semibold text-[var(--text)]">{c.titular}</div>
+                    {(c.telefone || c.email) && (
+                      <div className="text-xs text-[var(--muted)]">
+                        {[c.telefone, c.email].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </td>
                   <td>{c.tipo}</td>
                   <td>{formatDate(c.validade_fim)}</td>
-                  <td>{c.telefone ?? "—"}</td>
-                  <td>{c.email ?? "—"}</td>
                   <td>
                     <span className={c.classe}>{c.situacao}</span>
                   </td>
