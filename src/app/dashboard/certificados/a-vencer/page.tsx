@@ -1,15 +1,35 @@
 import Link from "next/link";
 import { exigirPermissao } from "@/lib/permissoes";
-import { listarCertificados, type Certificado } from "@/app/actions/certificados";
+import {
+  listarCertificados,
+  listarEmpresas,
+  type Certificado,
+  type Empresa,
+} from "@/app/actions/certificados";
 import { situacaoDaValidade } from "@/lib/certificados/leitura";
 import { formatDate } from "@/lib/labels";
 
-type Linha = Certificado & { dias: number; situacao: string; classe: string };
+type Linha = Certificado & {
+  dias: number;
+  situacao: string;
+  classe: string;
+  telefone: string | null;
+  email: string | null;
+};
 
-function montarLinhas(certificados: Certificado[]): Linha[] {
+function montarLinhas(certificados: Certificado[], empresas: Empresa[]): Linha[] {
+  const porId = new Map(empresas.map((e) => [e.id, e]));
   return certificados.map((c) => {
     const s = situacaoDaValidade(c.validade_fim);
-    return { ...c, dias: s.dias, situacao: s.texto, classe: s.classe };
+    const emp = porId.get(c.empresa_id);
+    return {
+      ...c,
+      dias: s.dias,
+      situacao: s.texto,
+      classe: s.classe,
+      telefone: emp?.telefone ?? null,
+      email: emp?.email ?? null,
+    };
   });
 }
 
@@ -28,6 +48,8 @@ function Tabela({ titulo, linhas, vazio }: { titulo: string; linhas: Linha[]; va
                 <th className="text-left">Titular</th>
                 <th className="text-left">Tipo</th>
                 <th className="text-left">Validade</th>
+                <th className="text-left">Telefone</th>
+                <th className="text-left">E-mail</th>
                 <th className="text-left">Situação</th>
               </tr>
             </thead>
@@ -45,6 +67,8 @@ function Tabela({ titulo, linhas, vazio }: { titulo: string; linhas: Linha[]; va
                   <td>{c.titular}</td>
                   <td>{c.tipo}</td>
                   <td>{formatDate(c.validade_fim)}</td>
+                  <td>{c.telefone ?? "—"}</td>
+                  <td>{c.email ?? "—"}</td>
                   <td>
                     <span className={c.classe}>{c.situacao}</span>
                   </td>
@@ -61,21 +85,27 @@ function Tabela({ titulo, linhas, vazio }: { titulo: string; linhas: Linha[]; va
 export default async function CertificadosAVencerPage() {
   await exigirPermissao("certificados", "certificates", "read");
 
-  const resultado = await listarCertificados();
+  const [certificados, empresas] = await Promise.all([
+    listarCertificados(),
+    listarEmpresas(),
+  ]);
 
-  if (!resultado.ok) {
+  if (!certificados.ok) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-[var(--text)]">A vencer</h1>
         <p className="neo-card p-8 text-center text-sm text-[var(--danger)]">
-          {resultado.message}
+          {certificados.message}
         </p>
       </div>
     );
   }
 
   // Vencidos e a vencer em até 90 dias; o restante continua só em "Todos".
-  const relevantes = montarLinhas(resultado.data).filter((c) => c.dias <= 90);
+  const relevantes = montarLinhas(
+    certificados.data,
+    empresas.ok ? empresas.data : []
+  ).filter((c) => c.dias <= 90);
   const vencidos = relevantes.filter((c) => c.dias < 0);
   const aVencer = relevantes.filter((c) => c.dias >= 0);
 
