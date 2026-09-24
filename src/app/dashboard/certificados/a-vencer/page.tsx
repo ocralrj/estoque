@@ -209,15 +209,15 @@ export default async function CertificadosAVencerPage({
   return (
     <div className="space-y-6">
       <style>{`@media print {
-        /* Margem zero: sem ela o navegador imprime o próprio cabeçalho
-           (data, título) e rodapé (URL) em cada página. As margens voltam
-           como respiro do relatório. */
-        @page { size: auto; margin: 0; }
+        /* A margem é da página — vale em cada folha — e o cabeçalho fixo
+           mora nela: a continuação do relatório sempre começa abaixo dele.
+           Manter "Cabeçalhos e rodapés" DESMARCADO no diálogo de impressão,
+           senão o navegador usa essas margens para os dados dele. */
+        @page { size: auto; margin: 44mm 10mm 24mm; }
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 42mm 10mm 22mm; }
-        /* O cabeçalho é fixo: o navegador o repete no topo de cada página. O
-           respiro acima compensa a saída dele do fluxo (só na impressão). */
+        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+        /* O cabeçalho é fixo: o navegador o repete no topo de cada página. */
         .relatorio-impressao .cabecalho-relatorio { position: fixed; top: 10mm; left: 10mm; right: 10mm; background: #fff; }
         .nao-imprimir { display: none !important; }
         .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
@@ -226,7 +226,7 @@ export default async function CertificadosAVencerPage({
         .relatorio-impressao { color: #000; }
         .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
         .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
-        .rodape-impressao { position: fixed; bottom: 10mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; text-align: right; }
+        .rodape-impressao { position: fixed; bottom: 12mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; text-align: right; }
         .rodape-impressao .pagina::after { content: "Página " counter(page) " de " counter(pages); }
       }`}</style>
 
