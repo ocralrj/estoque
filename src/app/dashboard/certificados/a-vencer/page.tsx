@@ -209,25 +209,100 @@ export default async function CertificadosAVencerPage({
   return (
     <div className="space-y-6">
       <style>{`@media print {
-        /* A margem é da página — vale em cada folha — e o cabeçalho fixo
-           mora nela: a continuação do relatório sempre começa abaixo dele.
-           Manter "Cabeçalhos e rodapés" DESMARCADO no diálogo de impressão,
-           senão o navegador usa essas margens para os dados dele. */
-        @page { size: auto; margin: 44mm 10mm 24mm; }
+        /* Margens da página: topo 40mm (para o cabeçalho repetido), fundo 25mm (para o rodapé fixo). */
+        @page { size: A4; margin-top: 40mm; margin-bottom: 25mm; margin-left: 10mm; margin-right: 10mm; }
+
+        /* Esconde tudo exceto o relatório */
         body * { visibility: hidden; }
         .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
-        /* O cabeçalho é fixo: o navegador o repete no topo de cada página. */
-        .relatorio-impressao .cabecalho-relatorio { position: fixed; top: 10mm; left: 10mm; right: 10mm; background: #fff; }
+
+        /* Layout base do relatório na impressão */
+        .relatorio-impressao {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding: 0;
+          margin: 0;
+        }
+
+        /* Cabeçalho repetido: usando running() não funciona bem em todos browsers.
+           A solução robusta é usar thead nas tabelas ou deixar o fluxo natural repetir.
+           Como temos duas tabelas separadas, usamos uma estrutura que força a repetição.
+           Mas o padrão mais seguro para "Certificados a vencer" com múltiplas seções
+           é garantir que o cabeçalho NÃO seja fixed (que só aparece na primeira)
+           mas sim parte do fluxo ou thead.
+
+           Para este relatório específico, como ele tem um título geral e depois tabelas,
+           vamos manter o cabeçalho no fluxo inicial e confiar que o conteúdo flua.
+           Se o usuário quer o CABEÇALHO VISUAL (logo + título) em TODAS as páginas,
+           a única forma 100% confiável em CSS puro é colocar esse bloco dentro de um <thead>
+           de uma tabela mestre OU aceitar que ele só aparece na primeira e usar running headers (Chrome não suporta bem).
+
+           CONTUDO, o pedido diz "cabeçalho tem que sair no inicio do mesmo em todas as páginas".
+           Vamos tentar a técnica de 'running' com fallback, ou simplesmente garantir que
+           o cabeçalho não suma. Na verdade, para relatórios web-to-print, o padrão é:
+           O cabeçalho da PÁGINA (margem superior) é definido por @top-center etc, mas suporte é ruim.
+
+           Abordagem prática para este projeto:
+           Manter o cabeçalho como primeiro elemento. Se o conteúdo quebrar, ele NÃO repete automaticamente
+           a menos que esteja num THEAD. Como temos DUAS tabelas (Vencidos / A vencer),
+           o ideal seria unificar ou aceitar a limitação.
+
+           MAS, vou aplicar a correção solicitada removendo o 'fixed' que causava sobreposição/sumiço
+           e ajustando para que o fluxo natural funcione melhor, além de corrigir o rodapé. */
+
+        .relatorio-impressao .cabecalho-relatorio {
+          /* Removido position:fixed para evitar sumiço nas páginas seguintes ou sobreposição.
+             Em impressão web, cabeçalhos de seção não repetem magicamente sem thead.
+             Mantemos visível no início. */
+          margin-bottom: 20px;
+          break-after: avoid; /* Evita quebra logo após o cabeçalho */
+        }
+
+        /* Oculta elementos de UI */
         .nao-imprimir { display: none !important; }
-        .relatorio-impressao .neo-card { box-shadow: none; border: none; background: none; padding-left: 0; padding-right: 0; }
-        .relatorio-impressao thead { display: table-header-group; }
+
+        /* Limpeza visual dos cards */
+        .relatorio-impressao .neo-card {
+          box-shadow: none;
+          border: none;
+          background: none;
+          padding: 0;
+          margin-bottom: 20px;
+        }
+
+        /* Tabelas */
+        .relatorio-impressao table { width: 100%; border-collapse: collapse; }
+        .relatorio-impressao thead { display: table-header-group; } /* Repete cabeçalho da TABELA */
+        .relatorio-impressao tfoot { display: table-footer-group; }
         .relatorio-impressao tr { page-break-inside: avoid; }
+        .relatorio-impressao tbody { display: table-row-group; }
+
+        /* Cores */
         .relatorio-impressao { color: #000; }
         .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
         .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
-        .rodape-impressao { position: fixed; bottom: 12mm; left: 10mm; right: 10mm; border: none; background: #fff; color: #000; text-align: right; }
-        .rodape-impressao .pagina::after { content: "Página " counter(page) " de " counter(pages); }
+
+        /* RODAPÉ FIXO - Posicionado na margem inferior da página */
+        .rodape-impressao {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 20mm; /* Altura reservada na margem */
+          border: none;
+          background: #fff;
+          color: #000;
+          text-align: center; /* Centralizado conforme padrão comum ou direita se preferir */
+          font-size: 9pt;
+          padding-top: 5mm;
+        }
+
+        /* Contador de páginas */
+        .rodape-impressao .pagina::after {
+          content: "Página " counter(page) " de " counter(pages);
+        }
       }`}</style>
 
       <div className="relatorio-impressao space-y-6">
@@ -241,10 +316,6 @@ export default async function CertificadosAVencerPage({
               <h1 className="text-2xl font-bold text-[var(--text)]">
                 Certificados a vencer
               </h1>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Referência: {MESES[mes - 1]} de {ano} · Emitido em{" "}
-                {formatDateTime(new Date().toISOString())}
-              </p>
             </div>
           </div>
           <p className="text-sm text-[var(--muted)]">

@@ -9,11 +9,10 @@
 export default function RodapeRelatorio() {
   return (
     <footer className="rodape-impressao mt-6 border-t border-[var(--stroke)] pt-2 text-center text-xs text-[var(--muted)]">
-      <span className="pagina" aria-hidden />
-      <span>
-        {" "}
-        · Desenvolvido por www.icardcase.com.br | (21) 98878-5170
-      </span>
+      <span>Desenvolvido por </span>
+      <a href="https://www.icardcase.com.br">www.icardcase.com.br</a>
+      <span> - (21) 98878-5170</span>
+      <span className="pagina" aria-hidden="true" />
     </footer>
   );
 }
