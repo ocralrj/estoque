@@ -6,7 +6,7 @@ import {
   type Certificado,
   type Empresa,
 } from "@/app/actions/certificados";
-import { formatDate } from "@/lib/labels";
+import { formatDate, formatDateTime } from "@/lib/labels";
 import BotaoImprimir from "./BotaoImprimir";
 import Tooltip from "@/components/ui/Tooltip";
 import RodapeRelatorio from "@/components/relatorios/RodapeRelatorio";
@@ -208,17 +208,24 @@ export default async function CertificadosAVencerPage({
   const anos = [anoHoje - 2, anoHoje - 1, anoHoje, anoHoje + 1, anoHoje + 2, anoHoje + 3];
 
   return (
-    <div className="relatorio-impressao">
-      {/* Cabeçalho do relatório: repetido pelo navegador em cada página via CSS table-header-group */}
+    <div className="relatorio-impressao space-y-6">
+      {/* Cabeçalho do relatório: logo, referência, emissão e resumo.
+          Repetido em cada página pelo table-header-group do relatorio.css. */}
       <div className="cabecalho-relatorio">
-        <div className="cabecalho-relatorio-container">
+        <div className="flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_ocral.png" alt="OCRAL" />
+          <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
           <div>
-            <h1>Certificados a vencer</h1>
+            <h1 className="text-2xl font-bold text-[var(--text)]">
+              Certificados a vencer
+            </h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Referência: {MESES[mes - 1]} de {ano} · Emitido em{" "}
+              {formatDateTime(new Date().toISOString())}
+            </p>
           </div>
         </div>
-        <p className="text-sm text-[var(--muted)] nao-imprimir">
+        <p className="mt-3 text-sm text-[var(--muted)]">
           {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
           dias, entre os certificados que você acompanha.
         </p>

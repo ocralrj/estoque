@@ -1,9 +1,16 @@
-/* Estilos exclusivos para a tela Certificados a vencer — usados apenas na impressão/PDF */
+/* Impressão do relatório Certificados a vencer — fonte única do print.
+ *
+ * Técnica: grupos de tabela. O navegador repete table-header-group no topo
+ * de cada página e table-footer-group no rodapé, sem gambiarra de posição.
+ * A margem da página é zero para desligar o cabeçalho/rodapé automáticos do
+ * navegador (data, título, URL); o respiro volta como padding do relatório.
+ * Manter "Cabeçalhos e rodapés" DESMARCADO no diálogo de impressão.
+ */
 
 @media print {
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 0;
   }
 
   body * {
@@ -16,9 +23,10 @@
   }
 
   .relatorio-impressao {
+    display: table;
     width: 100%;
     margin: 0;
-    padding: 0;
+    padding: 12mm 10mm 18mm;
     color: #000;
   }
 
@@ -31,18 +39,26 @@
   }
 
   .cabecalho-relatorio img {
-    height: 25px;
+    height: 12mm;
     width: auto;
   }
 
   .cabecalho-relatorio h1 {
-    margin: 0 0 5px 0;
+    margin: 0;
     color: #000;
-    font-size: 14pt;
+    font-size: 16pt;
   }
 
   .conteudo-relatorio {
     display: table-row-group;
+  }
+
+  .relatorio-impressao .neo-card {
+    box-shadow: none;
+    border: 0;
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .relatorio-impressao table {
@@ -50,19 +66,30 @@
     border-collapse: collapse;
   }
 
+  .relatorio-impressao thead {
+    display: table-header-group;
+  }
+
   .relatorio-impressao tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .relatorio-impressao .text-\[var\(--text\)\] {
+    color: #000;
+  }
+
+  .relatorio-impressao .text-\[var\(--muted\)\] {
+    color: #444;
   }
 
   .rodape-impressao {
     display: table-footer-group;
     border-top: 1px solid #ccc;
     padding-top: 5px;
-    margin-top: 10px;
     color: #000;
     font-size: 8pt;
-    text-align: left;
+    text-align: right;
   }
 
   .rodape-impressao .pagina::after {
