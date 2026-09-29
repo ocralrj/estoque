@@ -1,0 +1,123 @@
+/* Estilos exclusivos para a tela Certificados a vencer — usados apenas na impressão/PDF */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 38mm 10mm 25mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .relatorio-impressao,
+  .relatorio-impressao * {
+    visibility: visible;
+  }
+
+  .relatorio-impressao {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    color: #000;
+  }
+
+  .nao-imprimir {
+    display: none !important;
+  }
+
+  /* Cabeçalho fixo repetido pelo navegador em cada página impressa */
+  .cabecalho-relatorio {
+    position: fixed;
+    top: -33mm;
+    left: 0;
+    right: 0;
+    height: 30mm;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    background: #fff;
+    z-index: 2;
+  }
+
+  .cabecalho-relatorio img {
+    height: 12mm;
+    width: auto;
+  }
+
+  .cabecalho-relatorio h1 {
+    margin: 0;
+    color: #000;
+    font-size: 16pt;
+  }
+
+  .cabecalho-relatorio p {
+    display: none !important;
+  }
+
+  /* Conteúdo principal — afastado do cabeçalho fixo */
+  .conteudo-relatorio {
+    margin-top: 34mm;
+  }
+
+  .relatorio-impressao .neo-card {
+    box-shadow: none;
+    border: 0;
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .relatorio-impressao table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .relatorio-impressao thead {
+    display: table-header-group;
+  }
+
+  .relatorio-impressao tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .relatorio-impressao h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .relatorio-impressao .text-\[var\(--text\)\] {
+    color: #000;
+  }
+
+  .relatorio-impressao .text-\[var\(--muted\)\] {
+    color: #444;
+  }
+
+  /* Rodapé fixo com contador de páginas */
+  .rodape-impressao {
+    position: fixed;
+    bottom: -22mm;
+    left: 0;
+    right: 0;
+    height: 16mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 2mm;
+    border: 0;
+    border-top: 1px solid #ccc;
+    background: #fff;
+    color: #000;
+    font-size: 8pt;
+    text-align: left;
+  }
+
+  .rodape-impressao .pagina::after {
+    content: "Página " counter(page) " de " counter(pages);
+  }
+}

@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/labels";
 import BotaoImprimir from "./BotaoImprimir";
 import Tooltip from "@/components/ui/Tooltip";
 import RodapeRelatorio from "@/components/relatorios/RodapeRelatorio";
+import "./relatorio.css";
 
 const MESES = [
   "janeiro",
@@ -207,171 +208,90 @@ export default async function CertificadosAVencerPage({
   const anos = [anoHoje - 2, anoHoje - 1, anoHoje, anoHoje + 1, anoHoje + 2, anoHoje + 3];
 
   return (
-    <div className="space-y-6">
-      <style>{`@media print {
-        @page { size: A4; margin: 38mm 10mm 25mm; }
-        body * { visibility: hidden; }
-        .relatorio-impressao, .relatorio-impressao * { visibility: visible; }
-        .relatorio-impressao {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-          color: #000;
-        }
-        .nao-imprimir { display: none !important; }
-
-        /* O cabeçalho fixo é repetido pelo navegador em cada página impressa. */
-        .cabecalho-relatorio {
-          position: fixed;
-          top: -33mm;
-          left: 0;
-          right: 0;
-          height: 30mm;
-          display: flex;
-          align-items: center;
-          margin: 0;
-          background: #fff;
-          z-index: 2;
-        }
-        .cabecalho-relatorio img { height: 12mm; width: auto; }
-        .cabecalho-relatorio h1 {
-          margin: 0;
-          color: #000;
-          font-size: 16pt;
-        }
-        .cabecalho-relatorio p { display: none !important; }
-
-        .relatorio-impressao .neo-card {
-          box-shadow: none;
-          border: 0;
-          background: transparent;
-          padding-left: 0;
-          padding-right: 0;
-        }
-        .relatorio-impressao table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .relatorio-impressao thead { display: table-header-group; }
-        .relatorio-impressao tr {
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-        .relatorio-impressao h2 {
-          break-after: avoid;
-          page-break-after: avoid;
-        }
-        .relatorio-impressao .text-\\[var\\(--text\\)\\] { color: #000; }
-        .relatorio-impressao .text-\\[var\\(--muted\\)\\] { color: #444; }
-
-        .rodape-impressao {
-          position: fixed;
-          bottom: -22mm;
-          left: 0;
-          right: 0;
-          height: 16mm;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 2mm;
-          border: 0;
-          border-top: 1px solid #ccc;
-          background: #fff;
-          color: #000;
-          font-size: 8pt;
-          text-align: left;
-        }
-        .rodape-impressao .pagina::after {
-          content: "Página " counter(page) " de " counter(pages);
-        }
-      }`}</style>
-
-      <div className="relatorio-impressao space-y-6">
-        {/* Cabeçalho do relatório: timbre + resumo. Na impressão ele é fixo e
-            se repete no topo de todas as páginas. */}
-        <div className="cabecalho-relatorio space-y-3">
-          <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--text)]">
-                Certificados a vencer
-              </h1>
-            </div>
+    <div className="relatorio-impressao space-y-6">
+      {/* Cabeçalho do relatório: timbre + resumo. Na impressão ele é fixo e
+          se repete no topo de todas as páginas. */}
+      <div className="cabecalho-relatorio space-y-3">
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text)]">
+              Certificados a vencer
+            </h1>
           </div>
-          <p className="text-sm text-[var(--muted)]">
-            {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
-            dias, entre os certificados que você acompanha.
-          </p>
         </div>
+        <p className="text-sm text-[var(--muted)]">
+          {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
+          dias, entre os certificados que você acompanha.
+        </p>
+      </div>
 
-        <div className="nao-imprimir flex flex-wrap items-end gap-3">
-          <form method="get" className="flex flex-wrap items-end gap-3">
-            <div>
-              <label
-                htmlFor="filtro-mes"
-                className="block text-xs font-bold text-[var(--muted)]"
-              >
-                Mês
-              </label>
-              <select
-                id="filtro-mes"
-                name="mes"
-                defaultValue={mes}
-                className="neo-input rounded-xl px-3 py-2 text-sm"
-              >
-                {MESES.map((nome, i) => (
-                  <option key={nome} value={i + 1}>
-                    {nome[0].toUpperCase() + nome.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="filtro-ano"
-                className="block text-xs font-bold text-[var(--muted)]"
-              >
-                Ano
-              </label>
-              <select
-                id="filtro-ano"
-                name="ano"
-                defaultValue={ano}
-                className="neo-input rounded-xl px-3 py-2 text-sm"
-              >
-                {anos.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Tooltip texto="Aplica o mês e o ano escolhidos ao relatório" lado="cima">
-              <button
-                type="submit"
-                className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
-              >
-                Aplicar
-              </button>
-            </Tooltip>
-          </form>
-          <Tooltip texto="Abre a impressão só com o relatório (ou salvar como PDF)" lado="cima">
-            <BotaoImprimir />
-          </Tooltip>
-          <Tooltip texto="Volta para a lista completa de certificados" lado="cima">
-            <Link
-              href="/dashboard/certificados"
+      <div className="nao-imprimir flex flex-wrap items-end gap-3">
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <div>
+            <label
+              htmlFor="filtro-mes"
+              className="block text-xs font-bold text-[var(--muted)]"
+            >
+              Mês
+            </label>
+            <select
+              id="filtro-mes"
+              name="mes"
+              defaultValue={mes}
+              className="neo-input rounded-xl px-3 py-2 text-sm"
+            >
+              {MESES.map((nome, i) => (
+                <option key={nome} value={i + 1}>
+                  {nome[0].toUpperCase() + nome.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="filtro-ano"
+              className="block text-xs font-bold text-[var(--muted)]"
+            >
+              Ano
+            </label>
+            <select
+              id="filtro-ano"
+              name="ano"
+              defaultValue={ano}
+              className="neo-input rounded-xl px-3 py-2 text-sm"
+            >
+              {anos.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Tooltip texto="Aplica o mês e o ano escolhidos ao relatório" lado="cima">
+            <button
+              type="submit"
               className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
             >
-              Ver todos
-            </Link>
+              Aplicar
+            </button>
           </Tooltip>
-        </div>
+        </form>
+        <Tooltip texto="Abre a impressão só com o relatório (ou salvar como PDF)" lado="cima">
+          <BotaoImprimir />
+        </Tooltip>
+        <Tooltip texto="Volta para a lista completa de certificados" lado="cima">
+          <Link
+            href="/dashboard/certificados"
+            className="neo-button rounded-full px-4 py-2 text-sm font-bold text-[var(--text)]"
+          >
+            Ver todos
+          </Link>
+        </Tooltip>
+      </div>
 
+      <div className="conteudo-relatorio space-y-6">
         <Tabela
           titulo="Vencidos"
           linhas={vencidos}
@@ -382,9 +302,9 @@ export default async function CertificadosAVencerPage({
           linhas={aVencer}
           vazio="Nada vencendo nos 90 dias a partir da referência."
         />
-
-        <RodapeRelatorio />
       </div>
+
+      <RodapeRelatorio />
     </div>
   );
 }
