@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { exigirPermissao } from "@/lib/permissoes";
-import { obterAnalise } from "@/app/actions/contabilidade";
+import { listarEvolucaoEmpresa, obterAnalise, type PontoEvolucao } from "@/app/actions/contabilidade";
 import Tooltip from "@/components/ui/Tooltip";
 import { formatDate, formatDateTime } from "@/lib/labels";
 import BotaoImprimir from "./BotaoImprimir";
@@ -105,6 +105,146 @@ function Barra({
     </div>
   );
 }
+function rotuloPeriodo(dataISO: string): string {
+  return `${dataISO.slice(5, 7)}/${dataISO.slice(2, 4)}`;
+}
+
+function compacto(v: number): string {
+  return v.toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+}
+
+/**
+ * Receitas × resultado por período (barras agrupadas, SVG próprio).
+ * Só números determinísticos: a IA nunca alimenta gráfico.
+ */
+function BarrasEvolucao({ pontos }: { pontos: PontoEvolucao[] }) {
+  const lista = pontos.slice(-8);
+  const W = 640;
+  const H = 240;
+  const base = 200;
+  const teto = 16;
+  const maxAbs = Math.max(1, ...lista.flatMap((p) => [Math.abs(p.receitas), Math.abs(p.resultado)]));
+  const escala = (base - teto) / maxAbs;
+  const passo = W / lista.length;
+  const larg = Math.min(34, passo / 3);
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Receitas e resultado por período">
+        <line x1="0" y1={base} x2={W} y2={base} stroke="var(--neo-line)" strokeWidth="1" />
+        {lista.map((p, i) => {
+          const cx = passo * i + passo / 2;
+          const hRec = Math.max(1, Math.abs(p.receitas) * escala);
+          const hRes = Math.max(1, Math.abs(p.resultado) * escala);
+          return (
+            <g key={p.id}>
+              <rect x={cx - larg - 2} y={p.receitas >= 0 ? base - hRec : base} width={larg} height={hRec} fill="var(--primary)" rx="3">
+                <title>{`Receita ${rotuloPeriodo(p.periodo_fim)}: ${brl(p.receitas)}`}</title>
+              </rect>
+              <rect
+                x={cx + 2}
+                y={p.resultado >= 0 ? base - hRes : base}
+                width={larg}
+                height={hRes}
+                fill={p.resultado >= 0 ? "var(--ok-solid)" : "var(--erro-solid)"}
+                rx="3"
+              >
+                <title>{`Resultado ${rotuloPeriodo(p.periodo_fim)}: ${brl(p.resultado)}`}</title>
+              </rect>
+              <text x={cx} y={H - 2} textAnchor="middle" fontSize="12" fill="var(--text-muted)">
+                {rotuloPeriodo(p.periodo_fim)}
+              </text>
+            </g>
+          );
+        })}
+        <text x="2" y={teto} fontSize="11" fill="var(--text-muted)">{compacto(maxAbs)}</text>
+        <text x="2" y={base - 4} fontSize="11" fill="var(--text-muted)">0</text>
+      </svg>
+      <div className="mt-2 flex flex-wrap gap-4 text-xs text-[var(--text-muted)]">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "var(--primary)" }} aria-hidden /> Receitas
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm" style={{ background: "var(--ok-solid)" }} aria-hidden /> Resultado (verde = lucro, vermelho = prejuízo)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Liquidez corrente por período, com linha de referência em 1,00. */
+function LinhaLiquidez({ pontos }: { pontos: PontoEvolucao[] }) {
+  const comIndice = pontos.slice(-8).filter((p) => p.liquidez_corrente !== null);
+  if (comIndice.length < 2) return null;
+  const W = 640;
+  const H = 200;
+  const margem = { topo: 16, base: 28, lat: 44 };
+  const vals = [...comIndice.map((p) => p.liquidez_corrente as number), 1];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const folga = Math.max(0.1, (max - min) * 0.2);
+  const lo = min - folga;
+  const hi = max + folga;
+  const x = (i: number) =>
+    comIndice.length === 1
+      ? W / 2
+      : margem.lat + (i * (W - margem.lat * 2)) / (comIndice.length - 1);
+  const y = (v: number) =>
+    margem.topo + (1 - (v - lo) / (hi - lo)) * (H - margem.topo - margem.base);
+  const trilha = comIndice.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(p.liquidez_corrente as number)}`).join(" ");
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Liquidez corrente por período">
+        <line x1={margem.lat} y1={y(1)} x2={W - margem.lat} y2={y(1)} stroke="var(--erro-solid)" strokeWidth="1" strokeDasharray="5 4" />
+        <text x={W - margem.lat + 4} y={y(1) + 4} fontSize="11" fill="var(--erro-solid)">1,00</text>
+        <path d={trilha} fill="none" stroke="var(--primary)" strokeWidth="2.5" />
+        {comIndice.map((p, i) => (
+          <g key={p.id}>
+            <circle cx={x(i)} cy={y(p.liquidez_corrente as number)} r="4" fill="var(--primary)">
+              <title>{`Liquidez ${rotuloPeriodo(p.periodo_fim)}: ${num2(p.liquidez_corrente as number)}`}</title>
+            </circle>
+            <text x={x(i)} y={H - 8} textAnchor="middle" fontSize="12" fill="var(--text-muted)">
+              {rotuloPeriodo(p.periodo_fim)}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">
+        Linha tracejada em 1,00: abaixo dela, as obrigações de curto prazo superam os recursos curtos.
+      </p>
+    </div>
+  );
+}
+
+/** Composição do financiamento em barra 100%: curto, longo e próprio. */
+function BarraFinanciamento({ pc, pnc, pl }: { pc: number; pnc: number; pl: number }) {
+  const total = pc + pnc + Math.max(0, pl);
+  if (total <= 0) return null;
+  const fatias = [
+    { rotulo: "Curto prazo", valor: pc, cor: "var(--primary)" },
+    { rotulo: "Longo prazo", valor: pnc, cor: "var(--text-muted)" },
+    { rotulo: "Patrimônio líquido", valor: Math.max(0, pl), cor: "var(--ok-solid)" },
+  ];
+  return (
+    <div>
+      <div className="flex h-4 w-full overflow-hidden rounded-full bg-[var(--neo-flat)]" role="img" aria-label="Composição do financiamento">
+        {fatias.map((f) => (
+          <div key={f.rotulo} style={{ width: `${(f.valor / total) * 100}%`, background: f.cor }} title={`${f.rotulo}: ${brl(f.valor)}`} />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-4 text-xs text-[var(--text-muted)]">
+        {fatias.map((f) => (
+          <span key={f.rotulo} className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: f.cor }} aria-hidden />
+            {f.rotulo} — <strong className="text-[var(--text)]">{pct1(total > 0 ? f.valor / total : 0)}</strong>
+          </span>
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">
+        De onde vem cada R$ 100,00 que financia a empresa: dívida curta, dívida longa e capital próprio.
+      </p>
+    </div>
+  );
+}
 
 function CartaoIndicador({
   titulo,
@@ -182,6 +322,9 @@ export default async function ResultadoBalancetePage({
     .slice(0, 12);
   const baseGrupo = (cl: string) =>
     cl === "ativo" ? ativo : cl === "receita" ? receitas : passivo + pl;
+
+  const evolucao = await listarEvolucaoEmpresa(a.empresa_id);
+  const pontos = evolucao.ok ? evolucao.data : [];
 
   return (
     <div className="space-y-6">
@@ -284,9 +427,34 @@ export default async function ResultadoBalancetePage({
         )}
       </div>
 
+      {pontos.length >= 2 && (
+        <section className="neo-card space-y-6 p-6">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--text)]">Evolução entre períodos</h2>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              Análise horizontal: a direção dos últimos períodos vale mais que o número isolado deste mês.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-bold text-[var(--text)]">Receitas × resultado</h3>
+            <BarrasEvolucao pontos={pontos} />
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Barra final verde é lucro; vermelha é prejuízo. Compare a altura das receitas com a do resultado.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-bold text-[var(--text)]">Liquidez corrente</h3>
+            <LinhaLiquidez pontos={pontos} />
+          </div>
+        </section>
+      )}
+
       {(ac + anc > 0 || passivo + pl > 0) && (
         <section className="neo-card p-6">
-          <h2 className="mb-4 text-lg font-bold text-[var(--text)]">Estrutura Patrimonial</h2>
+          <h2 className="mb-1 text-lg font-bold text-[var(--text)]">Estrutura Patrimonial</h2>
+          <p className="mb-4 text-sm text-[var(--text-muted)]">
+            Como o dinheiro está dividido. O ideal varia por setor — o que manda é a mudança entre períodos, na evolução acima.
+          </p>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {ac + anc > 0 && (
               <div>
@@ -320,6 +488,9 @@ export default async function ResultadoBalancetePage({
       {temMovimento && (
         <section className="neo-card space-y-3 p-6">
           <h2 className="text-lg font-bold text-[var(--text)]">Resultado</h2>
+          <p className="text-sm text-[var(--text-muted)]">
+            Da receita saem custos e despesas. Barra final verde é lucro; vermelha, prejuízo — que corrói o patrimônio se repetir.
+          </p>
           <Barra rotulo="Receita" valor={receitas} referencia={receitas} cor="var(--primary)" />
           <Barra rotulo="(−) Custos" valor={custos} referencia={receitas} cor="var(--text-muted)" />
           <Barra rotulo="(−) Despesas" valor={despesas} referencia={receitas} cor="var(--text-muted)" />
@@ -335,6 +506,9 @@ export default async function ResultadoBalancetePage({
 
       <section className="neo-card space-y-4 p-6">
         <h2 className="text-lg font-bold text-[var(--text)]">Indicadores de Liquidez</h2>
+        <p className="text-sm text-[var(--text-muted)]">
+          Quanto a empresa tem para cada R$ 1,00 de obrigação. Índice isolado não carimba saúde: prazos de recebimento e pagamento decidem o caixa.
+        </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {(["liquidez_corrente", "liquidez_seca", "liquidez_geral"] as const).map((chave) => {
             const item = ind(chave);
@@ -363,6 +537,7 @@ export default async function ResultadoBalancetePage({
 
       <section className="neo-card space-y-3 p-6">
         <h2 className="text-lg font-bold text-[var(--text)]">Estrutura de Endividamento</h2>
+        <BarraFinanciamento pc={pc} pnc={pnc} pl={pl} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="neo-flat rounded-2xl p-4">
             <p className="text-sm text-[var(--text-muted)]">Curto prazo</p>

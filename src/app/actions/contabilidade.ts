@@ -454,6 +454,68 @@ export async function interpretarBalancete(
   };
 }
 
+/** Evolução temporal da empresa: períodos processados com números-chave. */
+export interface PontoEvolucao {
+  id: string;
+  periodo_fim: string;
+  receitas: number;
+  resultado: number;
+  ativo: number;
+  liquidez_corrente: number | null;
+  endividamento: number | null;
+}
+
+export async function listarEvolucaoEmpresa(
+  empresaId: string
+): Promise<Resultado<PontoEvolucao[]>> {
+  const { supabase, user } = await getSession();
+  if (!user) return { ok: false, message: "Não autenticado" };
+
+  const permitido = await exigir("contabilidade", "balancetes", "read");
+  if (!permitido.ok) return permitido;
+
+  const { data: analises, error } = await supabase
+    .from("analises_balancetes")
+    .select("id, periodo_fim, totais")
+    .eq("empresa_id", empresaId)
+    .eq("status", "processado")
+    .order("periodo_fim", { ascending: true })
+    .limit(12);
+  if (error) {
+    if (faltaMigracao(error.code)) return { ok: false, message: AVISO_MIGRACAO };
+    return { ok: false, message: "Não foi possível carregar a evolução." };
+  }
+  const lista = (analises ?? []) as { id: string; periodo_fim: string; totais: Record<string, number> }[];
+  if (lista.length === 0) return { ok: true, data: [] };
+
+  const { data: inds } = await supabase
+    .from("balancete_indicadores")
+    .select("analise_id, chave, valor")
+    .in("analise_id", lista.map((a) => a.id))
+    .in("chave", ["liquidez_corrente", "endividamento_total"]);
+  const porAnalise = new Map<string, { lc: number | null; end: number | null }>();
+  for (const i of (inds ?? []) as { analise_id: string; chave: string; valor: number | null }[]) {
+    const atual = porAnalise.get(i.analise_id) ?? { lc: null, end: null };
+    if (i.chave === "liquidez_corrente") atual.lc = typeof i.valor === "number" ? i.valor : null;
+    if (i.chave === "endividamento_total") atual.end = typeof i.valor === "number" ? i.valor : null;
+    porAnalise.set(i.analise_id, atual);
+  }
+
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    ok: true,
+    data: lista.map((a) => ({
+      id: a.id,
+      periodo_fim: a.periodo_fim,
+      receitas: num(a.totais?.receitas),
+      resultado: num(a.totais?.resultado),
+      ativo: num(a.totais?.ativo),
+      liquidez_corrente: porAnalise.get(a.id)?.lc ?? null,
+      endividamento: porAnalise.get(a.id)?.end ?? null,
+    })),
+  };
+}
+
 export async function excluirAnalise(id: string): Promise<void> {  const { supabase, user } = await getSession();
   if (!user) throw new Error("Não autenticado");
 
