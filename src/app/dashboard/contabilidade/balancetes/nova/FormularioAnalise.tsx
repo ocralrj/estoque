@@ -50,6 +50,7 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
   const [interpretacao, setInterpretacao] = useState("");
   const [modeloIa, setModeloIa] = useState<string | null>(null);
   const [gerandoIa, setGerandoIa] = useState(false);
+  const [tentativaIa, setTentativaIa] = useState(0);
 
   function pegarArquivo(f: File | null) {
     setErro("");
@@ -138,17 +139,30 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
         inicio,
         fim
       );
-      const res = await interpretarBalancete(entrada);
-      if (!res.ok) {
-        setErro(res.message);
-        return;
+      // A rotação pune quem falhou (4xx/429), então cada tentativa automática
+      // pega o próximo provedor livre — insistir aqui não repete o mesmo.
+      // Limite de 3: além disso é martelar provedor fora do ar.
+      const MAX_TENTATIVAS = 3;
+      let ultimoErro = "";
+      for (let t = 1; t <= MAX_TENTATIVAS; t++) {
+        setTentativaIa(t);
+        const res = await interpretarBalancete(entrada);
+        if (res.ok) {
+          setInterpretacao(res.data.texto);
+          setModeloIa(res.data.modelo);
+          return;
+        }
+        ultimoErro = res.message;
+        if (t < MAX_TENTATIVAS) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
       }
-      setInterpretacao(res.data.texto);
-      setModeloIa(res.data.modelo);
+      setErro(`${ultimoErro} (após ${MAX_TENTATIVAS} tentativas automáticas)`);
     } catch {
       setErro("Não foi possível gerar a interpretação agora. Tente novamente.");
     } finally {
       setGerandoIa(false);
+      setTentativaIa(0);
     }
   }
 
@@ -399,7 +413,7 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
                   disabled={gerandoIa || salvando}
                 >
                   {gerandoIa
-                    ? "Gerando…"
+                    ? `Gerando… tentativa ${tentativaIa}/3`
                     : interpretacao
                       ? "Regenerar"
                       : "Gerar interpretação"}
@@ -421,8 +435,8 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
             </div>
             <p className="text-sm text-[var(--text-muted)]">
               O Analista Financeiro e Contábil interpreta os números calculados
-              acima. Revise e edite à vontade — o texto aceito é salvo junto com
-              a análise.
+              acima, trocando de provedor sozinho se um falhar. Revise e edite
+              à vontade — o texto aceito é salvo junto com a análise.
             </p>
             <textarea
               value={interpretacao}
