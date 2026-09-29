@@ -10,7 +10,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 0;
+    margin: 10mm;
   }
 
   body * {
@@ -26,7 +26,7 @@
     display: table;
     width: 100%;
     margin: 0;
-    padding: 12mm 10mm 18mm;
+    padding: 0;
     color: #000;
   }
 
@@ -38,56 +38,29 @@
     display: table-header-group;
   }
 
+  .cabecalho-relatorio > div {
+    padding-bottom: 10mm;
+  }
+
   .cabecalho-relatorio img {
-    height: 12mm;
+    height: 8mm;
     width: auto;
+    vertical-align: middle;
   }
 
   .cabecalho-relatorio h1 {
-    margin: 0;
-    color: #000;
-    font-size: 16pt;
+    display: inline-block;
+    margin: 0 0 0 10px;
+    font-size: 14pt;
+    vertical-align: middle;
   }
 
   .conteudo-relatorio {
     display: table-row-group;
   }
 
-  .relatorio-impressao .neo-card {
-    box-shadow: none;
-    border: 0;
-    background: transparent;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .relatorio-impressao table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .relatorio-impressao thead {
-    display: table-header-group;
-  }
-
-  .relatorio-impressao tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .relatorio-impressao .text-\[var\(--text\)\] {
-    color: #000;
-  }
-
-  .relatorio-impressao .text-\[var\(--muted\)\] {
-    color: #444;
-  }
-
   .rodape-impressao {
     display: table-footer-group;
-    border-top: 1px solid #ccc;
-    padding-top: 5px;
-    color: #000;
     font-size: 8pt;
     text-align: right;
   }

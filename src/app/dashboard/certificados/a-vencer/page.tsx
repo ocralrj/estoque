@@ -208,27 +208,13 @@ export default async function CertificadosAVencerPage({
   const anos = [anoHoje - 2, anoHoje - 1, anoHoje, anoHoje + 1, anoHoje + 2, anoHoje + 3];
 
   return (
-    <div className="relatorio-impressao space-y-6">
-      {/* Cabeçalho do relatório: logo, referência, emissão e resumo.
-          Repetido em cada página pelo table-header-group do relatorio.css. */}
+    <div className="relatorio-impressao">
       <div className="cabecalho-relatorio">
-        <div className="flex items-center gap-4">
+        <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_ocral.png" alt="OCRAL" className="h-12 w-auto" />
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text)]">
-              Certificados a vencer
-            </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Referência: {MESES[mes - 1]} de {ano} · Emitido em{" "}
-              {formatDateTime(new Date().toISOString())}
-            </p>
-          </div>
+          <img src="/logo_ocral.png" alt="OCRAL" />
+          <h1>Certificados a vencer</h1>
         </div>
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          {vencidos.length} vencido(s) e {aVencer.length} a vencer em até 90
-          dias, entre os certificados que você acompanha.
-        </p>
       </div>
 
       <div className="nao-imprimir flex flex-wrap items-end gap-3">

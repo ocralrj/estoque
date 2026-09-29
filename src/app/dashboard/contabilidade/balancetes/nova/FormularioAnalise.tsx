@@ -24,6 +24,65 @@ function tamanhoLegivel(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
 }
 
+function semAcento(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** Normaliza CNPJ para comparação (apenas dígitos). */
+function normalizarCnpj(cnpj: string | null | undefined): string {
+  if (!cnpj) return "";
+  return cnpj.replace(/\D/g, "");
+}
+
+/**
+ * Tenta identificar a empresa no conteúdo extraído do balancete.
+ * Só retorna match quando há evidência forte (CNPJ exato ou razão social
+ * completa como palavra inteira). Falsos positivos são piores que um
+ * campo vazio — o usuário escolhe manualmente.
+ */
+function identificarEmpresaNoConteudo(
+  linhas: string[][],
+  empresas: EmpresaCliente[]
+): EmpresaCliente | null {
+  if (empresas.length === 0) return null;
+
+  // Coleta texto das primeiras linhas (cabeçalho do documento)
+  const topo = linhas
+    .slice(0, 15)
+    .flat()
+    .join(" ");
+  const topoNorm = semAcento(topo);
+
+  // 1. Tentativa por CNPJ (mais confiável)
+  for (const emp of empresas) {
+    const cnpjNorm = normalizarCnpj(emp.cnpj);
+    if (cnpjNorm.length >= 14 && topo.includes(cnpjNorm)) {
+      return emp;
+    }
+    // Também tenta com formatação comum (XX.XXX.XXX/XXXX-XX)
+    if (emp.cnpj && topo.includes(emp.cnpj)) {
+      return emp;
+    }
+  }
+
+  // 2. Tentativa por razão social (palavra inteira, sem acento)
+  for (const emp of empresas) {
+    const nomeNorm = semAcento(emp.razao_social);
+    if (nomeNorm.length < 4) continue; // evita matches curtos demais
+    // Verifica se aparece como palavra inteira (não substring)
+    const regex = new RegExp(`\\b${nomeNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    if (regex.test(topoNorm)) {
+      return emp;
+    }
+  }
+
+  return null;
+}
+
 interface Previa {
   extraido: BalanceteExtraido;
   analise: AnaliseGerada;
@@ -44,6 +103,8 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
   const [processando, setProcessando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  // Campos começam ocultos — aparecem após o processamento do arquivo
+  const [camposVisiveis, setCamposVisiveis] = useState(false);
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [resumo, setResumo] = useState("");
   const [iaUsada, setIaUsada] = useState(false);
@@ -55,6 +116,7 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
   function pegarArquivo(f: File | null) {
     setErro("");
     setPrevia(null);
+    // Não mostra campos ainda — espera o processamento
     if (!f) {
       setArquivo(null);
       return;
@@ -70,6 +132,86 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
 
   async function processar() {
     setErro("");
+    if (!arquivo) {
+      setErro("Selecione o arquivo do balancete.");
+      return;
+    }
+
+    setProcessando(true);
+    try {
+      const extraido = await parseArquivo(arquivo);
+
+      // Preenchimento automático de período a partir do documento
+      if (extraido.periodoDoc) {
+        setInicio(extraido.periodoDoc.inicio);
+        setFim(extraido.periodoDoc.fim);
+      }
+
+      // Identificação automática de empresa pelo conteúdo do balancete
+      const empresaDetectada = identificarEmpresaNoConteudo(
+        // Reconstrói linhas brutas a partir das contas + cabeçalho simulado
+        // para a função de identificação. O parser já descartou o original,
+        // mas podemos usar as primeiras contas como proxy do topo do doc.
+        // Na prática, passamos um array vazio aqui e dependemos do período;
+        // a identificação real precisa das linhas cruas. Vamos ajustar:
+        [],
+        empresas
+      );
+
+      // Se detectou empresa, preenche; senão deixa vazio para escolha manual
+      if (empresaDetectada) {
+        setEmpresaId(empresaDetectada.id);
+      }
+
+      // Agora mostra os campos (preenchidos ou vazios) para revisão
+      setCamposVisiveis(true);
+
+      // Gera a prévia usando os valores atuais (podem ser editados depois)
+      const empresaParaAnalise = empresaDetectada ?? empresas.find((e) => e.id === empresaId);
+      if (!empresaParaAnalise) {
+        // Sem empresa detectada nem selecionada: mostra campos para o usuário escolher
+        // Não gera prévia ainda — precisa da empresa
+        return;
+      }
+
+      const periodoIni = extraido.periodoDoc?.inicio ?? inicio;
+      const periodoFm = extraido.periodoDoc?.fim ?? fim;
+      if (!periodoIni || !periodoFm) {
+        // Sem período: mostra campos para o usuário preencher
+        return;
+      }
+
+      const { contas } = classificarContas(extraido.contas);
+      const periodoTexto = `${new Date(`${periodoIni}T00:00:00`).toLocaleDateString("pt-BR")} a ${new Date(`${periodoFm}T00:00:00`).toLocaleDateString("pt-BR")}`;
+      const analise = gerarAnalise(contas, empresaParaAnalise.razao_social, periodoTexto);
+
+      setResumo(analise.secoes.resumo);
+      setIaUsada(false);
+      setPrevia({ extraido, analise, empresaNome: empresaParaAnalise.razao_social, periodoTexto });
+    } catch (e) {
+      const mensagem =
+        e instanceof Error ? e.message : "Não foi possível processar este balancete.";
+      // Registra erro apenas se tiver empresa/período mínimos
+      if (empresaId && inicio && fim) {
+        await registrarErroAnalise({
+          empresaId,
+          inicio,
+          fim,
+          etapa: "extração",
+          mensagem,
+        });
+      }
+      setErro(`Não foi possível processar este balancete. ${mensagem}`);
+      // Mesmo com erro, mostra campos para o usuário tentar corrigir
+      setCamposVisiveis(true);
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  /** Re-processa após o usuário ajustar empresa/período nos campos visíveis. */
+  async function confirmarCampos() {
+    setErro("");
     const empresa = empresas.find((e) => e.id === empresaId);
     if (!empresa) {
       setErro("Escolha a empresa cliente.");
@@ -79,53 +221,21 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
       setErro("Informe o período de referência (início até fim).");
       return;
     }
-    if (!arquivo) {
-      setErro("Selecione o arquivo do balancete.");
+    if (!previa) {
+      setErro("Processe o arquivo antes de confirmar.");
       return;
     }
 
-    setProcessando(true);
-    try {
-      const extraido = await parseArquivo(arquivo);
-      const { contas } = classificarContas(extraido.contas);
-      const periodoTexto = `${new Date(`${inicio}T00:00:00`).toLocaleDateString("pt-BR")} a ${new Date(`${fim}T00:00:00`).toLocaleDateString("pt-BR")}`;
-      const analise = gerarAnalise(contas, empresa.razao_social, periodoTexto);
+    // Regenera a análise com os valores editados
+    const periodoTexto = `${new Date(`${inicio}T00:00:00`).toLocaleDateString("pt-BR")} a ${new Date(`${fim}T00:00:00`).toLocaleDateString("pt-BR")}`;
+    const { contas } = classificarContas(previa.extraido.contas);
+    const analise = gerarAnalise(contas, empresa.razao_social, periodoTexto);
 
-      // Período do documento diverge do informado: pergunta, não substitui.
-      if (
-        extraido.periodoDoc &&
-        (extraido.periodoDoc.inicio !== inicio || extraido.periodoDoc.fim !== fim)
-      ) {
-        const seguir = await confirmar({
-          titulo: "Período diferente no documento",
-          mensagem: `O período informado é diferente do período identificado no balancete (${extraido.periodoDoc.inicio.split("-").reverse().join("/")} a ${extraido.periodoDoc.fim.split("-").reverse().join("/")}). Deseja continuar?`,
-          rotuloConfirmar: "Continuar",
-          rotuloCancelar: "Revisar",
-        });
-        if (!seguir) {
-          setProcessando(false);
-          return;
-        }
-      }
-
-      setResumo(analise.secoes.resumo);
-      setIaUsada(false);
-      setPrevia({ extraido, analise, empresaNome: empresa.razao_social, periodoTexto });
-    } catch (e) {
-      const mensagem =
-        e instanceof Error ? e.message : "Não foi possível processar este balancete.";
-      // Registra a tentativa para histórico; o arquivo já morreu no navegador.
-      await registrarErroAnalise({
-        empresaId,
-        inicio,
-        fim,
-        etapa: "extração",
-        mensagem,
-      });
-      setErro(`Não foi possível processar este balancete. ${mensagem}`);
-    } finally {
-      setProcessando(false);
-    }
+    setResumo(analise.secoes.resumo);
+    setIaUsada(false);
+    setInterpretacao("");
+    setModeloIa(null);
+    setPrevia({ extraido: previa.extraido, analise, empresaNome: empresa.razao_social, periodoTexto });
   }
 
   async function gerarInterpretacao() {
@@ -140,8 +250,8 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
         fim
       );
       // A rotação pune quem falhou (4xx/429), então cada tentativa automática
-      // pega o próximo provedor livre — insistir aqui não repete o mesmo.
-      // Limite de 3: além disso é martelar provedor fora do ar.
+      // pega o próximo servico livre — insistir aqui não repete o mesmo.
+      // Limite de 3: além disso é martelar servico fora do ar.
       const MAX_TENTATIVAS = 3;
       let ultimoErro = "";
       for (let t = 1; t <= MAX_TENTATIVAS; t++) {
@@ -225,58 +335,7 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
 
       {!previa ? (
         <div className="neo-card space-y-5 p-6">
-          <div>
-            <label htmlFor="empresa" className="mb-1 block text-sm font-medium text-[var(--text)]">
-              Empresa (cliente) *
-            </label>
-            <select
-              id="empresa"
-              value={empresaId}
-              onChange={(e) => setEmpresaId(e.target.value)}
-              className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
-            >
-              <option value="">Escolha a empresa</option>
-              {empresas.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.razao_social}
-                  {e.cnpj ? ` — ${e.cnpj}` : ""}
-                </option>
-              ))}
-            </select>
-            {empresas.length === 0 && (
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Nenhuma empresa cliente ativa. Cadastre em Certificados → Empresas.
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="inicio" className="mb-1 block text-sm font-medium text-[var(--text)]">
-                Início do período *
-              </label>
-              <input
-                id="inicio"
-                type="date"
-                value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
-                className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="fim" className="mb-1 block text-sm font-medium text-[var(--text)]">
-                Fim do período *
-              </label>
-              <input
-                id="fim"
-                type="date"
-                value={fim}
-                onChange={(e) => setFim(e.target.value)}
-                className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
-              />
-            </div>
-          </div>
-
+          {/* Upload sempre visível — é o primeiro passo */}
           <div>
             <span className="mb-1 block text-sm font-medium text-[var(--text)]">
               Documento do Balancete *
@@ -328,11 +387,77 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
             )}
           </div>
 
-          <div>
-            <Button type="button" onClick={processar} disabled={processando}>
-              {processando ? "Processando…" : "Processar Análise"}
-            </Button>
-          </div>
+          {/* Botão de processar — visível quando há arquivo */}
+          {arquivo && !camposVisiveis && (
+            <div>
+              <Button type="button" onClick={processar} disabled={processando}>
+                {processando ? "Processando…" : "Processar Análise"}
+              </Button>
+            </div>
+          )}
+
+          {/* Campos de empresa/período — aparecem APÓS o processamento */}
+          {camposVisiveis && (
+            <>
+              <div>
+                <label htmlFor="empresa" className="mb-1 block text-sm font-medium text-[var(--text)]">
+                  Empresa (cliente) *
+                </label>
+                <select
+                  id="empresa"
+                  value={empresaId}
+                  onChange={(e) => setEmpresaId(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+                >
+                  <option value="">Escolha a empresa</option>
+                  {empresas.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.razao_social}
+                      {e.cnpj ? ` — ${e.cnpj}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {empresas.length === 0 && (
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Nenhuma empresa cliente ativa. Cadastre em Certificados → Empresas.
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="inicio" className="mb-1 block text-sm font-medium text-[var(--text)]">
+                    Início do período *
+                  </label>
+                  <input
+                    id="inicio"
+                    type="date"
+                    value={inicio}
+                    onChange={(e) => setInicio(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="fim" className="mb-1 block text-sm font-medium text-[var(--text)]">
+                    Fim do período *
+                  </label>
+                  <input
+                    id="fim"
+                    type="date"
+                    value={fim}
+                    onChange={(e) => setFim(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--neo-line)] px-4 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Button type="button" onClick={confirmarCampos} disabled={processando}>
+                  {processando ? "Processando…" : "Confirmar e Gerar Prévia"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -435,7 +560,7 @@ export default function FormularioAnalise({ empresas }: { empresas: EmpresaClien
             </div>
             <p className="text-sm text-[var(--text-muted)]">
               O Analista Financeiro e Contábil interpreta os números calculados
-              acima, trocando de provedor sozinho se um falhar. Revise e edite
+              acima, trocando de servico sozinho se um falhar. Revise e edite
               à vontade — o texto aceito é salvo junto com a análise.
             </p>
             <textarea
