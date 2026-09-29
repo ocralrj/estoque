@@ -87,8 +87,8 @@ export function getAiConfig(): AiConfig {
 
 // ---------------------------------------------------------------
 // Rotação de provedores com fallback automático (docs/IA_ROTACAO_GUIA.md).
-// Ordem padrão: Claude SS primeiro (único rápido/vivo);
-// IA_PREFERIDA=openrouter inverte. Sem chave: tudo degrada para manual.
+// Ordem padrão: Gemini primeiro (grátis); IA_PREFERIDA=openrouter inverte.
+// Sem chave: tudo degrada para manual.
 // ---------------------------------------------------------------
 
 /** Modelos gratuitos verificados no OpenRouter (lista pública). */
@@ -136,7 +136,7 @@ export function getModelosOpenRouter(tarefa: "texto" | "visao"): string[] {
 
 export type PreferenciaIA = "gemini" | "openrouter" | "openai";
 
-/** Quem tenta primeiro. Padrão do projeto: Claude SS (único rápido/vivo). */
+/** Quem tenta primeiro. Padrão do projeto: Gemini (grátis). */
 export function getPreferenciaIA(): PreferenciaIA {
   const v = (process.env.IA_PREFERIDA || "").toLowerCase();
   if (v === "openrouter") return "openrouter";
@@ -144,29 +144,10 @@ export function getPreferenciaIA(): PreferenciaIA {
   return "gemini";
 }
 
-/** Chave do proxy Claude SS (endpoint compatível com OpenAI). Só no servidor. */
-export function getChaveClaudeSs(): string | null {
-  return process.env.CLAUDE_SS_API_KEY?.trim() || null;
-}
-
-/** Base do proxy Claude SS. */
-export function getBaseClaudeSs(): string {
-  return (process.env.CLAUDE_SS_BASE_URL?.trim() || "https://claude-ss.ia.br").replace(
-    /\/$/,
-    ""
-  );
-}
-
-/** Modelo do proxy Claude SS (id exato do painel). */
-export function getModeloClaudeSs(): string | null {
-  return process.env.CLAUDE_SS_MODEL?.trim() || null;
-}
-
 /** Há ao menos uma chave de IA (qualquer provedor)? */
 export function temAlgumaChaveIA(): boolean {
   if (getChavesGemini().length > 0) return true;
   if (getChaveOpenRouter()) return true;
-  if (getChaveClaudeSs() && getModeloClaudeSs()) return true;
   const legada =
     process.env.AI_API_KEY || process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
   return Boolean(legada?.trim());
