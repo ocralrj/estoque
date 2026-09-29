@@ -97,7 +97,7 @@ function montarCandidatos(
   // não de repetir no mesmo alvo.
   const chavesGemini = getChavesGemini();
   const modeloGemini =
-    config.provider === "gemini" ? config.model || "gemini-2.0-flash" : "gemini-2.0-flash";
+    config.provider === "gemini" ? config.model || "gemini-3.7-flash" : "gemini-3.7-flash";
   const gemini: Candidato[] = chavesGemini.map((chave, i) => ({
     id: `gemini:${i}`,
     rotulo: `gemini/${modeloGemini}`,

@@ -53,7 +53,7 @@ Com chave, o padrão é **Google Gemini** (AI Studio, tier gratuito).
 AI_SUGGESTIONS_ENABLED=true
 AI_PROVIDER=gemini
 GEMINI_API_KEY=AIza...
-AI_MODEL=gemini-2.0-flash
+AI_MODEL=gemini-3.7-flash
 ```
 
 Guia completo: [GUIA_GEMINI_IA.md](./GUIA_GEMINI_IA.md)

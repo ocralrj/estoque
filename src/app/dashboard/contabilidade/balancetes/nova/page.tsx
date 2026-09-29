@@ -2,6 +2,9 @@ import { exigirPermissao } from "@/lib/permissoes";
 import { listarEmpresasClientes } from "@/app/actions/contabilidade";
 import FormularioAnalise from "./FormularioAnalise";
 
+// A interpretação por IA leva até ~55 s (orçamento próprio da tarefa).
+export const maxDuration = 60;
+
 export default async function NovaAnalisePage() {
   await exigirPermissao("contabilidade", "balancetes", "create");
   const empresas = await listarEmpresasClientes();

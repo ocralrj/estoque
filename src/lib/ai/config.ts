@@ -56,7 +56,7 @@ export function getAiConfig(): AiConfig {
   const model =
     process.env.AI_MODEL ||
     (provider === "gemini"
-      ? process.env.GEMINI_MODEL || "gemini-2.0-flash"
+      ? process.env.GEMINI_MODEL || "gemini-3.7-flash"
       : process.env.OPENAI_MODEL || "gpt-4o-mini");
 
   // Interruptor geral; a presença de chave (qualquer provedor) liga o recurso.

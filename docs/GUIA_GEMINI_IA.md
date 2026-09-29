@@ -19,7 +19,7 @@ Crie/edite `.env.local` na raiz do projeto:
 AI_SUGGESTIONS_ENABLED=true
 AI_PROVIDER=gemini
 GEMINI_API_KEY=AIza...sua_chave...
-AI_MODEL=gemini-2.0-flash
+AI_MODEL=gemini-3.7-flash
 ```
 
 Reinicie o `npm run dev`.
@@ -34,7 +34,7 @@ Reinicie o `npm run dev`.
 | `GEMINI_API_KEY` | `AIza...` | Production, Preview |
 | `AI_PROVIDER` | `gemini` | Production, Preview |
 | `AI_SUGGESTIONS_ENABLED` | `true` | Production, Preview |
-| `AI_MODEL` | `gemini-2.0-flash` | Production, Preview |
+| `AI_MODEL` | `gemini-3.7-flash` | Production, Preview |
 
 3. **Redeploy** (Deployments → ⋯ → Redeploy) para aplicar as variáveis.
 
@@ -44,9 +44,9 @@ Sem a chave, o sistema continua em **modo local** (regras, sem modelo).
 
 | Modelo | Uso |
 |--------|-----|
-| `gemini-2.0-flash` | Padrão — rápido e bom para sugestões |
+| `gemini-3.7-flash` | Padrão — rápido e bom para sugestões |
 | `gemini-1.5-flash` | Alternativa estável |
-| `gemini-2.5-flash` | Se disponível na sua conta |
+| `gemini-3.7-flash` | Se disponível na sua conta |
 
 ## 5. Testar
 

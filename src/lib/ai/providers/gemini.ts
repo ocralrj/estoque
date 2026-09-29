@@ -58,7 +58,7 @@ async function callGeminiOnce(
     contents.unshift({ role: "user", parts: [{ text: "(contexto)" }] });
   }
 
-  const model = config.model || "gemini-2.0-flash";
+  const model = config.model || "gemini-3.7-flash";
   const url = `${config.baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(config.apiKey!)}`;
 
   const body: Record<string, unknown> = {

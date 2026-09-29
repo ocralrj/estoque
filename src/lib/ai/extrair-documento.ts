@@ -80,7 +80,7 @@ async function extrairComGemini(
   textoConteudo: string | undefined,
   cfg: { baseUrl: string; model: string; apiKey: string; timeoutMs: number }
 ): Promise<ExtracaoResultado> {
-  const model = cfg.model || "gemini-2.0-flash";
+  const model = cfg.model || "gemini-3.7-flash";
   const url = `${cfg.baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), cfg.timeoutMs);

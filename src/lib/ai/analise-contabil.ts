@@ -60,7 +60,11 @@ Prompt-version: ${PROMPT_ANALISE_CONTABIL_VERSION}`;
 
 export type ResultadoInterpretacao =
   | { ok: true; texto: string; modelo: string; prompt_version: string }
-  | { ok: false; codigo: "RATE_LIMIT" | "NOT_CONFIGURED" | "PROVIDER"; mensagem: string };
+  | {
+      ok: false;
+      codigo: "RATE_LIMIT" | "NOT_CONFIGURED" | "TIMEOUT" | "PROVIDER";
+      mensagem: string;
+    };
 
 /**
  * Gera a interpretação em texto. A IA nunca vê o arquivo original — só os
@@ -92,7 +96,10 @@ export async function gerarInterpretacaoContabil(
   }
 
   try {
-    const result = await gerarTextoComRotacao(config, [
+    // Análise completa é saída longa: orçamento próprio, maior que o das
+    // sugestões curtas (25 s / 800 tokens não bastam — medido em produção).
+    const tarefa = { ...config, timeoutMs: 55000, maxTokens: 4000 };
+    const result = await gerarTextoComRotacao(tarefa, [
       { role: "system", content: promptAnalistaContabil() },
       {
         role: "user",
@@ -107,7 +114,15 @@ export async function gerarInterpretacaoContabil(
       modelo: result.model || "desconhecido",
       prompt_version: PROMPT_ANALISE_CONTABIL_VERSION,
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "TIMEOUT") {
+      return {
+        ok: false,
+        codigo: "TIMEOUT",
+        mensagem:
+          "A IA demorou demais para a análise completa. Tente novamente — outro provedor da rotação pode responder.",
+      };
+    }
     return {
       ok: false,
       codigo: "PROVIDER",
