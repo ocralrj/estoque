@@ -29,18 +29,10 @@
     display: none !important;
   }
 
-  /* Cabeçalho fixo repetido pelo navegador em cada página impressa */
+  /* Cabeçalho como elemento de tabela para repetir em cada página */
   .cabecalho-relatorio {
-    position: fixed;
-    top: -33mm;
-    left: 0;
-    right: 0;
-    height: 30mm;
-    display: flex;
-    align-items: center;
-    margin: 0;
-    background: #fff;
-    z-index: 2;
+    display: table-header-group;
+    margin-bottom: 10mm;
   }
 
   .cabecalho-relatorio img {
@@ -54,13 +46,10 @@
     font-size: 16pt;
   }
 
-  .cabecalho-relatorio p {
-    display: none !important;
-  }
-
-  /* Conteúdo principal — afastado do cabeçalho fixo */
+  /* Conteúdo principal */
   .conteudo-relatorio {
-    margin-top: 34mm;
+    display: table-row-group;
+    margin-top: 0;
   }
 
   .relatorio-impressao .neo-card {
@@ -100,21 +89,14 @@
 
   /* Rodapé fixo com contador de páginas */
   .rodape-impressao {
-    position: fixed;
-    bottom: -22mm;
-    left: 0;
-    right: 0;
-    height: 16mm;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 2mm;
-    border: 0;
+    display: block;
     border-top: 1px solid #ccc;
-    background: #fff;
+    padding-top: 5px;
+    margin-top: 10px;
     color: #000;
     font-size: 8pt;
     text-align: left;
+    break-inside: avoid;
   }
 
   .rodape-impressao .pagina::after {
