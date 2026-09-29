@@ -1,6 +1,9 @@
 import {
+  getBaseClaudeSs,
+  getChaveClaudeSs,
   getChaveOpenRouter,
   getChavesGemini,
+  getModeloClaudeSs,
   getModelosOpenRouter,
   getPreferenciaIA,
   type AiConfig,
@@ -18,8 +21,8 @@ export type { ChatMessage, ProviderResult };
  * Orquestrador de provedores com fallback automático (docs/IA_ROTACAO_GUIA.md).
  *
  * O chamador nunca escolhe modelo: tenta Gemini (rotação de chaves),
- * OpenRouter (rotação de modelos) e o caminho legado OpenAI-compatível,
- * na ordem da preferência. Erro 429/401/402/403/404 pune o alvo
+ * Claude SS (proxy OpenAI-compatível), OpenRouter (rotação de modelos) e o
+ * caminho legado OpenAI-compatível, na ordem da preferência. Erro 429/401/402/403/404 pune o alvo
  * (15 min / 24 h); timeout, rede e resposta vazia são transientes e o
  * próximo é tentado na hora. Quem está de castigo vai para o fim da
  * fila, mas continua sendo tentado; sucesso limpa o castigo.
@@ -127,6 +130,31 @@ function montarCandidatos(
       }))
     : [];
 
+  // Proxy Claude SS (OpenAI-compatível): entra logo após o Gemini, com o
+  // modelo exato do painel. Chave só no servidor, nunca no cliente.
+  const chaveSS = getChaveClaudeSs();
+  const modeloSS = getModeloClaudeSs();
+  const claudess: Candidato[] =
+    chaveSS && modeloSS
+      ? [
+          {
+            id: "claudess",
+            rotulo: `claudess/${modeloSS}`,
+            executar: () =>
+              chatCompletion(
+                {
+                  ...config,
+                  apiKey: chaveSS,
+                  baseUrl: getBaseClaudeSs(),
+                  model: modeloSS,
+                  maxRetries: 0,
+                },
+                messages
+              ),
+          },
+        ]
+      : [];
+
   // Caminho legado OpenAI-compatível (Groq etc.): só entra se foi o
   // escolhido ou se é a única chave — preserva o comportamento anterior.
   const legado: Candidato[] =
@@ -142,9 +170,9 @@ function montarCandidatos(
       : [];
 
   const pref = getPreferenciaIA();
-  if (pref === "openrouter") return [...openrouter, ...gemini, ...legado];
-  if (pref === "openai") return [...legado, ...gemini, ...openrouter];
-  return [...gemini, ...openrouter, ...legado];
+  if (pref === "openrouter") return [...openrouter, ...claudess, ...gemini, ...legado];
+  if (pref === "openai") return [...legado, ...claudess, ...gemini, ...openrouter];
+  return [...gemini, ...claudess, ...openrouter, ...legado];
 }
 
 export async function gerarTextoComRotacao(

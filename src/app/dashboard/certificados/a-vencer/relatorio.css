@@ -3,7 +3,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 38mm 10mm 25mm;
+    margin: 10mm;
   }
 
   body * {
@@ -16,9 +16,6 @@
   }
 
   .relatorio-impressao {
-    position: absolute;
-    left: 0;
-    top: 0;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -29,35 +26,23 @@
     display: none !important;
   }
 
-  /* Cabeçalho como elemento de tabela para repetir em cada página */
   .cabecalho-relatorio {
     display: table-header-group;
-    margin-bottom: 10mm;
   }
 
   .cabecalho-relatorio img {
-    height: 12mm;
+    height: 25px;
     width: auto;
   }
 
   .cabecalho-relatorio h1 {
-    margin: 0;
+    margin: 0 0 5px 0;
     color: #000;
-    font-size: 16pt;
+    font-size: 14pt;
   }
 
-  /* Conteúdo principal */
   .conteudo-relatorio {
     display: table-row-group;
-    margin-top: 0;
-  }
-
-  .relatorio-impressao .neo-card {
-    box-shadow: none;
-    border: 0;
-    background: transparent;
-    padding-left: 0;
-    padding-right: 0;
   }
 
   .relatorio-impressao table {
@@ -65,38 +50,19 @@
     border-collapse: collapse;
   }
 
-  .relatorio-impressao thead {
-    display: table-header-group;
-  }
-
   .relatorio-impressao tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  .relatorio-impressao h2 {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  .relatorio-impressao .text-\[var\(--text\)\] {
-    color: #000;
-  }
-
-  .relatorio-impressao .text-\[var\(--muted\)\] {
-    color: #444;
-  }
-
-  /* Rodapé fixo com contador de páginas */
   .rodape-impressao {
-    display: block;
+    display: table-footer-group;
     border-top: 1px solid #ccc;
     padding-top: 5px;
     margin-top: 10px;
     color: #000;
     font-size: 8pt;
     text-align: left;
-    break-inside: avoid;
   }
 
   .rodape-impressao .pagina::after {
