@@ -66,7 +66,11 @@ async function callGeminiOnce(
     generationConfig: {
       temperature: config.temperature,
       maxOutputTokens: config.maxTokens,
-      responseMimeType: "application/json",
+      // Tarefas de texto livre (ex.: análise contábil) pedem markdown e não
+      // podem receber o modo JSON forçado.
+      ...(config.respostaJson === false
+        ? {}
+        : { responseMimeType: "application/json" }),
     },
   };
 

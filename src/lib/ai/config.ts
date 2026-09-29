@@ -17,6 +17,12 @@ export interface AiConfig {
   temperature: number;
   maxTokens: number;
   rateLimitPerUserPerHour: number;
+  /**
+   * Forçar saída JSON (response_format/responseMimeType). Padrão ligado para
+   * não mudar o pipeline de sugestões; tarefas de texto livre (análise)
+   * desligam explicitamente.
+   */
+  respostaJson?: boolean;
 }
 
 export function getAiConfig(): AiConfig {
@@ -81,7 +87,7 @@ export function getAiConfig(): AiConfig {
 
 // ---------------------------------------------------------------
 // Rotação de provedores com fallback automático (docs/IA_ROTACAO_GUIA.md).
-// Ordem padrão: Gemini primeiro (custo zero, padrão do projeto);
+// Ordem padrão: Claude SS primeiro (único rápido/vivo);
 // IA_PREFERIDA=openrouter inverte. Sem chave: tudo degrada para manual.
 // ---------------------------------------------------------------
 
@@ -130,7 +136,7 @@ export function getModelosOpenRouter(tarefa: "texto" | "visao"): string[] {
 
 export type PreferenciaIA = "gemini" | "openrouter" | "openai";
 
-/** Quem tenta primeiro. Padrão do projeto: Gemini (grátis). */
+/** Quem tenta primeiro. Padrão do projeto: Claude SS (único rápido/vivo). */
 export function getPreferenciaIA(): PreferenciaIA {
   const v = (process.env.IA_PREFERIDA || "").toLowerCase();
   if (v === "openrouter") return "openrouter";

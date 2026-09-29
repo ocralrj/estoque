@@ -98,7 +98,7 @@ export async function gerarInterpretacaoContabil(
   try {
     // Análise completa é saída longa: orçamento próprio, maior que o das
     // sugestões curtas (25 s / 800 tokens não bastam — medido em produção).
-    const tarefa = { ...config, timeoutMs: 55000, maxTokens: 4000 };
+    const tarefa = { ...config, timeoutMs: 55000, maxTokens: 4000, respostaJson: false };
     const result = await gerarTextoComRotacao(tarefa, [
       { role: "system", content: promptAnalistaContabil() },
       {
@@ -115,7 +115,14 @@ export async function gerarInterpretacaoContabil(
       prompt_version: PROMPT_ANALISE_CONTABIL_VERSION,
     };
   } catch (err) {
-    if (err instanceof Error && err.message === "TIMEOUT") {
+    // A mensagem da rotação já é agregada e sanitizada (rótulo + motivo
+    // curto, sem corpo de resposta nem URL) — repassa o motivo real.
+    const msg = err instanceof Error ? err.message : String(err);
+    const detalhe = msg.slice(0, 300);
+    const soTimeout =
+      msg === "TIMEOUT" ||
+      (/TIMEOUT/.test(msg) && !/HTTP \d{3}|resposta vazia|SEM_CHAVE|falha/i.test(msg));
+    if (soTimeout) {
       return {
         ok: false,
         codigo: "TIMEOUT",
@@ -126,7 +133,7 @@ export async function gerarInterpretacaoContabil(
     return {
       ok: false,
       codigo: "PROVIDER",
-      mensagem: "Não foi possível gerar a interpretação agora. Tente novamente.",
+      mensagem: `Não foi possível gerar a interpretação agora (${detalhe}). Tente novamente.`,
     };
   }
 }

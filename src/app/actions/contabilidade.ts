@@ -447,6 +447,8 @@ export async function interpretarBalancete(
   }
 
   const res = await gerarInterpretacaoContabil(user.id, entrada);
+  // Repassa a mensagem agregada (já sanitizada pela rotação) para o usuário
+  // ver o motivo real na tela, em vez de um texto genérico.
   if (!res.ok) return { ok: false, message: res.mensagem };
   return {
     ok: true,

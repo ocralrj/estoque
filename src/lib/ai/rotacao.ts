@@ -20,8 +20,9 @@ export type { ChatMessage, ProviderResult };
 /**
  * Orquestrador de provedores com fallback automático (docs/IA_ROTACAO_GUIA.md).
  *
- * O chamador nunca escolhe modelo: tenta Gemini (rotação de chaves),
- * Claude SS (proxy OpenAI-compatível), OpenRouter (rotação de modelos) e o
+ * O chamador nunca escolhe modelo: tenta Claude SS (proxy OpenAI-compatível,
+ * único rápido/vivo), Gemini (rotação de chaves), OpenRouter (rotação de
+ * modelos) e o
  * caminho legado OpenAI-compatível, na ordem da preferência. Erro 429/401/402/403/404 pune o alvo
  * (15 min / 24 h); timeout, rede e resposta vazia são transientes e o
  * próximo é tentado na hora. Quem está de castigo vai para o fim da
@@ -43,7 +44,7 @@ interface Candidato {
 
 interface Castigo {
   ate: number;
-  motivo: "sem-cota" | "conta-chave" | "modelo-fora-do-ar";
+  motivo: "sem-cota" | "conta-chave" | "modelo-fora-do-ar" | "lento";
   rotulo: string;
 }
 
@@ -69,6 +70,12 @@ const CONTA_CHAVE_MS = 24 * 60 * 60 * 1000;
 const BASE_OPENROUTER = "https://openrouter.ai/api/v1";
 const LOG_MAXIMO = 30;
 
+/**
+ * Quem trava (timeout) sai da frente por 5 min: na próxima chamada a rotação
+ * já começa por outro candidato em vez de comer o orçamento de novo.
+ */
+const LENTO_MS = 5 * 60 * 1000;
+
 const castigos = new Map<string, Castigo>();
 const anel: EventoRotacao[] = [];
 const estatisticas = new Map<string, { chamadas: number; acertos: number }>();
@@ -78,7 +85,21 @@ function classificarFalha(msg: string): { ms: number; motivo: Castigo["motivo"] 
   if (/HTTP 429/.test(msg)) return { ms: SEM_COTA_MS, motivo: "sem-cota" };
   if (/HTTP 40[123]/.test(msg)) return { ms: CONTA_CHAVE_MS, motivo: "conta-chave" };
   if (/HTTP 404/.test(msg)) return { ms: CONTA_CHAVE_MS, motivo: "modelo-fora-do-ar" };
+  if (msg === "TIMEOUT") return { ms: LENTO_MS, motivo: "lento" };
   return null;
+}
+
+/**
+ * Resume sanitizado de uma falha: só rótulo + motivo curto. Nunca corpo de
+ * resposta nem URL (a URL do Gemini contém ?key=).
+ */
+function motivoCurto(msg: string): string {
+  if (msg === "TIMEOUT") return "TIMEOUT";
+  const http = /HTTP (\d{3})/.exec(msg);
+  if (http) return `HTTP ${http[1]}`;
+  if (/resposta vazia/i.test(msg)) return "resposta vazia";
+  if (/SEM_CHAVE/.test(msg)) return "SEM_CHAVE";
+  return "falha";
 }
 
 function deCastigo(id: string, agora: number): boolean {
@@ -130,8 +151,9 @@ function montarCandidatos(
       }))
     : [];
 
-  // Proxy Claude SS (OpenAI-compatível): entra logo após o Gemini, com o
-  // modelo exato do painel. Chave só no servidor, nunca no cliente.
+  // Proxy Claude SS (OpenAI-compatível): entra primeiro na ordem padrão
+  // (único rápido/vivo), com o modelo exato do painel. Chave só no servidor,
+  // nunca no cliente.
   const chaveSS = getChaveClaudeSs();
   const modeloSS = getModeloClaudeSs();
   const claudess: Candidato[] =
@@ -172,7 +194,7 @@ function montarCandidatos(
   const pref = getPreferenciaIA();
   if (pref === "openrouter") return [...openrouter, ...claudess, ...gemini, ...legado];
   if (pref === "openai") return [...legado, ...claudess, ...gemini, ...openrouter];
-  return [...gemini, ...claudess, ...openrouter, ...legado];
+  return [...claudess, ...gemini, ...openrouter, ...legado];
 }
 
 export async function gerarTextoComRotacao(
@@ -189,6 +211,7 @@ export async function gerarTextoComRotacao(
   );
 
   let ultimoErro: Error | null = null;
+  const falhas: string[] = [];
   for (const c of ordem) {
     const inicio = Date.now();
     try {
@@ -224,7 +247,11 @@ export async function gerarTextoComRotacao(
         duracaoMs: Date.now() - inicio,
       });
       if (pena) castigos.set(c.id, { ate: Date.now() + pena.ms, motivo: pena.motivo, rotulo: c.rotulo });
+      falhas.push(`${c.rotulo}: ${motivoCurto(msg)}`);
     }
+  }
+  if (falhas.length > 0) {
+    throw new Error(`Falha em todos os provedores (${falhas.length}): ${falhas.join("; ")}`);
   }
   throw ultimoErro ?? new Error("Nenhum provedor respondeu");
 }

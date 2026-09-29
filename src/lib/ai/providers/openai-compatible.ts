@@ -62,7 +62,11 @@ async function callOnce(
         messages,
         temperature: config.temperature,
         max_tokens: config.maxTokens,
-        response_format: { type: "json_object" },
+        // Tarefas de texto livre (ex.: análise contábil) pedem markdown e não
+        // podem receber o modo JSON forçado.
+        ...(config.respostaJson === false
+          ? {}
+          : { response_format: { type: "json_object" } }),
       }),
       signal: controller.signal,
     });

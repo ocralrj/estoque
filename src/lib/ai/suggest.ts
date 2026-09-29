@@ -138,7 +138,7 @@ export async function runAiSuggestPipeline(
         data: {
           ...localFallback(input),
           aviso:
-            msg === "TIMEOUT"
+            msg === "TIMEOUT" || msg.includes("TIMEOUT")
               ? "A IA demorou demais; usamos sugestão local."
               : "Falha temporária na IA; usamos sugestão local.",
         },
@@ -146,7 +146,7 @@ export async function runAiSuggestPipeline(
         prompt_version: PROMPT_VERSION,
       };
     }
-    if (msg === "TIMEOUT") {
+    if (msg === "TIMEOUT" || msg.includes("TIMEOUT")) {
       return {
         ok: false,
         code: "TIMEOUT",
